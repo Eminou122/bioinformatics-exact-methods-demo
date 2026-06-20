@@ -16,29 +16,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Typography */
+/* Typography with Logical Alignment */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif);
   font-weight: 700;
   color: var(--neutral-dark);
   line-height: 1.25;
+  text-align: start;
 }
 
 h1 {
   font-size: 2rem;
-  margin-bottom: var(--space-md);
+  margin-block-end: var(--space-md);
 }
 
 h2 {
-  font-size: 1.5rem;
-  margin-bottom: var(--space-sm);
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: var(--space-xs);
+  font-size: 1.35rem;
+  margin-block-end: var(--space-sm);
+  border-block-end: 2px solid var(--border-color);
+  padding-block-end: var(--space-xs);
 }
 
 p {
-  margin-bottom: var(--space-md);
+  margin-block-end: var(--space-md);
   color: var(--neutral-medium);
+  text-align: start;
 }
 
 /* Accessibility: Visible Focus States */
@@ -53,8 +55,9 @@ select:focus-visible,
 /* Layout Utilities */
 .container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
+  margin-inline: auto;
+  padding-block: var(--space-lg);
+  padding-inline: var(--space-md);
 }
 
 .card {
@@ -63,7 +66,7 @@ select:focus-visible,
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
-  margin-bottom: var(--space-lg);
+  margin-block-end: var(--space-lg);
   transition: box-shadow var(--transition-fast);
 }
 
@@ -71,12 +74,14 @@ select:focus-visible,
   box-shadow: var(--shadow-md);
 }
 
-/* Buttons */
+/* Touch-friendly Buttons (min 44x44px target) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-sm) var(--space-lg);
+  min-height: 44px;
+  padding-block: var(--space-sm);
+  padding-inline: var(--space-lg);
   font-size: 0.95rem;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -85,6 +90,7 @@ select:focus-visible,
   cursor: pointer;
   transition: all var(--transition-fast);
   text-decoration: none;
+  user-select: none;
 }
 
 .btn-primary {
@@ -111,12 +117,13 @@ select:focus-visible,
   background-color: var(--neutral-bg-hover);
 }
 
-/* Grid System */
+/* Responsive Grid System using logical spacing */
 .grid {
   display: grid;
   gap: var(--space-lg);
 }
 
+/* Responsive media queries */
 @media (min-width: 768px) {
   .grid-2 {
     grid-template-columns: 1fr 1fr;
@@ -126,9 +133,31 @@ select:focus-visible,
   }
 }
 
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+  }
+  .container {
+    padding-block: var(--space-md);
+    padding-inline: var(--space-sm);
+  }
+  .card {
+    padding: var(--space-md);
+    margin-block-end: var(--space-md);
+  }
+  .btn {
+    width: 100%; /* Full width buttons on mobile for better accessibility */
+  }
+}
+
 /* Graph SVG Elements */
 .graph-node {
   transition: all var(--transition-normal);
+  outline: none;
 }
 
 .graph-edge {
@@ -137,16 +166,43 @@ select:focus-visible,
 }
 
 /* Language selector */
-.lang-toggle {
-  background: none;
+.lang-selector-group {
+  display: inline-flex;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-card);
 }
 
-.lang-toggle:hover {
+.lang-btn {
+  background: none;
+  border: none;
+  min-height: 40px;
+  padding-inline: var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--neutral-medium);
+}
+
+.lang-btn:hover {
   background-color: var(--neutral-bg-hover);
+}
+
+.lang-btn.active {
+  background-color: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+/* RTL Helpers */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-inline-start: var(--space-lg);
+}
+
+[dir="ltr"] ul,
+[dir="ltr"] ol {
+  padding-inline-start: var(--space-lg);
 }

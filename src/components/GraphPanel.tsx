@@ -1,6 +1,7 @@
 import React from 'react';
 import { DirectedGraph } from './DirectedGraph';
 import { GenomicGraph } from './GenomicGraph';
+import type { Language, TranslationDict } from '../i18n/types';
 
 interface GraphPanelProps {
   vertices: string[];
@@ -11,7 +12,8 @@ interface GraphPanelProps {
   activePath: string[];
   isFinalResult: boolean;
   isAcceptedStep: boolean;
-  lang: 'fr' | 'en';
+  lang: Language;
+  dict: TranslationDict;
 }
 
 export const GraphPanel: React.FC<GraphPanelProps> = ({
@@ -24,11 +26,12 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
   isFinalResult,
   isAcceptedStep,
   lang,
+  dict,
 }) => {
   return (
-    <section className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBottom: 'var(--space-md)' }}>
-        {lang === 'fr' ? 'Visualisation des Graphes' : 'Graph Visualization'}
+    <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBlockEnd: 'var(--space-md)' }}>
+        {dict.visTitle}
       </h2>
 
       <div className="grid grid-2" style={{ gap: 'var(--space-md)' }}>
@@ -43,11 +46,10 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
             isFinalResult={isFinalResult}
             isAcceptedStep={isAcceptedStep}
             lang={lang}
+            dict={dict}
           />
-          <p style={{ fontSize: '0.8rem', marginTop: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
-            {lang === 'fr' 
-              ? 'Le graphe orienté D représente l\'écoulement métabolique (flèches).' 
-              : 'Directed graph D represents the metabolic flow (arrows).'}
+          <p style={{ fontSize: '0.8rem', marginBlockStart: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
+            {dict.visDescD}
           </p>
         </div>
 
@@ -62,11 +64,10 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
             isFinalResult={isFinalResult}
             isAcceptedStep={isAcceptedStep}
             lang={lang}
+            dict={dict}
           />
-          <p style={{ fontSize: '0.8rem', marginTop: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
-            {lang === 'fr' 
-              ? 'Le graphe non-orienté G représente la contiguïté génomique (traits pleins si induits, pointillés si inactifs).' 
-              : 'Undirected graph G represents genomic proximity (solid if induced, dashed if inactive).'}
+          <p style={{ fontSize: '0.8rem', marginBlockStart: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
+            {dict.visDescG}
           </p>
         </div>
       </div>

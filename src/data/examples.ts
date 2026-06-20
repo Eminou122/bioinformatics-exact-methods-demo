@@ -2,10 +2,13 @@ export interface ExampleDataset {
   id: string;
   titleFr: string;
   titleEn: string;
+  titleAr: string;
   descriptionFr: string;
   descriptionEn: string;
+  descriptionAr: string;
   teachingPointFr: string;
   teachingPointEn: string;
+  teachingPointAr: string;
   vertices: string[];
   edgesD: { from: string; to: string }[];
   edgesG: { u: string; v: string }[];
@@ -17,10 +20,13 @@ export const examples: ExampleDataset[] = [
     id: 'simple-valide',
     titleFr: '1. Exemple simple valide',
     titleEn: '1. Simple valid example',
+    titleAr: '١. مثال بسيط صالح',
     descriptionFr: 'Une chaîne linéaire simple où chaque réaction successive est aussi adjacente génomiquement.',
     descriptionEn: 'A simple linear chain where each consecutive reaction is also genomically adjacent.',
+    descriptionAr: 'سلسلة خطية بسيطة حيث يكون كل تفاعل متتال متجاوراً جينومياً أيضاً.',
     teachingPointFr: 'Chaque réaction dans la chaîne métabolique reste connectée génomiquement.',
     teachingPointEn: 'Every reaction in the metabolic chain remains genomically connected.',
+    teachingPointAr: 'كل تفاعل في السلسلة الاستقلابية يظل متصلاً جينومياً.',
     vertices: ['R1', 'R2', 'R3', 'R4'],
     edgesD: [
       { from: 'R1', to: 'R2' },
@@ -43,10 +49,13 @@ export const examples: ExampleDataset[] = [
     id: 'longest-rejected',
     titleFr: '2. Le plus long chemin est rejeté',
     titleEn: '2. The longest path is rejected',
+    titleAr: '٢. رفض أطول مسار غير متسق',
     descriptionFr: 'Le plus long chemin métabolique dans D contient un sommet (R4) qui est isolé génomiquement dans G.',
     descriptionEn: 'The longest metabolic path in D contains a vertex (R4) that is genomically isolated in G.',
+    descriptionAr: 'يحتوي أطول مسار استقلابي في D على رأس (R4) معزول جينومياً في G.',
     teachingPointFr: 'La plus longue chaîne métabolique n\'est pas nécessairement cohérente génomiquement.',
     teachingPointEn: 'The longest metabolic chain is not necessarily genomically coherent.',
+    teachingPointAr: 'أطول سلسلة استقلابية ليست بالضرورة متسقة جينومياً.',
     vertices: ['R1', 'R2', 'R3', 'R4', 'R5'],
     edgesD: [
       { from: 'R1', to: 'R2' },
@@ -71,10 +80,13 @@ export const examples: ExampleDataset[] = [
     id: 'multiple-candidates',
     titleFr: '3. Plusieurs chemins candidats',
     titleEn: '3. Multiple candidate paths',
+    titleAr: '٣. مسارات متعددة مرشحة',
     descriptionFr: 'Un graphe avec plusieurs embranchements et fusions de chemins. La méthode exacte trouve le meilleur chemin cohérent.',
     descriptionEn: 'A graph with branching and merging paths. The exact method finds the optimal consistent path.',
+    descriptionAr: 'مخطط ذو مسارات متفرعة ومندمجة. تجد الطريقة الدقيقة المسار المتسق الأمثل.',
     teachingPointFr: 'La méthode vérifie tous les candidats exactement, puis choisit le meilleur valide.',
     teachingPointEn: 'The method checks all candidates exactly, then chooses the best valid one.',
+    teachingPointAr: 'تتحقق الطريقة من كل المرشحين بدقة، ثم تختار أفضل مسار صالح.',
     vertices: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'],
     edgesD: [
       { from: 'R1', to: 'R2' },

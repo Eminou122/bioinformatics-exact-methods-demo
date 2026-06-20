@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Language, TranslationDict } from '../i18n/types';
 
 interface GenomicGraphProps {
   vertices: string[];
@@ -8,7 +9,8 @@ interface GenomicGraphProps {
   activePath: string[];
   isFinalResult: boolean;
   isAcceptedStep: boolean;
-  lang: 'fr' | 'en';
+  lang: Language;
+  dict: TranslationDict;
 }
 
 export const GenomicGraph: React.FC<GenomicGraphProps> = ({
@@ -20,6 +22,7 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
   isFinalResult,
   isAcceptedStep,
   lang,
+  dict,
 }) => {
   const radius = 22;
 
@@ -36,16 +39,29 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '300px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+    <div 
+      dir="ltr" /* Force Left-To-Right direction on container to prevent graph mirroring */
+      style={{ 
+        position: 'relative', 
+        width: '100%', 
+        height: '300px', 
+        border: '1px solid var(--border-color)', 
+        borderRadius: 'var(--radius-md)', 
+        backgroundColor: '#ffffff', 
+        overflow: 'hidden' 
+      }}
+    >
       <svg
         viewBox="0 0 600 300"
         width="100%"
         height="100%"
         style={{ display: 'block' }}
         aria-label={
-          lang === 'fr'
-            ? `Graphe de proximité génomique G. Liaisons non-orientées.`
-            : `Genomic proximity graph G. Undirected links.`
+          lang === 'ar'
+            ? `مخطط التقارب الجينومي G. روابط غير موجهة.`
+            : (lang === 'fr'
+              ? `Graphe de proximité génomique G. Liaisons non-orientées.`
+              : `Genomic proximity graph G. Undirected links.`)
         }
       >
         <text
@@ -58,7 +74,7 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
             fill: 'var(--neutral-medium)',
           }}
         >
-          {lang === 'fr' ? 'Graphe G — Proximité génomique' : 'Graph G — Genomic proximity'}
+          {dict.legendGTitle}
         </text>
 
         {/* Draw Edges */}

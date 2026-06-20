@@ -1,10 +1,11 @@
+import { hasCycle, validateGraphs } from './graph';
 
 export interface PathEvaluation {
   path: string[];
   isAccepted: boolean;
-  reason: string;      // French explanation
-  reasonEn: string;    // English explanation
   isBestSoFar: boolean;
+  reasonCode: 'SINGLE_NODE' | 'CONNECTED' | 'DISCONNECTED';
+  disconnectedVertices: string[];
 }
 
 export interface SolverResult {
@@ -14,6 +15,11 @@ export interface SolverResult {
   evaluations: PathEvaluation[];
   longestPathD: string[] | null;
   longestConsistentPath: string[] | null;
+  error?: {
+    code: 'CYCLE_DETECTED' | 'INVALID_NODE_D' | 'INVALID_NODE_G' | 'DUPLICATE_EDGE_D' | 'DUPLICATE_EDGE_G';
+    node?: string;
+    message?: string;
+  };
 }
 
 /**
@@ -130,18 +136,49 @@ export function isInducedGConnected(path: string[], edgesG: { u: string; v: stri
 
 /**
  * Solves the (D,G)-consistent path problem exactly.
+ * Validates D and G structure first. Cycle detection is run before enumeration.
  */
 export function solveConsistentPath(
   vertices: string[],
   edgesD: { from: string; to: string }[],
   edgesG: { u: string; v: string }[]
 ): SolverResult {
-  // Enumerate all candidate paths in D
+  // 1. Structural checks and duplicate edge detection
+  const validation = validateGraphs(vertices, edgesD, edgesG);
+  if (!validation.isValid) {
+    return {
+      allPaths: [],
+      evaluatedPathsCount: 0,
+      acceptedPathsCount: 0,
+      evaluations: [],
+      longestPathD: null,
+      longestConsistentPath: null,
+      error: {
+        code: validation.errorCode!,
+        node: validation.invalidNode,
+        message: validation.error,
+      },
+    };
+  }
+
+  // 2. Cycle detection before path enumeration
+  if (hasCycle(vertices, edgesD)) {
+    return {
+      allPaths: [],
+      evaluatedPathsCount: 0,
+      acceptedPathsCount: 0,
+      evaluations: [],
+      longestPathD: null,
+      longestConsistentPath: null,
+      error: {
+        code: 'CYCLE_DETECTED',
+      },
+    };
+  }
+
+  // 3. Enumerate all paths in D
   const allPaths = enumeratePaths(vertices, edgesD);
 
-  // Let's sort all paths in D using the deterministic tie-breaker to find the "longest path in D"
-  // Keep original order of paths for evaluation progression or use deterministic ordering.
-  // Standard BFS/DFS order is intuitive for explanation. Let's evaluate in DFS order.
   const evaluations: PathEvaluation[] = [];
   let bestConsistent: string[] | null = null;
   let acceptedCount = 0;
@@ -160,66 +197,58 @@ export function solveConsistentPath(
       }
     }
 
-    // Determine reason for FR and EN
-    let reason: string;
-    let reasonEn: string;
-    if (path.length === 1) {
-      reason = `Un seul sommet est toujours connecté génomiquement par définition.`;
-      reasonEn = `A single vertex is always genomically connected by definition.`;
-    } else {
-      if (isAccepted) {
-        reason = `Tous les sommets de ce chemin [${path.join(', ')}] sont connectés dans le graphe génomique G.`;
-        reasonEn = `All vertices in this path [${path.join(', ')}] are connected in the genomic graph G.`;
-      } else {
-        // Find isolated vertex or disconnected parts
-        const pathNodes = new Set(path);
-        const adjG: Record<string, string[]> = {};
-        for (const node of path) adjG[node] = [];
-        for (const edge of edgesG) {
-          if (pathNodes.has(edge.u) && pathNodes.has(edge.v)) {
-            adjG[edge.u].push(edge.v);
-            adjG[edge.v].push(edge.u);
-          }
-        }
-        
-        // Find components or disconnected nodes
-        const unreached: string[] = [];
-        const visited = new Set<string>();
-        // Start BFS from path[0]
-        const queue = [path[0]];
-        visited.add(path[0]);
-        let head = 0;
-        while (head < queue.length) {
-          const u = queue[head++];
-          for (const v of adjG[u] || []) {
-            if (!visited.has(v)) {
-              visited.add(v);
-              queue.push(v);
-            }
-          }
-        }
-        for (const node of path) {
-          if (!visited.has(node)) {
-            unreached.push(node);
-          }
-        }
+    let reasonCode: 'SINGLE_NODE' | 'CONNECTED' | 'DISCONNECTED';
+    const disconnectedVertices: string[] = [];
 
-        reason = `Rejeté car le(s) sommet(s) [${unreached.join(', ')}] est/sont déconnecté(s) du reste du chemin dans le sous-graphe induit de G.`;
-        reasonEn = `Rejected because vertex/vertices [${unreached.join(', ')}] are disconnected from the rest of the path in the induced subgraph of G.`;
+    if (path.length === 1) {
+      reasonCode = 'SINGLE_NODE';
+    } else if (isAccepted) {
+      reasonCode = 'CONNECTED';
+    } else {
+      reasonCode = 'DISCONNECTED';
+      
+      // Track which vertices are disconnected from path[0] in induced graph
+      const pathNodes = new Set(path);
+      const adjG: Record<string, string[]> = {};
+      for (const node of path) {
+        adjG[node] = [];
+      }
+      for (const edge of edgesG) {
+        if (pathNodes.has(edge.u) && pathNodes.has(edge.v)) {
+          adjG[edge.u].push(edge.v);
+          adjG[edge.v].push(edge.u);
+        }
+      }
+      
+      const visited = new Set<string>();
+      const queue = [path[0]];
+      visited.add(path[0]);
+      let head = 0;
+      while (head < queue.length) {
+        const u = queue[head++];
+        for (const v of adjG[u] || []) {
+          if (!visited.has(v)) {
+            visited.add(v);
+            queue.push(v);
+          }
+        }
+      }
+      
+      for (const node of path) {
+        if (!visited.has(node)) {
+          disconnectedVertices.push(node);
+        }
       }
     }
 
     evaluations.push({
       path,
       isAccepted,
-      reason,
-      reasonEn,
       isBestSoFar: isBest,
+      reasonCode,
+      disconnectedVertices,
     });
   }
-
-  // Update isBestSoFar for evaluations to accurately represent best-so-far chronologically in the list
-  // Actually, we did it chronologically! The above loop does exactly that.
 
   // Find the overall longest unconstrained path in D (using the tie-breaker)
   let longestPathD: string[] | null = null;

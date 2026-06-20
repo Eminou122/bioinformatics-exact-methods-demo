@@ -1,14 +1,15 @@
 import React from 'react';
+import type { TranslationDict } from '../i18n/types';
 
 interface LegendProps {
-  lang: 'fr' | 'en';
+  dict: TranslationDict;
 }
 
-export const Legend: React.FC<LegendProps> = ({ lang }) => {
+export const Legend: React.FC<LegendProps> = ({ dict }) => {
   return (
-    <section className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', marginBottom: 'var(--space-md)' }}>
-        {lang === 'fr' ? 'Légende des Graphiques' : 'Graph Legend'}
+    <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', marginBlockEnd: 'var(--space-md)' }}>
+        {dict.legendTitle}
       </h2>
 
       <div 
@@ -22,54 +23,54 @@ export const Legend: React.FC<LegendProps> = ({ lang }) => {
       >
         {/* Graph D Legend */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBottom: 'var(--space-xs)' }}>
-            {lang === 'fr' ? 'Graphe D — Flux métabolique' : 'Graph D — Metabolic flow'}
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
+            {dict.legendDTitle}
           </h3>
-          <ul style={{ listStyle: 'none', paddingLeft: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <ul style={{ listStyle: 'none', paddingInlineStart: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="24" height="12">
+              <svg width="24" height="12" style={{ flexShrink: 0 }}>
                 <line x1="0" y1="6" x2="20" y2="6" stroke="var(--border-color)" strokeWidth="1.5" />
                 <polygon points="16,3 22,6 16,9" fill="var(--neutral-light)" />
               </svg>
-              <span>{lang === 'fr' ? 'Transition métabolique inactive' : 'Inactive metabolic transition'}</span>
+              <span>{dict.legendDInactive}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="24" height="12">
+              <svg width="24" height="12" style={{ flexShrink: 0 }}>
                 <line x1="0" y1="6" x2="20" y2="6" stroke="var(--primary)" strokeWidth="3" />
                 <polygon points="15,2 22,6 15,10" fill="var(--primary)" />
               </svg>
-              <span>{lang === 'fr' ? 'Transition active dans le chemin courant' : 'Active transition in current path'}</span>
+              <span>{dict.legendDActive}</span>
             </li>
           </ul>
         </div>
 
         {/* Graph G Legend */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBottom: 'var(--space-xs)' }}>
-            {lang === 'fr' ? 'Graphe G — Proximité génomique' : 'Graph G — Genomic proximity'}
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
+            {dict.legendGTitle}
           </h3>
-          <ul style={{ listStyle: 'none', paddingLeft: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <ul style={{ listStyle: 'none', paddingInlineStart: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="24" height="12">
+              <svg width="24" height="12" style={{ flexShrink: 0 }}>
                 <line x1="0" y1="6" x2="24" y2="6" stroke="var(--neutral-light)" strokeWidth="1" strokeDasharray="3,3" />
               </svg>
-              <span>{lang === 'fr' ? 'Liaison génomique inactive (hors chemin)' : 'Inactive genomic edge (outside path)'}</span>
+              <span>{dict.legendGInactive}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="24" height="12">
+              <svg width="24" height="12" style={{ flexShrink: 0 }}>
                 <line x1="0" y1="6" x2="24" y2="6" stroke="var(--primary)" strokeWidth="3" />
               </svg>
-              <span>{lang === 'fr' ? 'Liaison induite active dans le chemin' : 'Active induced edge in path'}</span>
+              <span>{dict.legendGActive}</span>
             </li>
           </ul>
         </div>
 
         {/* Node states Legend */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBottom: 'var(--space-xs)' }}>
-            {lang === 'fr' ? 'Sommets / Réactions' : 'Nodes / Reactions'}
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
+            {dict.legendNodeTitle}
           </h3>
-          <ul style={{ listStyle: 'none', paddingLeft: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <ul style={{ listStyle: 'none', paddingInlineStart: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span 
                 style={{ 
@@ -78,10 +79,11 @@ export const Legend: React.FC<LegendProps> = ({ lang }) => {
                   height: '16px', 
                   borderRadius: '50%', 
                   border: '1.5px solid var(--neutral-light)', 
-                  backgroundColor: 'var(--bg-card)' 
+                  backgroundColor: 'var(--bg-card)',
+                  flexShrink: 0
                 }} 
               />
-              <span>{lang === 'fr' ? 'Sommet inactif (non sélectionné)' : 'Inactive node (unselected)'}</span>
+              <span>{dict.legendNodeInactive}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span 
@@ -92,10 +94,10 @@ export const Legend: React.FC<LegendProps> = ({ lang }) => {
                   borderRadius: '50%', 
                   border: '3px solid var(--primary)', 
                   backgroundColor: 'var(--primary-bg)',
-                  position: 'relative'
+                  flexShrink: 0
                 }} 
               />
-              <span>{lang === 'fr' ? 'Sommet dans le chemin (Cohérent / Accepté)' : 'Node in path (Consistent / Accepted)'}</span>
+              <span>{dict.legendNodeAccepted}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span 
@@ -105,10 +107,11 @@ export const Legend: React.FC<LegendProps> = ({ lang }) => {
                   height: '16px', 
                   borderRadius: '50%', 
                   border: '3px solid var(--danger)', 
-                  backgroundColor: 'var(--danger-bg)' 
+                  backgroundColor: 'var(--danger-bg)',
+                  flexShrink: 0
                 }} 
               />
-              <span>{lang === 'fr' ? 'Sommet dans le chemin déconnecté (Rejeté)' : 'Disconnected node in path (Rejected)'}</span>
+              <span>{dict.legendNodeRejected}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span 
@@ -118,21 +121,21 @@ export const Legend: React.FC<LegendProps> = ({ lang }) => {
                   height: '16px', 
                   borderRadius: '50%', 
                   border: '3px solid var(--primary)', 
-                  backgroundColor: 'var(--primary-bg)' 
+                  backgroundColor: 'var(--primary-bg)',
+                  position: 'relative',
+                  flexShrink: 0
                 }} 
               >
                 <span style={{ display: 'block', margin: '2px', width: '6px', height: '6px', borderRadius: '50%', border: '1px dashed var(--primary)' }} />
               </span>
-              <span>{lang === 'fr' ? 'Point de départ du chemin (Double anneau)' : 'Start node of the path (Double ring)'}</span>
+              <span>{dict.legendNodeStart}</span>
             </li>
           </ul>
         </div>
       </div>
       
-      <p style={{ margin: 'var(--space-md) 0 0 0', fontSize: '0.8rem', fontStyle: 'italic', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-sm)' }}>
-        {lang === 'fr' 
-          ? 'Note d\'accessibilité : Les sommets actifs ou rejetés se distinguent par l\'épaisseur de leurs traits, des anneaux internes pointillés et des motifs de liaisons (pleins vs pointillés) en plus des couleurs.'
-          : 'Accessibility note: Active or rejected nodes are distinguished by line thickness, internal dashed rings, and edge styles (solid vs dashed) in addition to color.'}
+      <p style={{ marginBlockStart: 'var(--space-md)', marginBlockEnd: 0, fontSize: '0.8rem', fontStyle: 'italic', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-sm)' }}>
+        {dict.legendAccessibilityNote}
       </p>
     </section>
   );

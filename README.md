@@ -18,14 +18,40 @@ By finding pathways that satisfy both metabolic succession and genomic proximity
 
 ---
 
-## 🛠️ Exact Resolution Method
+## 🌐 Multilingual and RTL Interface Support
+
+The application is built with a typed internationalization layer that supports:
+- **Languages:** French, English, and Arabic.
+- **Genuine RTL Support:** Selecting Arabic automatically applies `dir="rtl"` and `lang="ar"` on the document, aligning text and layout naturally for RTL readers.
+- **Directional Preservation:** Technical notation (reaction IDs like `R1`, `R2`, algorithm names like `DFS`, `BFS`, mathematical notation) and metabolic graph paths (like `R1 → R2 → R3`) remain strictly Left-To-Right (LTR) even when Arabic is selected, preventing visual or semantic corruption.
+- **SVG Protection:** SVG graph renders are protected from browser mirroring so that coordinates, directed edge arrows, node positions, and arrowheads remain geometrically and logically identical across all languages.
+
+---
+
+## 📱 Mobile-Friendly Responsive Design
+
+The application supports responsive scaling across different viewports (tested at 1440px, 1024px, 768px, 390px, and 320px):
+- **Desktop:** Graphe D and Graphe G are displayed side-by-side.
+- **Mobile/Tablet:** The layouts stack vertically on narrow viewports without horizontal scrolling, and touch target sizes are configured to be at least `44px` for ease of use.
+- **Logical CSS Properties:** Spacings and alignments are implemented using logical CSS properties (`margin-inline`, `padding-inline`, `text-align: start`), enabling clean layout flipping without layout breaks.
+
+---
+
+## 🛠️ Exact Resolution Method & Cycle Validation
 
 This application uses an **exact exhaustive enumeration** algorithm:
-1. **Path Enumeration:** It starts a depth-first search (DFS) from every vertex in the metabolic graph $D$ to find all simple directed paths, including single-node paths.
-2. **Induced Subgraph Connectivity Check:** For each path candidate, it constructs the induced subgraph in the genomic graph $G$ (restricted only to the path vertices) and runs a Breadth-First Search (BFS) to verify if the subgraph is connected.
-3. **Deterministic Tie-Breaking:** Among all consistent paths, it selects the longest one (greatest number of vertices). If there is a tie, it selects the lexicographically smallest sequence of reaction IDs.
+1. **Validation & Cycle Rejection:** The solver validates the graph structure before enumeration. The demo **supports DAG inputs only**; if a cycle is found in the metabolic graph $D$, the solver stops safely and rejects the dataset with a structured cycle detection error instead of silently loop-falling or utilizing repeated-vertex checks. Duplicate edges in $D$ or $G$ are also rejected during initial validation.
+2. **Path Enumeration:** It starts a depth-first search (DFS) from every vertex in $D$ to find all simple directed paths, including single-node paths.
+3. **Induced Subgraph Connectivity Check:** For each path candidate, it constructs the induced subgraph in the genomic graph $G$ (restricted only to the path vertices) and runs a Breadth-First Search (BFS) to verify if the subgraph is connected.
+4. **Deterministic Tie-Breaking:** Among all consistent paths, it selects the longest one (greatest number of vertices). If there is a tie, it selects the lexicographically smallest sequence of reaction IDs.
 
-Because it searches the entire search space, the demo mathematically guarantees that the selected solution is the global optimum. Note that while this works perfectly for small educational datasets, the exact problem scales exponentially and is computationally hard (NP-hard) on full-scale genomic networks.
+Because it searches the entire search space, the demo mathematically guarantees that the selected solution is the global optimum.
+
+---
+
+## ⚠️ Limitations & Scope
+
+This is a small educational exact-enumeration demo for small graphs. It is designed to illustrate the core concepts of the $(D,G)$-consistent path problem and is **not intended as a scalable production biological-analysis engine** for large real-world biological networks or genome-scale reconstructions.
 
 ---
 
@@ -70,7 +96,7 @@ npm test
 
 ### Linting (ESLint)
 ```bash
-npx eslint .
+npm run lint
 ```
 
 ### Static Type Check (TypeScript)
@@ -82,9 +108,3 @@ npx tsc --noEmit
 ```bash
 npm run build
 ```
-
----
-
-## ⚠️ Limitations
-
-This is a small educational exact-enumeration demo only. It is designed to illustrate the core concepts of the $(D,G)$-consistent path problem and is not intended to scale or run on large, real-world biological networks or genome-scale metabolic reconstructions (GEMs).

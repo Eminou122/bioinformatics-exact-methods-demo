@@ -1,18 +1,26 @@
 import React from 'react';
+import type { Language, TranslationDict } from '../i18n/types';
 
 interface HeaderProps {
-  lang: 'fr' | 'en';
-  setLang: (lang: 'fr' | 'en') => void;
+  lang: Language;
+  setLang: (lang: Language) => void;
+  dict: TranslationDict;
 }
 
-export const Header: React.FC<HeaderProps> = ({ lang, setLang }) => {
+export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
+  const languages: { code: Language; label: string }[] = [
+    { code: 'fr', label: 'Français' },
+    { code: 'en', label: 'English' },
+    { code: 'ar', label: 'العربية' },
+  ];
+
   return (
     <header
       style={{
-        borderBottom: '1px solid var(--border-color)',
+        borderBlockEnd: '1px solid var(--border-color)',
         backgroundColor: 'var(--bg-card)',
-        padding: 'var(--space-md) 0',
-        marginBottom: 'var(--space-xl)',
+        paddingBlock: 'var(--space-md)',
+        marginBlockEnd: 'var(--space-lg)',
       }}
     >
       <div
@@ -21,11 +29,12 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '0 var(--space-md)',
-          margin: '0 auto',
+          flexWrap: 'wrap',
+          gap: 'var(--space-md)',
+          paddingBlock: 0,
         }}
       >
-        <div>
+        <div style={{ flex: '1 1 300px' }}>
           <span
             style={{
               textTransform: 'uppercase',
@@ -34,37 +43,57 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang }) => {
               letterSpacing: '0.1em',
               color: 'var(--primary)',
               fontFamily: 'var(--font-sans)',
+              display: 'block',
             }}
           >
-            {lang === 'fr' ? 'Travaux Pratiques en Bio-informatique' : 'Bioinformatics Lab Course'}
+            {dict.courseTag}
           </span>
           <h1
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '1.6rem',
+              fontSize: '1.4rem',
               fontWeight: 700,
-              margin: '2px 0 0 0',
+              marginBlockStart: '2px',
+              marginBlockEnd: 0,
               color: 'var(--neutral-dark)',
             }}
           >
-            {lang === 'fr'
-              ? 'Démo interactive — Chemins cohérents entre métabolisme et génome'
-              : 'Interactive Demo — Consistent paths between metabolism and genome'}
+            {dict.appTitle}
           </h1>
-        </div>
-        <div>
-          <button
-            className="lang-toggle"
-            onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-            aria-label={lang === 'fr' ? 'Switch to English' : 'Passer en Français'}
+          <p
             style={{
-              fontWeight: 600,
-              padding: '6px 12px',
-              fontFamily: 'var(--font-sans)',
+              fontSize: '0.85rem',
+              marginBlockStart: '2px',
+              marginBlockEnd: 0,
+              color: 'var(--neutral-medium)',
             }}
           >
-            {lang === 'fr' ? 'English' : 'Français'}
-          </button>
+            {dict.appSubtitle}
+          </p>
+        </div>
+
+        {/* 3-option Semantic Language Selector */}
+        <div 
+          className="lang-selector-group" 
+          role="group" 
+          aria-label={lang === 'ar' ? 'تغيير اللغة' : (lang === 'fr' ? 'Changer de langue' : 'Change language')}
+          style={{ flexShrink: 0 }}
+        >
+          {languages.map((l) => (
+            <button
+              key={l.code}
+              className={`lang-btn ${lang === l.code ? 'active' : ''}`}
+              onClick={() => setLang(l.code)}
+              aria-pressed={lang === l.code}
+              style={{
+                paddingInline: 'var(--space-md)',
+                fontFamily: l.code === 'ar' ? 'var(--font-sans)' : 'inherit',
+                direction: l.code === 'ar' ? 'rtl' : 'ltr',
+              }}
+            >
+              {l.label}
+            </button>
+          ))}
         </div>
       </div>
     </header>

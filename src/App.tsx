@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { examples } from './data/examples';
 import { solveConsistentPath } from './domain/pathAlgorithms';
 import { Header } from './components/Header';
@@ -9,11 +9,31 @@ import { ComparisonPanel } from './components/ComparisonPanel';
 import { AlgorithmSteps } from './components/AlgorithmSteps';
 import { ResultPanel } from './components/ResultPanel';
 import { Legend } from './components/Legend';
+import type { Language } from './i18n/types';
+import { translations } from './i18n/translations';
+import { formatTranslation } from './i18n/format';
 
 function App() {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr');
+  const [lang, setLang] = useState<Language>('fr');
   const [selectedExampleId, setSelectedExampleId] = useState<string>('simple-valide');
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1); // -1: not started
+
+  // Fetch translation dictionary
+  const dict = useMemo(() => {
+    return translations[lang];
+  }, [lang]);
+
+  // Synchronize document attributes with selected language (RTL / Title / Meta)
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.title = dict.appTitle;
+
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', dict.introP1);
+    }
+  }, [lang, dict]);
 
   // Fetch the active dataset
   const currentExample = useMemo(() => {
@@ -29,14 +49,14 @@ function App() {
     );
   }, [currentExample]);
 
-  const isRunning = currentStepIndex !== -1;
+  const isRunning = currentStepIndex !== -1 && !solverResult.error;
 
   // Derive visual state of graphs based on current step
   const graphVisuals = useMemo(() => {
     const totalSteps = solverResult.evaluations.length;
     
-    // Initial state: nothing highlighted
-    if (currentStepIndex === -1) {
+    // Initial state or error state: nothing highlighted
+    if (currentStepIndex === -1 || solverResult.error) {
       return {
         highlightedNodes: new Set<string>(),
         activePath: [] as string[],
@@ -72,7 +92,9 @@ function App() {
   };
 
   const handleRun = () => {
-    setCurrentStepIndex(0); // Start path stepping
+    if (!solverResult.error) {
+      setCurrentStepIndex(0); // Start path stepping
+    }
   };
 
   const handleReset = () => {
@@ -86,13 +108,29 @@ function App() {
     }
   };
 
+  // Build error message if the dataset is invalid
+  const getErrorMessage = () => {
+    if (!solverResult.error) return '';
+    const { code, node, message } = solverResult.error;
+    if (code === 'CYCLE_DETECTED') {
+      return dict.errorCycleFound;
+    }
+    if (code === 'INVALID_NODE_D') {
+      return formatTranslation(dict, 'errorInvalidNodeD', { node: node || '' });
+    }
+    if (code === 'INVALID_NODE_G') {
+      return formatTranslation(dict, 'errorInvalidNodeG', { node: node || '' });
+    }
+    return message || '';
+  };
+
   return (
     <>
-      <Header lang={lang} setLang={setLang} />
+      <Header lang={lang} setLang={setLang} dict={dict} />
 
       <main className="container">
         {/* Academic Intro Section */}
-        <IntroSection lang={lang} />
+        <IntroSection dict={dict} />
 
         {/* Dataset Selection */}
         <ExampleSelector
@@ -101,11 +139,31 @@ function App() {
           onSelect={handleExampleSelect}
           onRun={handleRun}
           onReset={handleReset}
-          isRunning={isRunning}
+          isRunning={currentStepIndex !== -1}
           lang={lang}
+          dict={dict}
         />
 
-        {/* Side-by-side Graph Rendering */}
+        {/* Solver Validation / Cycle Errors */}
+        {solverResult.error && (
+          <div 
+            style={{
+              padding: 'var(--space-md)',
+              backgroundColor: 'var(--danger-bg)',
+              border: '2px solid var(--danger-border)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--danger)',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              marginBlockEnd: 'var(--space-lg)',
+              textAlign: 'start'
+            }}
+          >
+            {getErrorMessage()}
+          </div>
+        )}
+
+        {/* Side-by-side / Stacked Graph Rendering */}
         <GraphPanel
           vertices={currentExample.vertices}
           edgesD={currentExample.edgesD}
@@ -116,9 +174,10 @@ function App() {
           isFinalResult={graphVisuals.isFinalResult}
           isAcceptedStep={graphVisuals.isAcceptedStep}
           lang={lang}
+          dict={dict}
         />
 
-        {/* Solver output, visible only after running */}
+        {/* Solver output, visible only after running and no error */}
         {isRunning && (
           <>
             {/* Global Metrics Cards */}
@@ -127,7 +186,7 @@ function App() {
               longestConsistentPath={solverResult.longestConsistentPath}
               evaluatedPathsCount={solverResult.evaluatedPathsCount}
               acceptedPathsCount={solverResult.acceptedPathsCount}
-              lang={lang}
+              dict={dict}
             />
 
             {/* Stepper controls & Candidate evaluations */}
@@ -135,7 +194,7 @@ function App() {
               evaluations={solverResult.evaluations}
               currentStepIndex={currentStepIndex}
               onStepChange={handleStepChange}
-              lang={lang}
+              dict={dict}
             />
 
             {/* In-depth Analysis (visible on the final result page of the stepper) */}
@@ -143,38 +202,34 @@ function App() {
               <ResultPanel
                 exampleId={selectedExampleId}
                 longestConsistentPath={solverResult.longestConsistentPath}
-                lang={lang}
+                dict={dict}
               />
             )}
           </>
         )}
 
         {/* Symbols and Accessibility Legend */}
-        <Legend lang={lang} />
+        <Legend dict={dict} />
 
         {/* Supplementary Academic Cards */}
-        <section className="grid grid-2" style={{ marginTop: 'var(--space-xl)' }}>
+        <section className="grid grid-2" style={{ marginBlockStart: 'var(--space-xl)' }}>
           {/* Meaning biologically card */}
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBottom: 'var(--space-xs)' }}>
-              {lang === 'fr' ? 'Signification biologique' : 'Biological meaning'}
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
+              {dict.bottomBioTitle}
             </h3>
             <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-              {lang === 'fr' 
-                ? 'Nous cherchons une chaîne de réactions qui suit une direction métabolique et dont les gènes associés restent proches dans le génome.'
-                : 'We are looking for a chain of reactions that follows a metabolic direction and whose associated genes remain close to each other in the genome.'}
+              {dict.bottomBioDesc}
             </p>
           </div>
 
           {/* Exact-method card */}
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBottom: 'var(--space-xs)' }}>
-              {lang === 'fr' ? 'Méthode de résolution exacte' : 'Exact resolution method'}
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
+              {dict.bottomMethodTitle}
             </h3>
             <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-              {lang === 'fr'
-                ? 'Pour ces petits exemples, la démo vérifie tous les chemins possibles. La solution finale est donc garantie optimale.'
-                : 'For these small examples, the demo verifies all possible paths. The final solution is therefore mathematically guaranteed to be optimal.'}
+              {dict.bottomMethodDesc}
             </p>
           </div>
         </section>
