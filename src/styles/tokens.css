@@ -1,0 +1,49 @@
+:root {
+  /* Colors */
+  --bg-app: #f9f8f6; /* Off-white, academic paper tone */
+  --bg-card: #ffffff;
+  
+  --primary: #115e59; /* Deep teal/dark green for academic emphasis */
+  --primary-hover: #0f766e;
+  --primary-light: #e0f2fe; /* Light blue/teal */
+  --primary-bg: #f0fdfa;
+  
+  --accent-gold: #b45309; /* Warm gold for optimal solution */
+  --accent-gold-bg: #fef3c7;
+  --accent-gold-border: #f59e0b;
+  
+  --danger: #b91c1c; /* Muted red for invalid/rejected states */
+  --danger-bg: #fee2e2;
+  --danger-border: #f87171;
+
+  --neutral-dark: #1f2937; /* Off-black for main text */
+  --neutral-medium: #4b5563; /* Gray for description text */
+  --neutral-light: #9ca3af; /* Light gray for borders, subtitles */
+  --neutral-bg-hover: #f3f4f6;
+  --border-color: #e5e7eb;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Lora', Georgia, serif;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
