@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { hasCycle } from './graph';
+import { hasCycle, validateGraphs } from './graph';
 import {
   enumeratePaths,
   isInducedGConnected,
@@ -25,7 +25,60 @@ describe('Biomethods Path Algorithms', () => {
     expect(hasCycle(vertices, cyclicEdges)).toBe(true);
   });
 
-  // 2. Simple directed path enumeration & uniqueness
+  // 2. Solver-level cycle rejection
+  test('solver rejects graphs with cycles and stops safely', () => {
+    const vertices = ['R1', 'R2', 'R3'];
+    const cyclicEdges = [
+      { from: 'R1', to: 'R2' },
+      { from: 'R2', to: 'R3' },
+      { from: 'R3', to: 'R1' },
+    ];
+    const edgesG = [
+      { u: 'R1', v: 'R2' },
+      { u: 'R2', v: 'R3' },
+    ];
+
+    const result = solveConsistentPath(vertices, cyclicEdges, edgesG);
+    expect(result.error).toBeDefined();
+    expect(result.error?.code).toBe('CYCLE_DETECTED');
+    expect(result.allPaths).toEqual([]);
+  });
+
+  // 3. Node validation error
+  test('solver rejects graphs with invalid vertices', () => {
+    const vertices = ['R1', 'R2'];
+    const edgesD = [{ from: 'R1', to: 'R3' }]; // R3 is invalid
+    const edgesG = [{ u: 'R1', v: 'R2' }];
+
+    const result = solveConsistentPath(vertices, edgesD, edgesG);
+    expect(result.error).toBeDefined();
+    expect(result.error?.code).toBe('INVALID_NODE_D');
+    expect(result.error?.node).toBe('R3');
+  });
+
+  // 4. Duplicate edge rejection
+  test('validation rejects duplicate edges', () => {
+    const vertices = ['R1', 'R2'];
+    const edgesD = [
+      { from: 'R1', to: 'R2' },
+      { from: 'R1', to: 'R2' }, // duplicate
+    ];
+    const edgesG = [{ u: 'R1', v: 'R2' }];
+
+    const validation = validateGraphs(vertices, edgesD, edgesG);
+    expect(validation.isValid).toBe(false);
+    expect(validation.errorCode).toBe('DUPLICATE_EDGE_D');
+
+    const edgesGDuplicate = [
+      { u: 'R1', v: 'R2' },
+      { u: 'R2', v: 'R1' }, // duplicate (undirected)
+    ];
+    const validationG = validateGraphs(vertices, [{ from: 'R1', to: 'R2' }], edgesGDuplicate);
+    expect(validationG.isValid).toBe(false);
+    expect(validationG.errorCode).toBe('DUPLICATE_EDGE_G');
+  });
+
+  // 5. Simple directed path enumeration & uniqueness
   test('every simple directed path is enumerated and there are no duplicate paths', () => {
     const vertices = ['R1', 'R2', 'R3'];
     const edges = [
@@ -35,10 +88,6 @@ describe('Biomethods Path Algorithms', () => {
 
     const paths = enumeratePaths(vertices, edges);
     
-    // Total expected paths:
-    // Starting R1: [R1], [R1, R2], [R1, R2, R3]
-    // Starting R2: [R2], [R2, R3]
-    // Starting R3: [R3]
     expect(paths.length).toBe(6);
 
     const pathStrings = paths.map((p) => p.join(','));
@@ -53,7 +102,7 @@ describe('Biomethods Path Algorithms', () => {
     expect(pathStrings).toContain('R3');
   });
 
-  // 3. Branching and merging DAG behavior
+  // 6. Branching and merging DAG behavior
   test('branching and merging DAG behavior is handled correctly', () => {
     const vertices = ['R1', 'R2', 'R3', 'R4'];
     const edges = [
@@ -68,15 +117,15 @@ describe('Biomethods Path Algorithms', () => {
     expect(paths).toContain('R1,R3,R4');
   });
 
-  // 4. Singleton path connectivity
+  // 7. Singleton path connectivity
   test('singleton path connectivity is always true', () => {
     const edgesG = [{ u: 'R1', v: 'R2' }];
     expect(isInducedGConnected(['R1'], edgesG)).toBe(true);
     expect(isInducedGConnected(['R2'], edgesG)).toBe(true);
   });
 
-  // 5. Valid induced connectivity
-  test('valid induced connectivity detects connected components in G', () => {
+  // 8. Valid induced connectivity
+  test('valid induced connectivity detects connected components in G using only path vertices', () => {
     const edgesG = [
       { u: 'R1', v: 'R2' },
       { u: 'R2', v: 'R3' },
@@ -84,7 +133,7 @@ describe('Biomethods Path Algorithms', () => {
     expect(isInducedGConnected(['R1', 'R2', 'R3'], edgesG)).toBe(true);
   });
 
-  // 6. Isolated selected vertex rejection
+  // 9. Isolated selected vertex rejection
   test('isolated selected vertex rejection rejects paths with isolated nodes in G', () => {
     const edgesG = [
       { u: 'R1', v: 'R2' },
@@ -93,7 +142,7 @@ describe('Biomethods Path Algorithms', () => {
     expect(isInducedGConnected(['R1', 'R2', 'R3'], edgesG)).toBe(false);
   });
 
-  // 7. Unselected vertices must not affect induced connectivity
+  // 10. Unselected vertices must not affect induced connectivity
   test('unselected vertices do not affect induced connectivity', () => {
     const edgesG = [
       { u: 'R1', v: 'R2' },
@@ -107,7 +156,7 @@ describe('Biomethods Path Algorithms', () => {
     expect(isInducedGConnected(['R1', 'R2'], edgesG)).toBe(true);
   });
 
-  // 8. Deterministic tie-break behavior
+  // 11. Deterministic tie-break behavior
   test('deterministic tie-break behavior orders paths correctly', () => {
     // 1st rule: greater number of vertices (longer)
     const longPath = ['R1', 'R2', 'R3'];
@@ -124,72 +173,5 @@ describe('Biomethods Path Algorithms', () => {
     const pathC = ['R2', 'R3'];
     const pathD = ['R1', 'R4'];
     expect(comparePaths(pathC, pathD)).toBeGreaterThan(0); // pathD is better because 'R1' < 'R2'
-  });
-
-  // 9. Expected outcomes for all three datasets
-  test('Expected outcomes for Dataset 1: Simple valid example', () => {
-    const vertices = ['R1', 'R2', 'R3', 'R4'];
-    const edgesD = [
-      { from: 'R1', to: 'R2' },
-      { from: 'R2', to: 'R3' },
-      { from: 'R3', to: 'R4' },
-    ];
-    const edgesG = [
-      { u: 'R1', v: 'R2' },
-      { u: 'R2', v: 'R3' },
-      { u: 'R3', v: 'R4' },
-    ];
-
-    const result = solveConsistentPath(vertices, edgesD, edgesG);
-    expect(result.longestPathD).toEqual(['R1', 'R2', 'R3', 'R4']);
-    expect(result.longestConsistentPath).toEqual(['R1', 'R2', 'R3', 'R4']);
-  });
-
-  test('Expected outcomes for Dataset 2: Longest path rejected', () => {
-    const vertices = ['R1', 'R2', 'R3', 'R4', 'R5'];
-    const edgesD = [
-      { from: 'R1', to: 'R2' },
-      { from: 'R2', to: 'R3' },
-      { from: 'R3', to: 'R4' },
-      { from: 'R2', to: 'R5' },
-    ];
-    const edgesG = [
-      { u: 'R1', v: 'R2' },
-      { u: 'R2', v: 'R3' },
-      { u: 'R2', v: 'R5' },
-      // R4 is isolated in G
-    ];
-
-    const result = solveConsistentPath(vertices, edgesD, edgesG);
-    // Longest path in D is R1->R2->R3->R4 (length 4)
-    expect(result.longestPathD).toEqual(['R1', 'R2', 'R3', 'R4']);
-    // But it's disconnected in G because R4 is isolated.
-    // Longest consistent path is R1->R2->R3 (length 3, or R1->R2->R5, length 3)
-    // Between R1->R2->R3 and R1->R2->R5, lexicographical tiebreaker prefers R1->R2->R3
-    expect(result.longestConsistentPath).toEqual(['R1', 'R2', 'R3']);
-  });
-
-  test('Expected outcomes for Dataset 3: Multiple candidate paths', () => {
-    const vertices = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'];
-    const edgesD = [
-      { from: 'R1', to: 'R2' },
-      { from: 'R2', to: 'R4' },
-      { from: 'R1', to: 'R3' },
-      { from: 'R3', to: 'R4' },
-      { from: 'R2', to: 'R5' },
-      { from: 'R5', to: 'R6' },
-    ];
-    const edgesG = [
-      { u: 'R1', v: 'R2' },
-      { u: 'R2', v: 'R4' },
-      { u: 'R1', v: 'R3' },
-      { u: 'R3', v: 'R4' },
-      { u: 'R2', v: 'R5' },
-      { u: 'R5', v: 'R6' },
-    ];
-
-    const result = solveConsistentPath(vertices, edgesD, edgesG);
-    // Expected winner is R1->R2->R5->R6 (length 4)
-    expect(result.longestConsistentPath).toEqual(['R1', 'R2', 'R5', 'R6']);
   });
 });

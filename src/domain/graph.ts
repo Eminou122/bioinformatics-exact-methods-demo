@@ -8,44 +8,86 @@ export interface GraphG {
   edges: { u: string; v: string }[];
 }
 
+export interface ValidationResult {
+  isValid: boolean;
+  errorCode?: 'INVALID_NODE_D' | 'INVALID_NODE_G' | 'DUPLICATE_EDGE_D' | 'DUPLICATE_EDGE_G';
+  invalidNode?: string;
+  error?: string;
+}
+
 /**
  * Validates that all vertices referenced in D and G edges exist in the vertices list.
+ * Also ensures no duplicate edges are defined in D or G.
  */
 export function validateGraphs(
   vertices: string[],
   edgesD: { from: string; to: string }[],
   edgesG: { u: string; v: string }[]
-): { isValid: boolean; error?: string } {
+): ValidationResult {
   const vertexSet = new Set(vertices);
 
+  // Check duplicate edges in D
+  const seenD = new Set<string>();
   for (const edge of edgesD) {
     if (!vertexSet.has(edge.from)) {
       return {
         isValid: false,
+        errorCode: 'INVALID_NODE_D',
+        invalidNode: edge.from,
         error: `L'arête métabolique fait référence à un sommet inexistant: ${edge.from}`,
       };
     }
     if (!vertexSet.has(edge.to)) {
       return {
         isValid: false,
+        errorCode: 'INVALID_NODE_D',
+        invalidNode: edge.to,
         error: `L'arête métabolique fait référence à un sommet inexistant: ${edge.to}`,
       };
     }
+
+    const edgeKey = `${edge.from}->${edge.to}`;
+    if (seenD.has(edgeKey)) {
+      return {
+        isValid: false,
+        errorCode: 'DUPLICATE_EDGE_D',
+        error: `Arête métabolique en double détectée : ${edge.from} -> ${edge.to}`,
+      };
+    }
+    seenD.add(edgeKey);
   }
 
+  // Check duplicate edges in G
+  const seenG = new Set<string>();
   for (const edge of edgesG) {
     if (!vertexSet.has(edge.u)) {
       return {
         isValid: false,
+        errorCode: 'INVALID_NODE_G',
+        invalidNode: edge.u,
         error: `La liaison génomique fait référence à un sommet inexistant: ${edge.u}`,
       };
     }
     if (!vertexSet.has(edge.v)) {
       return {
         isValid: false,
+        errorCode: 'INVALID_NODE_G',
+        invalidNode: edge.v,
         error: `La liaison génomique fait référence à un sommet inexistant: ${edge.v}`,
       };
     }
+
+    // Since G is undirected, u--v is the same as v--u
+    const nodes = [edge.u, edge.v].sort();
+    const edgeKey = `${nodes[0]}--${nodes[1]}`;
+    if (seenG.has(edgeKey)) {
+      return {
+        isValid: false,
+        errorCode: 'DUPLICATE_EDGE_G',
+        error: `Liaison génomique en double détectée : ${edge.u} — ${edge.v}`,
+      };
+    }
+    seenG.add(edgeKey);
   }
 
   return { isValid: true };

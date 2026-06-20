@@ -1,22 +1,23 @@
 import React from 'react';
 import type { PathEvaluation } from '../domain/pathAlgorithms';
+import type { TranslationDict } from '../i18n/types';
+import { formatTranslation } from '../i18n/format';
+import { PathText } from './TechnicalText';
 
 interface AlgorithmStepsProps {
   evaluations: PathEvaluation[];
-  currentStepIndex: number; // 0 to evaluations.length
+  currentStepIndex: number;
   onStepChange: (index: number) => void;
-  lang: 'fr' | 'en';
+  dict: TranslationDict;
 }
 
 export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
   evaluations,
   currentStepIndex,
   onStepChange,
-  lang,
+  dict,
 }) => {
   const totalSteps = evaluations.length;
-  
-  // Checks if we are showing the final result screen (which is index === totalSteps)
   const isFinalScreen = currentStepIndex === totalSteps;
   const currentEval = isFinalScreen ? null : evaluations[currentStepIndex];
 
@@ -25,8 +26,6 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
     let best: string[] | null = null;
     const limit = isFinalScreen ? totalSteps : currentStepIndex + 1;
     
-    // We can import comparePaths or since we already calculated isBestSoFar in solverResult,
-    // we can just trace the evaluations.
     for (let i = 0; i < limit; i++) {
       if (evaluations[i].isAccepted) {
         if (best === null || evaluations[i].isBestSoFar) {
@@ -39,8 +38,28 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
 
   const bestSoFar = getBestPathSoFar();
 
+  // Dynamic explanation formatting using unicode isolation for technical tokens
+  const getExplanation = (ev: PathEvaluation) => {
+    if (ev.reasonCode === 'SINGLE_NODE') {
+      return formatTranslation(dict, 'reasonSingleNode');
+    }
+    
+    if (ev.reasonCode === 'CONNECTED') {
+      // Enclose in LTR marks for clean display in RTL sentences
+      const pathStr = `\u202A${ev.path.join(' → ')}\u202C`;
+      return formatTranslation(dict, 'reasonConnected', { path: pathStr });
+    }
+    
+    if (ev.reasonCode === 'DISCONNECTED') {
+      const nodesStr = `\u202A${ev.disconnectedVertices.join(', ')}\u202C`;
+      return formatTranslation(dict, 'reasonDisconnected', { nodes: nodesStr });
+    }
+    
+    return '';
+  };
+
   return (
-    <section className="card" style={{ marginBottom: 'var(--space-xl)' }}>
+    <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
       <div 
         style={{ 
           display: 'flex', 
@@ -48,21 +67,23 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
           alignItems: 'center', 
           borderBottom: '1px solid var(--border-color)',
           paddingBottom: 'var(--space-sm)',
-          marginBottom: 'var(--space-md)'
+          marginBottom: 'var(--space-md)',
+          flexWrap: 'wrap',
+          gap: 'var(--space-sm)'
         }}
       >
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: 0, border: 'none', padding: 0 }}>
-          {lang === 'fr' ? 'Exécution pas-à-pas de l\'algorithme' : 'Step-by-step algorithm execution'}
+          {dict.stepTitle}
         </h2>
         
         {/* Step Indicator */}
         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--neutral-medium)' }}>
           {isFinalScreen ? (
             <span style={{ color: 'var(--accent-gold)' }}>
-              {lang === 'fr' ? 'Résultat Final' : 'Final Result'}
+              {dict.stepFinalResult}
             </span>
           ) : (
-            `${lang === 'fr' ? 'Candidat' : 'Candidate'} ${currentStepIndex + 1} / ${totalSteps}`
+            `${dict.stepCounter} ${currentStepIndex + 1} / ${totalSteps}`
           )}
         </div>
       </div>
@@ -74,7 +95,7 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
           height: '6px', 
           backgroundColor: 'var(--neutral-bg-hover)', 
           borderRadius: '3px',
-          marginBottom: 'var(--space-lg)',
+          marginBlockEnd: 'var(--space-lg)',
           overflow: 'hidden',
           display: 'flex'
         }}
@@ -94,21 +115,18 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
           {/* Candidate Path display */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-medium)' }}>
-              {lang === 'fr' ? 'Chemin métabolique évalué :' : 'Metabolic path evaluated:'}
+              {dict.stepPathEvaluated}
             </span>
             <div 
               style={{ 
-                fontFamily: 'var(--font-serif)', 
-                fontSize: '1.2rem', 
-                fontWeight: 700, 
                 backgroundColor: 'var(--bg-app)',
-                padding: '4px 12px',
+                paddingBlock: '4px',
+                paddingInline: '12px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-color)',
-                color: 'var(--neutral-dark)'
               }}
             >
-              {currentEval.path.join(' → ')}
+              <PathText path={currentEval.path} />
             </div>
 
             {/* Badges */}
@@ -121,11 +139,12 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
                     backgroundColor: 'var(--primary-bg)', 
                     color: 'var(--primary)', 
                     border: '1px solid var(--primary)', 
-                    padding: '3px 8px', 
+                    paddingBlock: '3px', 
+                    paddingInline: '8px', 
                     borderRadius: '12px' 
                   }}
                 >
-                  {lang === 'fr' ? 'Accepté (Cohérent)' : 'Accepted (Consistent)'}
+                  {dict.stepAcceptedBadge}
                 </span>
               ) : (
                 <span 
@@ -135,11 +154,12 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
                     backgroundColor: 'var(--danger-bg)', 
                     color: 'var(--danger)', 
                     border: '1px solid var(--danger)', 
-                    padding: '3px 8px', 
+                    paddingBlock: '3px', 
+                    paddingInline: '8px', 
                     borderRadius: '12px' 
                   }}
                 >
-                  {lang === 'fr' ? 'Rejeté (Incohérent)' : 'Rejected (Inconsistent)'}
+                  {dict.stepRejectedBadge}
                 </span>
               )}
 
@@ -151,11 +171,12 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
                     backgroundColor: 'var(--accent-gold-bg)', 
                     color: 'var(--accent-gold)', 
                     border: '1px solid var(--accent-gold-border)', 
-                    padding: '3px 8px', 
+                    paddingBlock: '3px', 
+                    paddingInline: '8px', 
                     borderRadius: '12px' 
                   }}
                 >
-                  {lang === 'fr' ? 'Meilleur à ce stade' : 'Best so far'}
+                  {dict.stepBestBadge}
                 </span>
               )}
             </div>
@@ -169,21 +190,24 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
               backgroundColor: currentEval.isAccepted ? 'var(--primary-bg)' : 'var(--danger-bg)',
               border: `1px solid ${currentEval.isAccepted ? 'var(--primary)' : 'var(--danger)'}`,
               fontSize: '0.9rem',
-              color: 'var(--neutral-dark)'
+              color: 'var(--neutral-dark)',
+              textAlign: 'start',
             }}
           >
-            <strong>{lang === 'fr' ? 'Analyse de connectivité génomique :' : 'Genomic connectivity analysis:'}</strong>
-            <p style={{ margin: 'var(--space-xs) 0 0 0', color: 'var(--neutral-dark)' }}>
-              {lang === 'fr' ? currentEval.reason : currentEval.reasonEn}
+            <strong>{dict.stepAnalysisTitle}</strong>
+            <p style={{ marginBlockStart: 'var(--space-xs)', marginBlockEnd: 0, color: 'var(--neutral-dark)' }}>
+              {getExplanation(currentEval)}
             </p>
           </div>
 
           {/* Best Path So Far Info */}
-          <div style={{ fontSize: '0.85rem', color: 'var(--neutral-medium)' }}>
-            <strong>{lang === 'fr' ? 'Meilleur chemin cohérent à ce stade : ' : 'Best consistent path at this stage: '}</strong>
-            <span style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', fontWeight: 600 }}>
-              {bestSoFar ? bestSoFar.join(' → ') : (lang === 'fr' ? 'Aucun pour l\'instant' : 'None yet')}
-            </span>
+          <div style={{ fontSize: '0.85rem', color: 'var(--neutral-medium)', textAlign: 'start' }}>
+            <strong>{dict.stepBestSoFar}</strong>
+            {bestSoFar ? (
+              <PathText path={bestSoFar} style={{ color: 'var(--accent-gold)' }} />
+            ) : (
+              <span style={{ color: 'var(--neutral-light)' }}>{dict.stepBestNone}</span>
+            )}
           </div>
         </div>
       ) : (
@@ -196,24 +220,25 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--accent-gold-border)',
               color: 'var(--neutral-dark)',
-              fontSize: '0.95rem'
+              fontSize: '0.95rem',
+              textAlign: 'start',
             }}
           >
-            <h3 style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', marginBottom: 'var(--space-xs)' }}>
-              {lang === 'fr' ? 'Résolution complète terminée !' : 'Full resolution completed!'}
+            <h3 style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', marginBlockEnd: 'var(--space-xs)' }}>
+              {dict.stepCompletedTitle}
             </h3>
             <p style={{ margin: 0, color: 'var(--neutral-dark)' }}>
-              {lang === 'fr' 
-                ? `L'algorithme exact a passé en revue les ${totalSteps} chemins possibles dans D et a identifié le plus long chemin (D,G)-cohérent.`
-                : `The exact algorithm reviewed all ${totalSteps} possible paths in D and identified the longest (D,G)-consistent path.`}
+              {dict.stepCompletedDesc}
             </p>
           </div>
 
-          <div style={{ fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-            <strong>{lang === 'fr' ? 'Solution finale optimale : ' : 'Final optimal solution: '}</strong>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--accent-gold)', fontWeight: 700 }}>
-              {bestSoFar ? bestSoFar.join(' → ') : (lang === 'fr' ? 'Aucune solution' : 'No solution')}
-            </span>
+          <div style={{ fontSize: '0.9rem', color: 'var(--neutral-medium)', textAlign: 'start' }}>
+            <strong>{dict.stepOptimalSol}</strong>
+            {bestSoFar ? (
+              <PathText path={bestSoFar} style={{ color: 'var(--accent-gold)', fontSize: '1.1rem' }} />
+            ) : (
+              <span style={{ color: 'var(--neutral-light)' }}>{dict.stepNoSol}</span>
+            )}
           </div>
         </div>
       )}
@@ -223,28 +248,30 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
         style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
-          marginTop: 'var(--space-lg)',
+          marginBlockStart: 'var(--space-lg)',
           borderTop: '1px solid var(--border-color)',
-          paddingTop: 'var(--space-md)'
+          paddingTop: 'var(--space-md)',
+          flexWrap: 'wrap',
+          gap: 'var(--space-sm)'
         }}
       >
         <button
           className="btn btn-secondary"
           onClick={() => onStepChange(currentStepIndex - 1)}
           disabled={currentStepIndex === 0}
-          style={{ padding: '6px 16px' }}
+          style={{ paddingBlock: '6px', paddingInline: '16px', flex: '1 1 100px', minHeight: '44px' }}
         >
-          {lang === 'fr' ? 'Précédent' : 'Previous'}
+          {dict.btnPrev}
         </button>
 
-        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-sm)', flex: '1 1 200px', flexWrap: 'wrap' }}>
           {!isFinalScreen && (
             <button
               className="btn btn-secondary"
               onClick={() => onStepChange(totalSteps)}
-              style={{ padding: '6px 16px', color: 'var(--accent-gold)' }}
+              style={{ paddingBlock: '6px', paddingInline: '16px', color: 'var(--accent-gold)', flex: '1 1 100px', minHeight: '44px' }}
             >
-              {lang === 'fr' ? 'Résultat Final' : 'Final Result'}
+              {dict.stepFinalResult}
             </button>
           )}
 
@@ -253,13 +280,16 @@ export const AlgorithmSteps: React.FC<AlgorithmStepsProps> = ({
             onClick={() => onStepChange(currentStepIndex + 1)}
             disabled={isFinalScreen}
             style={{ 
-              padding: '6px 16px',
+              paddingBlock: '6px',
+              paddingInline: '16px',
               backgroundColor: isFinalScreen ? 'var(--neutral-light)' : 'var(--primary)',
+              flex: '1 1 100px',
+              minHeight: '44px'
             }}
           >
             {isFinalScreen 
-              ? (lang === 'fr' ? 'Fin' : 'End') 
-              : (currentStepIndex === totalSteps - 1 ? (lang === 'fr' ? 'Voir Conclusion' : 'See Conclusion') : (lang === 'fr' ? 'Suivant' : 'Next'))
+              ? dict.btnEnd 
+              : (currentStepIndex === totalSteps - 1 ? dict.btnConclusion : dict.btnNext)
             }
           </button>
         </div>

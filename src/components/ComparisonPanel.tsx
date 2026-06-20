@@ -1,11 +1,13 @@
 import React from 'react';
+import type { TranslationDict } from '../i18n/types';
+import { PathText } from './TechnicalText';
 
 interface ComparisonPanelProps {
   longestPathD: string[] | null;
   longestConsistentPath: string[] | null;
   evaluatedPathsCount: number;
   acceptedPathsCount: number;
-  lang: 'fr' | 'en';
+  dict: TranslationDict;
 }
 
 export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
@@ -13,17 +15,12 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   longestConsistentPath,
   evaluatedPathsCount,
   acceptedPathsCount,
-  lang,
+  dict,
 }) => {
-  const formatPath = (path: string[] | null) => {
-    if (!path || path.length === 0) return 'Aucun / None';
-    return path.join(' → ');
-  };
-
   return (
-    <section className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBottom: 'var(--space-md)' }}>
-        {lang === 'fr' ? 'Résultats Comparatifs globaux' : 'Global Comparative Results'}
+    <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBlockEnd: 'var(--space-md)' }}>
+        {dict.resultsTitle}
       </h2>
 
       <div 
@@ -43,21 +40,21 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           }}
         >
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--neutral-medium)', textTransform: 'uppercase' }}>
-            {lang === 'fr' ? 'Plus long chemin dans D' : 'Longest path in D'}
+            {dict.metricLongestD}
           </span>
           <div 
             style={{ 
               fontSize: '1.2rem', 
               fontWeight: 700, 
               color: 'var(--neutral-dark)',
-              fontFamily: 'var(--font-serif)',
-              margin: 'var(--space-xs) 0'
+              marginBlockStart: 'var(--space-xs)',
+              marginBlockEnd: 'var(--space-xs)',
             }}
           >
-            {formatPath(longestPathD)}
+            {longestPathD ? <PathText path={longestPathD} /> : '—'}
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--neutral-medium)' }}>
-            {longestPathD ? `${longestPathD.length} sommets` : ''}
+            {longestPathD ? `${longestPathD.length} ${dict.metricVertices}` : ''}
           </span>
         </div>
 
@@ -71,21 +68,21 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           }}
         >
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-gold)', textTransform: 'uppercase' }}>
-            {lang === 'fr' ? 'Plus long chemin cohérent (D,G)' : 'Longest (D,G)-consistent path'}
+            {dict.metricLongestDG}
           </span>
           <div 
             style={{ 
               fontSize: '1.2rem', 
               fontWeight: 700, 
               color: 'var(--accent-gold)',
-              fontFamily: 'var(--font-serif)',
-              margin: 'var(--space-xs) 0'
+              marginBlockStart: 'var(--space-xs)',
+              marginBlockEnd: 'var(--space-xs)',
             }}
           >
-            {formatPath(longestConsistentPath)}
+            {longestConsistentPath ? <PathText path={longestConsistentPath} /> : '—'}
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 500 }}>
-            {longestConsistentPath ? `${longestConsistentPath.length} sommets (Garanti Optimal)` : ''}
+            {longestConsistentPath ? `${longestConsistentPath.length} ${dict.metricVertices} (${dict.metricOptimal})` : ''}
           </span>
         </div>
 
@@ -99,20 +96,21 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           }}
         >
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--neutral-medium)', textTransform: 'uppercase' }}>
-            {lang === 'fr' ? 'Chemins D évalués (Méthode Exacte)' : 'Evaluated paths D (Exact Method)'}
+            {dict.metricEvaluated}
           </span>
           <div 
             style={{ 
               fontSize: '1.8rem', 
               fontWeight: 700, 
               color: 'var(--neutral-dark)',
-              margin: 'var(--space-xs) 0'
+              marginBlockStart: 'var(--space-xs)',
+              marginBlockEnd: 'var(--space-xs)',
             }}
           >
             {evaluatedPathsCount}
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--neutral-medium)' }}>
-            {lang === 'fr' ? '100% de l\'espace des solutions exploré' : '100% of solution space explored'}
+            {dict.metricExplored}
           </span>
         </div>
 
@@ -126,20 +124,21 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
           }}
         >
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--neutral-medium)', textTransform: 'uppercase' }}>
-            {lang === 'fr' ? 'Chemins cohérents acceptés' : 'Accepted consistent paths'}
+            {dict.metricAccepted}
           </span>
           <div 
             style={{ 
               fontSize: '1.8rem', 
               fontWeight: 700, 
               color: 'var(--primary)',
-              margin: 'var(--space-xs) 0'
+              marginBlockStart: 'var(--space-xs)',
+              marginBlockEnd: 'var(--space-xs)',
             }}
           >
             {acceptedPathsCount}
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--neutral-medium)' }}>
-            {lang === 'fr' ? 'Sous-graphe induit de G connexe' : 'Induced subgraph G connected'}
+            {dict.metricConnectedG}
           </span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Language, TranslationDict } from '../i18n/types';
 
 interface DirectedGraphProps {
   vertices: string[];
@@ -8,7 +9,8 @@ interface DirectedGraphProps {
   activePath: string[];
   isFinalResult: boolean;
   isAcceptedStep: boolean;
-  lang: 'fr' | 'en';
+  lang: Language;
+  dict: TranslationDict;
 }
 
 export const DirectedGraph: React.FC<DirectedGraphProps> = ({
@@ -20,6 +22,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
   isFinalResult,
   isAcceptedStep,
   lang,
+  dict,
 }) => {
   const radius = 22;
 
@@ -42,16 +45,29 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '300px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: '#ffffff', overflow: 'hidden' }}>
+    <div 
+      dir="ltr" /* Force Left-To-Right direction on container to prevent graph mirroring */
+      style={{ 
+        position: 'relative', 
+        width: '100%', 
+        height: '300px', 
+        border: '1px solid var(--border-color)', 
+        borderRadius: 'var(--radius-md)', 
+        backgroundColor: '#ffffff', 
+        overflow: 'hidden' 
+      }}
+    >
       <svg
         viewBox="0 0 600 300"
         width="100%"
         height="100%"
         style={{ display: 'block' }}
         aria-label={
-          lang === 'fr'
-            ? `Réseau métabolique D. Sommets: ${vertices.join(', ')}.`
-            : `Metabolic network D. Vertices: ${vertices.join(', ')}.`
+          lang === 'ar'
+            ? `الشبكة الاستقلابية D. الرؤوس: ${vertices.join(', ')}.`
+            : (lang === 'fr'
+              ? `Réseau métabolique D. Sommets: ${vertices.join(', ')}.`
+              : `Metabolic network D. Vertices: ${vertices.join(', ')}.`)
         }
       >
         <defs>
@@ -112,7 +128,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
             fill: 'var(--neutral-medium)',
           }}
         >
-          {lang === 'fr' ? 'Graphe D — Réseau métabolique' : 'Graph D — Metabolic network'}
+          {dict.legendDTitle}
         </text>
 
         {/* Draw Edges */}
