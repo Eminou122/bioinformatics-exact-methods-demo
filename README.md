@@ -1,6 +1,6 @@
 # Interactive Exact Consistent-Path Bioinformatics Demo
 
-An interactive educational web application designed to demonstrate the resolution of the simplified **(D,G)-consistent path** problem in systems biology.
+An interactive educational web application designed to demonstrate the resolution of the **(D,G)-consistent path** problem in systems biology.
 
 ## 🔬 Academic Problem Context
 

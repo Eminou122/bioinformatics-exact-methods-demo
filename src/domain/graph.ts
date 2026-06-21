@@ -1,11 +1,24 @@
+export type VertexId = string;
+export type ArcId = string;
+export type EdgeId = string;
+
 export interface GraphD {
-  vertices: string[];
-  edges: { from: string; to: string }[];
+  vertices: VertexId[];
+  edges: { id?: ArcId; from: VertexId; to: VertexId }[];
 }
 
 export interface GraphG {
-  vertices: string[];
-  edges: { u: string; v: string }[];
+  vertices: VertexId[];
+  edges: { id?: EdgeId; u: VertexId; v: VertexId }[];
+}
+
+export function getArcId(from: VertexId, to: VertexId): ArcId {
+  return `${from}->${to}`;
+}
+
+export function getEdgeId(u: VertexId, v: VertexId): EdgeId {
+  const sorted = [u, v].sort();
+  return `${sorted[0]}--${sorted[1]}`;
 }
 
 export interface ValidationResult {

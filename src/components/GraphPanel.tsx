@@ -14,6 +14,7 @@ interface GraphPanelProps {
   isAcceptedStep: boolean;
   lang: Language;
   dict: TranslationDict;
+  mobileActiveTab?: 'D' | 'G';
 }
 
 export const GraphPanel: React.FC<GraphPanelProps> = ({
@@ -27,6 +28,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
   isAcceptedStep,
   lang,
   dict,
+  mobileActiveTab,
 }) => {
   return (
     <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
@@ -36,7 +38,10 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
 
       <div className="grid grid-2" style={{ gap: 'var(--space-md)' }}>
         {/* Metabolic Graph D */}
-        <div>
+        <div 
+          className={mobileActiveTab === 'G' ? 'mobile-hide-graph' : ''} 
+          aria-hidden={mobileActiveTab === 'G' ? 'true' : 'false'}
+        >
           <DirectedGraph
             vertices={vertices}
             edgesD={edgesD}
@@ -54,7 +59,10 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
         </div>
 
         {/* Genomic Graph G */}
-        <div>
+        <div 
+          className={mobileActiveTab === 'D' ? 'mobile-hide-graph' : ''} 
+          aria-hidden={mobileActiveTab === 'D' ? 'true' : 'false'}
+        >
           <GenomicGraph
             vertices={vertices}
             edgesG={edgesG}
@@ -71,6 +79,14 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
           </p>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 767px) {
+          .mobile-hide-graph {
+            display: none !important;
+          }
+        }
+      `}</style>
     </section>
   );
 };
