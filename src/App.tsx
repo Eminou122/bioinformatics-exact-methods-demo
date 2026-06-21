@@ -13,8 +13,18 @@ import type { Language } from './i18n/types';
 import { translations } from './i18n/translations';
 import { formatTranslation } from './i18n/format';
 
+// New components and custom router
+import { useNavigation, Navbar } from './components/Navigation';
+import { StartHere } from './components/StartHere';
+import { MethodMap } from './components/MethodMap';
+import { CP1Model } from './components/CP1Model';
+import { MethodPlaceholders } from './components/MethodPlaceholders';
+
 function App() {
   const [lang, setLang] = useState<Language>('fr');
+  const { currentPath, navigate } = useNavigation();
+
+  // Selected example state (used for legacy demo)
   const [selectedExampleId, setSelectedExampleId] = useState<string>('simple-valide');
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1); // -1: not started
 
@@ -35,12 +45,11 @@ function App() {
     }
   }, [lang, dict]);
 
-  // Fetch the active dataset
+  // Derive legacy solver variables
   const currentExample = useMemo(() => {
     return examples.find((ex) => ex.id === selectedExampleId) || examples[0];
   }, [selectedExampleId]);
 
-  // Run the solver on the active dataset
   const solverResult = useMemo(() => {
     return solveConsistentPath(
       currentExample.vertices,
@@ -51,11 +60,9 @@ function App() {
 
   const isRunning = currentStepIndex !== -1 && !solverResult.error;
 
-  // Derive visual state of graphs based on current step
   const graphVisuals = useMemo(() => {
     const totalSteps = solverResult.evaluations.length;
     
-    // Initial state or error state: nothing highlighted
     if (currentStepIndex === -1 || solverResult.error) {
       return {
         highlightedNodes: new Set<string>(),
@@ -65,7 +72,6 @@ function App() {
       };
     }
 
-    // Final result screen: highlight winning consistent path
     if (currentStepIndex === totalSteps) {
       const winner = solverResult.longestConsistentPath || [];
       return {
@@ -76,7 +82,6 @@ function App() {
       };
     }
 
-    // Stepper screen: highlight candidate path under evaluation
     const stepEval = solverResult.evaluations[currentStepIndex];
     return {
       highlightedNodes: new Set(stepEval.path),
@@ -88,17 +93,17 @@ function App() {
 
   const handleExampleSelect = (id: string) => {
     setSelectedExampleId(id);
-    setCurrentStepIndex(-1); // Reset execution state
+    setCurrentStepIndex(-1);
   };
 
   const handleRun = () => {
     if (!solverResult.error) {
-      setCurrentStepIndex(0); // Start path stepping
+      setCurrentStepIndex(0);
     }
   };
 
   const handleReset = () => {
-    setCurrentStepIndex(-1); // Reset
+    setCurrentStepIndex(-1);
   };
 
   const handleStepChange = (index: number) => {
@@ -108,7 +113,6 @@ function App() {
     }
   };
 
-  // Build error message if the dataset is invalid
   const getErrorMessage = () => {
     if (!solverResult.error) return '';
     const { code, node, message } = solverResult.error;
@@ -124,115 +128,162 @@ function App() {
     return message || '';
   };
 
+  // Route router logic
+  const renderRouteContent = () => {
+    if (currentPath === '/') {
+      return <StartHere lang={lang} navigate={navigate} />;
+    }
+    if (currentPath === '/methods') {
+      return <MethodMap lang={lang} navigate={navigate} />;
+    }
+    if (currentPath === '/methods/cp1') {
+      return <CP1Model lang={lang} dict={dict} />;
+    }
+    if (currentPath.startsWith('/methods/')) {
+      const parts = currentPath.split('/');
+      const methodId = parts[parts.length - 1];
+      return <MethodPlaceholders methodId={methodId} lang={lang} navigate={navigate} />;
+    }
+    if (currentPath === '/legacy') {
+      // Return 100% exact copy of the legacy exhaustive-enumeration demo
+      return (
+        <>
+          {/* Exact exhaustive-enumeration baseline notice */}
+          <div style={{
+            padding: 'var(--space-sm) var(--space-md)',
+            backgroundColor: 'var(--neutral-bg-hover)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            fontWeight: 700,
+            color: 'var(--neutral-dark)',
+            marginBlockEnd: 'var(--space-md)',
+            fontSize: '1rem',
+            textAlign: 'center'
+          }}>
+            Exact exhaustive-enumeration baseline
+          </div>
+
+          {/* Academic Intro Section */}
+          <IntroSection dict={dict} />
+
+          {/* Dataset Selection */}
+          <ExampleSelector
+            examples={examples}
+            selectedId={selectedExampleId}
+            onSelect={handleExampleSelect}
+            onRun={handleRun}
+            onReset={handleReset}
+            isRunning={currentStepIndex !== -1}
+            lang={lang}
+            dict={dict}
+          />
+
+          {/* Solver Validation / Cycle Errors */}
+          {solverResult.error && (
+            <div 
+              style={{
+                padding: 'var(--space-md)',
+                backgroundColor: 'var(--danger-bg)',
+                border: '2px solid var(--danger-border)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--danger)',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                marginBlockEnd: 'var(--space-lg)',
+                textAlign: 'start'
+              }}
+            >
+              {getErrorMessage()}
+            </div>
+          )}
+
+          {/* Side-by-side / Stacked Graph Rendering */}
+          <GraphPanel
+            vertices={currentExample.vertices}
+            edgesD={currentExample.edgesD}
+            edgesG={currentExample.edgesG}
+            nodePositions={currentExample.nodePositions}
+            highlightedNodes={graphVisuals.highlightedNodes}
+            activePath={graphVisuals.activePath}
+            isFinalResult={graphVisuals.isFinalResult}
+            isAcceptedStep={graphVisuals.isAcceptedStep}
+            lang={lang}
+            dict={dict}
+          />
+
+          {/* Solver output, visible only after running and no error */}
+          {isRunning && (
+            <>
+              {/* Global Metrics Cards */}
+              <ComparisonPanel
+                longestPathD={solverResult.longestPathD}
+                longestConsistentPath={solverResult.longestConsistentPath}
+                evaluatedPathsCount={solverResult.evaluatedPathsCount}
+                acceptedPathsCount={solverResult.acceptedPathsCount}
+                dict={dict}
+              />
+
+              {/* Stepper controls & Candidate evaluations */}
+              <AlgorithmSteps
+                evaluations={solverResult.evaluations}
+                currentStepIndex={currentStepIndex}
+                onStepChange={handleStepChange}
+                dict={dict}
+              />
+
+              {/* In-depth Analysis (visible on the final result page of the stepper) */}
+              {currentStepIndex === solverResult.evaluations.length && (
+                <ResultPanel
+                  exampleId={selectedExampleId}
+                  longestConsistentPath={solverResult.longestConsistentPath}
+                  dict={dict}
+                />
+              )}
+            </>
+          )}
+
+          {/* Symbols and Accessibility Legend */}
+          <Legend dict={dict} />
+
+          {/* Supplementary Academic Cards */}
+          <section className="grid grid-2" style={{ marginBlockStart: 'var(--space-xl)' }}>
+            {/* Meaning biologically card */}
+            <div className="card" style={{ margin: 0 }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
+                {dict.bottomBioTitle}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
+                {dict.bottomBioDesc}
+              </p>
+            </div>
+
+            {/* Exact-method card */}
+            <div className="card" style={{ margin: 0 }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
+                {dict.bottomMethodTitle}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
+                {dict.bottomMethodDesc}
+              </p>
+            </div>
+          </section>
+        </>
+      );
+    }
+    
+    // Fallback default path
+    return <StartHere lang={lang} navigate={navigate} />;
+  };
+
   return (
     <>
       <Header lang={lang} setLang={setLang} dict={dict} />
+      
+      {/* Navbar navigation bar */}
+      <Navbar currentPath={currentPath} navigate={navigate} lang={lang} />
 
       <main className="container">
-        {/* Academic Intro Section */}
-        <IntroSection dict={dict} />
-
-        {/* Dataset Selection */}
-        <ExampleSelector
-          examples={examples}
-          selectedId={selectedExampleId}
-          onSelect={handleExampleSelect}
-          onRun={handleRun}
-          onReset={handleReset}
-          isRunning={currentStepIndex !== -1}
-          lang={lang}
-          dict={dict}
-        />
-
-        {/* Solver Validation / Cycle Errors */}
-        {solverResult.error && (
-          <div 
-            style={{
-              padding: 'var(--space-md)',
-              backgroundColor: 'var(--danger-bg)',
-              border: '2px solid var(--danger-border)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--danger)',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              marginBlockEnd: 'var(--space-lg)',
-              textAlign: 'start'
-            }}
-          >
-            {getErrorMessage()}
-          </div>
-        )}
-
-        {/* Side-by-side / Stacked Graph Rendering */}
-        <GraphPanel
-          vertices={currentExample.vertices}
-          edgesD={currentExample.edgesD}
-          edgesG={currentExample.edgesG}
-          nodePositions={currentExample.nodePositions}
-          highlightedNodes={graphVisuals.highlightedNodes}
-          activePath={graphVisuals.activePath}
-          isFinalResult={graphVisuals.isFinalResult}
-          isAcceptedStep={graphVisuals.isAcceptedStep}
-          lang={lang}
-          dict={dict}
-        />
-
-        {/* Solver output, visible only after running and no error */}
-        {isRunning && (
-          <>
-            {/* Global Metrics Cards */}
-            <ComparisonPanel
-              longestPathD={solverResult.longestPathD}
-              longestConsistentPath={solverResult.longestConsistentPath}
-              evaluatedPathsCount={solverResult.evaluatedPathsCount}
-              acceptedPathsCount={solverResult.acceptedPathsCount}
-              dict={dict}
-            />
-
-            {/* Stepper controls & Candidate evaluations */}
-            <AlgorithmSteps
-              evaluations={solverResult.evaluations}
-              currentStepIndex={currentStepIndex}
-              onStepChange={handleStepChange}
-              dict={dict}
-            />
-
-            {/* In-depth Analysis (visible on the final result page of the stepper) */}
-            {currentStepIndex === solverResult.evaluations.length && (
-              <ResultPanel
-                exampleId={selectedExampleId}
-                longestConsistentPath={solverResult.longestConsistentPath}
-                dict={dict}
-              />
-            )}
-          </>
-        )}
-
-        {/* Symbols and Accessibility Legend */}
-        <Legend dict={dict} />
-
-        {/* Supplementary Academic Cards */}
-        <section className="grid grid-2" style={{ marginBlockStart: 'var(--space-xl)' }}>
-          {/* Meaning biologically card */}
-          <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
-              {dict.bottomBioTitle}
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-              {dict.bottomBioDesc}
-            </p>
-          </div>
-
-          {/* Exact-method card */}
-          <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>
-              {dict.bottomMethodTitle}
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-              {dict.bottomMethodDesc}
-            </p>
-          </div>
-        </section>
+        {renderRouteContent()}
       </main>
     </>
   );

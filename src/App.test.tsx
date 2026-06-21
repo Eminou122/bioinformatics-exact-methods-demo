@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, test, expect, beforeAll, afterEach } from 'vitest';
+import { describe, test, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import App from './App';
 import { translations } from './i18n/translations';
@@ -10,6 +10,10 @@ describe('UI Workflow and Internationalization QA', () => {
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'description');
     document.head.appendChild(meta);
+  });
+
+  beforeEach(() => {
+    window.history.pushState({}, '', '/legacy');
   });
 
   afterEach(() => {

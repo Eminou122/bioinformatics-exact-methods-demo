@@ -206,3 +206,19 @@ select:focus-visible,
 [dir="ltr"] ol {
   padding-inline-start: var(--space-lg);
 }
+
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 10px;
+  background: var(--accent-gold);
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 10px;
+}

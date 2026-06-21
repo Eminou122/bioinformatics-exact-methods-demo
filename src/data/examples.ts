@@ -113,4 +113,33 @@ export const examples: ExampleDataset[] = [
       R6: { x: 500, y: 50 },
     },
   },
+  {
+    id: 'cp1-disconnected-g',
+    titleFr: '4. Élagage précoce CP1 dans G',
+    titleEn: '4. Early CP1 pruning in G',
+    titleAr: '٤. تقليم مبكر في G باستخدام CP1',
+    descriptionFr: 'Un cas où le solveur CP1 peut élaguer une branche tôt car les sommets du chemin ne peuvent plus rester connectés dans G.',
+    descriptionEn: 'A case where the CP1 solver can prune a branch early because the path vertices can no longer remain connected in G.',
+    descriptionAr: 'حالة يمكن فيها لمحلل CP1 تقليم فرع مبكراً لأن رؤوس المسار لا يمكن أن تظل متصلة في G.',
+    teachingPointFr: 'L\'élagage précoce de connectivité évite d\'explorer des branches vouées à l\'échec.',
+    teachingPointEn: 'Early connectivity pruning avoids exploring branches destined to fail.',
+    teachingPointAr: 'التقليم المبكر للاتصال يتجنب استكشاف الفروع المحكوم عليها بالفشل.',
+    vertices: ['R1', 'R2', 'R3', 'R4'],
+    edgesD: [
+      { from: 'R1', to: 'R2' },
+      { from: 'R2', to: 'R3' },
+      { from: 'R3', to: 'R4' },
+    ],
+    edgesG: [
+      { u: 'R1', v: 'R2' },
+      { u: 'R3', v: 'R4' },
+    ],
+    nodePositions: {
+      R1: { x: 80, y: 150 },
+      R2: { x: 220, y: 150 },
+      R3: { x: 360, y: 150 },
+      R4: { x: 500, y: 150 },
+    },
+  },
 ];
+
