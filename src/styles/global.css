@@ -12,6 +12,7 @@ body {
   color: var(--neutral-dark);
   font-family: var(--font-sans);
   line-height: 1.65;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -26,12 +27,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: 2rem;
-  margin-block-end: var(--space-md);
+  font-size: 2.1rem;
+  margin-block-end: var(--space-sm);
 }
 
 h2 {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   margin-block-end: var(--space-sm);
   border-block-end: 2px solid var(--border-color);
   padding-block-end: var(--space-xs);
@@ -63,11 +64,11 @@ select:focus-visible,
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
   margin-block-end: var(--space-lg);
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .card:hover {
@@ -208,7 +209,23 @@ select:focus-visible,
 
 .instrument-panel {
   border: 1px solid var(--border-color);
-  background: #fbfdfd;
+  background: #f8fbfa;
+}
+
+.learning-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.learning-panel--active {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.learning-panel--subtle {
+  background: var(--bg-app);
 }
 
 /* RTL Helpers */

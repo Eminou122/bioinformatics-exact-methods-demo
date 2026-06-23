@@ -18,9 +18,10 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
   return (
     <header
       style={{
-        borderBlockEnd: '1px solid var(--border-color)',
         backgroundColor: 'var(--bg-card)',
-        paddingBlock: 'var(--space-md)',
+        borderBlockEnd: '1px solid var(--border-color)',
+        boxShadow: 'var(--shadow-sm)',
+        paddingBlock: 'var(--space-sm)',
         marginBlockEnd: 'var(--space-lg)',
       }}
     >
@@ -41,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
               textTransform: 'uppercase',
               fontSize: '0.75rem',
               fontWeight: 600,
-              letterSpacing: '0.1em',
+              letterSpacing: '0',
               color: 'var(--primary)',
               fontFamily: 'var(--font-sans)',
               display: 'block',
@@ -52,9 +53,10 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
           <h1
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '1.4rem',
+              fontSize: '1.75rem',
               fontWeight: 700,
-              marginBlockStart: '2px',
+              lineHeight: 1.15,
+              marginBlockStart: 'var(--space-xs)',
               marginBlockEnd: 0,
               color: 'var(--neutral-dark)',
             }}
@@ -63,8 +65,9 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
           </h1>
           <p
             style={{
-              fontSize: '0.85rem',
-              marginBlockStart: '2px',
+              fontSize: '0.9rem',
+              maxWidth: '52ch',
+              marginBlockStart: 'var(--space-xs)',
               marginBlockEnd: 0,
               color: 'var(--neutral-medium)',
             }}
@@ -78,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
           className="lang-selector-group" 
           role="group" 
           aria-label={lang === 'ar' ? 'تغيير اللغة' : (lang === 'fr' ? 'Changer de langue' : 'Change language')}
-          style={{ flexShrink: 0, alignItems: 'center' }}
+          style={{ flexShrink: 0, alignItems: 'center', backgroundColor: 'var(--bg-app)' }}
         >
           <span aria-hidden="true" style={{ color: 'var(--primary)', paddingInline: 'var(--space-sm)', display: 'inline-flex' }}>
             <Icon name="language" />
