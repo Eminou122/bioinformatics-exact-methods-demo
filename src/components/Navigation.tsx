@@ -46,23 +46,26 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) => {
-  const labels: Record<Language, { start: string; methods: string; cp1: string; legacy: string }> = {
+  const labels: Record<Language, { start: string; methods: string; cp1: string; cp2: string; legacy: string }> = {
     fr: {
       start: 'Commencer Ici',
       methods: 'Carte des Méthodes',
       cp1: 'Modèle CP1',
+      cp2: 'Modèle CP2',
       legacy: 'Démo Énumération (Legacy)'
     },
     en: {
       start: 'Start Here',
       methods: 'Method Map',
       cp1: 'CP1 Model',
+      cp2: 'CP2 Model',
       legacy: 'Enumeration Demo (Legacy)'
     },
     ar: {
       start: 'ابدأ هنا',
       methods: 'خريطة الطرق',
       cp1: 'نموذج CP1',
+      cp2: 'نموذج CP2',
       legacy: 'عرض التعداد (القديم)'
     }
   };
@@ -73,6 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
     { path: '/', label: t.start },
     { path: '/methods', label: t.methods },
     { path: '/methods/cp1', label: t.cp1 },
+    { path: '/methods/cp2', label: t.cp2 },
     { path: '/legacy', label: t.legacy }
   ];
 
@@ -96,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       }}
     >
       {items.map((item) => {
-        const isActive = currentPath === item.path || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1');
+        const isActive = currentPath === item.path || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2');
         return (
           <Link
             key={item.path}

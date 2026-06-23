@@ -20,8 +20,9 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
     badgeSimulation: string;
     badgeReference: string;
     learnMore: string;
-    runCP1: string;
-    runLegacy: string;
+      runCP1: string;
+      runCP2: string;
+      runLegacy: string;
     methods: {
       id: string;
       name: string;
@@ -41,6 +42,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       badgeReference: 'Méthode de référence papier',
       learnMore: 'En savoir plus',
       runCP1: 'Lancer l\'application CP1',
+      runCP2: 'Lancer l\'application CP2',
       runLegacy: 'Lancer la démo énumération',
       methods: [
         {
@@ -55,8 +57,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'cp2',
           name: 'CP2 (CP avec borne supérieure)',
           paper: '2025',
-          badge: 'reference',
-          desc: 'Étend CP1 en ajoutant une borne supérieure pour élaguer efficacement les branches sous-optimales.',
+          badge: 'exact',
+          desc: 'Implémentation exacte pour petits DAG : CP1 avec borne supérieure sûre pour élaguer des branches sous-optimales.',
           route: '/methods/cp2'
         },
         {
@@ -135,6 +137,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       badgeReference: 'Paper-reference method',
       learnMore: 'Learn More',
       runCP1: 'Launch CP1 Solver App',
+      runCP2: 'Launch CP2 Solver App',
       runLegacy: 'Launch Legacy Enumeration',
       methods: [
         {
@@ -149,8 +152,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'cp2',
           name: 'CP2 (CP with Upper Bound)',
           paper: '2025',
-          badge: 'reference',
-          desc: 'Extends CP1 by adding an upper-bound constraint to efficiently prune sub-optimal branches.',
+          badge: 'exact',
+          desc: 'Exact small-DAG implementation: CP1 with a safe upper bound for pruning sub-optimal branches.',
           route: '/methods/cp2'
         },
         {
@@ -229,6 +232,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       badgeReference: 'طريقة مرجعية من الأوراق العلمية',
       learnMore: 'اقرأ المزيد',
       runCP1: 'تشغيل نموذج CP1',
+      runCP2: 'تشغيل نموذج CP2',
       runLegacy: 'تشغيل محاكاة التعداد القديمة',
       methods: [
         {
@@ -243,8 +247,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'cp2',
           name: 'CP2 (البرمجة بالقيود مع حد أعلى)',
           paper: '2025',
-          badge: 'reference',
-          desc: 'يوسع CP1 بإضافة قيد الحد الأعلى لتقليم الفروع غير المثيرة للاهتمام بكفاءة.',
+          badge: 'exact',
+          desc: 'تطبيق دقيق لمخططات DAG الصغيرة: CP1 مع حد أعلى آمن لتقليم الفروع دون المثلى.',
           route: '/methods/cp2'
         },
         {
@@ -405,7 +409,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : t.learnMore}
                   </Link>
                   {method.id === 'enumeration' && (
                     <Link 
