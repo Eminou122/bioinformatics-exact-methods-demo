@@ -6,6 +6,7 @@ import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { examples } from '../data/examples';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
+import { MethodPlaybackControls } from './MethodPlaybackControls';
 
 interface AlgoBBPlusPlusModelProps {
   lang: Language;
@@ -103,6 +104,7 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
       cp1: 'Modèle inspiré CP1',
       algobb: 'AlgoBB++ éducatif',
       select: 'Exemple',
+      preview: 'La démonstration affichera les graines, extensions, bornes sûres, rejets génomiques et retours arrière.',
     },
     en: {
       title: 'AlgoBB++ Educational',
@@ -147,6 +149,7 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
       cp1: 'CP1-inspired model',
       algobb: 'AlgoBB++ educational',
       select: 'Example',
+      preview: 'The walkthrough will show seeds, extensions, safe bounds, genomic rejections, and backtracking.',
     },
     ar: {
       title: 'AlgoBB++ التعليمي',
@@ -191,6 +194,7 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
       cp1: 'نموذج مستوحى من CP1',
       algobb: 'AlgoBB++ التعليمي',
       select: 'مثال',
+      preview: 'سيعرض التشغيل البذور، والتمديدات، والحدود الآمنة، والرفض الجينومي، والرجوع للخلف.',
     },
   }[lang];
 
@@ -338,28 +342,20 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
         </div>
 
         <section className="card">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBlockEnd: 'var(--space-md)' }}>
-            {currentStepIndex === -1 ? (
-              <button className="btn btn-primary" onClick={() => goToStep(0)} style={{ width: 'auto' }}>
-                <span className="icon-label"><Icon name="play" /> {labels.start}</span>
-              </button>
-            ) : (
-              <>
-                <button className="btn btn-secondary" disabled={currentStepIndex <= 0} onClick={() => goToStep(currentStepIndex - 1)} style={{ width: 'auto' }}>
-                  <span className="icon-label"><Icon name="step" /> {labels.prev}</span>
-                </button>
-                <button className="btn btn-primary" disabled={currentStepIndex >= trace.length - 1} onClick={() => goToStep(currentStepIndex + 1)} style={{ width: 'auto' }}>
-                  <span className="icon-label"><Icon name="step" /> {labels.next}</span>
-                </button>
-                <button className="btn btn-secondary" onClick={() => goToStep(trace.length - 1)} style={{ width: 'auto' }}>
-                  <span className="icon-label"><Icon name="step" /> {labels.jump}</span>
-                </button>
-                <button className="btn btn-secondary" onClick={() => setCurrentStepIndex(-1)} style={{ width: 'auto' }}>
-                  <span className="icon-label"><Icon name="reset" /> {labels.reset}</span>
-                </button>
-              </>
-            )}
-          </div>
+          <MethodPlaybackControls
+            lang={lang}
+            currentStepIndex={currentStepIndex}
+            totalSteps={trace.length}
+            onStepChange={goToStep}
+            onReset={() => setCurrentStepIndex(-1)}
+            labels={{ start: labels.start, previous: labels.prev, next: labels.next, end: labels.jump, reset: labels.reset }}
+          />
+
+          {currentStepIndex === -1 && (
+            <div style={{ backgroundColor: 'var(--neutral-bg-hover)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)', marginBlockEnd: 'var(--space-md)', color: 'var(--neutral-medium)', fontSize: '0.9rem' }}>
+              {labels.preview}
+            </div>
+          )}
 
           <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
             {[

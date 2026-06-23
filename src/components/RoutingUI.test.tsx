@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, test, expect, beforeAll, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, test, expect, beforeAll, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, cleanup, act, within } from '@testing-library/react';
 import App from '../App';
 import { translations } from '../i18n/translations';
 import { solveCP1 } from '../domain/cpSolver';
@@ -38,6 +38,11 @@ describe('Routing and Educational UI QA Suite', () => {
     fireEvent.click(cp2Link);
     expect(screen.getByText('CP2 — CP1 avec Bornes Supérieures Sûres')).toBeDefined();
 
+    // Click "Modèle ILP1"
+    const ilp1Link = screen.getByText('Modèle ILP1');
+    fireEvent.click(ilp1Link);
+    expect(screen.getByText('ILP1 — Décisions Binaires et Contraintes Linéaires')).toBeDefined();
+
     // Click "Démo Énumération (Legacy)"
     const legacyLink = screen.getByText('Démo Énumération (Legacy)');
     fireEvent.click(legacyLink);
@@ -51,6 +56,7 @@ describe('Routing and Educational UI QA Suite', () => {
       { path: '/methods/cp1', text: /Modèle Éducatif CP1/i },
       { path: '/methods/algobb-plus-plus', text: /AlgoBB\+\+ éducatif/i },
       { path: '/methods/cp2', text: /CP2/i },
+      { path: '/methods/ilp1', text: /ILP1/i },
       { path: '/methods/cp3', text: /CP3/i },
       { path: '/methods/cp4', text: /CP4/i },
       { path: '/methods/ilp1', text: /ILP1/i },
@@ -77,6 +83,8 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(screen.getAllByText(/Implémentation graphe borné exact/i).length).toBeGreaterThan(0);
     // Check CP2 is now included in the exact small-graph implementation group
     expect(screen.getByText(/Implémentation exacte pour petits DAG/i)).toBeDefined();
+    // Check ILP1 is now included in the exact small-graph implementation group
+    expect(screen.getByText(/Formulation éducative bornée exacte/i)).toBeDefined();
     // Check paper-only methods still keep reference badges
     expect(screen.getAllByText(/Méthode de référence papier/i).length).toBeGreaterThan(0);
     // Check Enumeration has simulation badge
@@ -273,13 +281,13 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(container.querySelectorAll('[data-state="inactive-directed-edge"]').length).toBeGreaterThan(0);
     expect(container.querySelectorAll('[data-state="inactive-genomic-edge"]').length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText('Démarrer la recherche CP1'));
-    fireEvent.click(screen.getByText('Aller à la Fin'));
+    fireEvent.click(screen.getAllByRole('button', { name: /Démarrer la recherche CP1/i })[0]);
+    fireEvent.click(within(screen.getByTestId('method-playback-controls')).getByRole('button', { name: /Aller à la Fin/i }));
     expect(container.querySelectorAll('[data-state="active-genomic-edge"]').length).toBeGreaterThan(0);
   });
 
-  test('CP1, CP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/legacy'];
+  test('CP1, CP2, ILP1, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ilp1', '/methods/algobb-plus-plus', '/legacy'];
 
     for (const route of routes) {
       cleanup();
@@ -307,8 +315,134 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(cpVarInspector).toBeDefined();
   });
 
+  test('CP1, CP2, AlgoBB++, and ILP1 display compact playback controls', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1'];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route);
+      render(<App />);
+      expect(screen.getByTestId('method-playback-controls')).toBeDefined();
+      expect(screen.getByRole('button', { name: /lecture|play|تشغيل/i })).toBeDefined();
+      expect(screen.getByRole('button', { name: /réinitialiser|reset|إعادة/i })).toBeDefined();
+    }
+  });
+
+  test('shared playback advances, pauses, resets, and stops at the final trace step', () => {
+    vi.useFakeTimers();
+    window.history.pushState({}, '', '/methods/cp2');
+    render(<App />);
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Start|Démarrer|بدء/i }));
+    expect(screen.getByText(/Étape: 1 \//i)).toBeDefined();
+
+    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+    expect(screen.getByText(/Étape: 2 \//i)).toBeDefined();
+
+    fireEvent.click(controls.getByRole('button', { name: /Pause/i }));
+    act(() => {
+      vi.advanceTimersByTime(2200);
+    });
+    expect(screen.getByText(/Étape: 2 \//i)).toBeDefined();
+
+    fireEvent.click(controls.getByRole('button', { name: /Fin|Aller à la fin|Go to end|النهاية/i }));
+    const finalCounter = screen.getByText(/Étape: \d+ \/ \d+/i).textContent;
+    act(() => {
+      vi.advanceTimersByTime(2200);
+    });
+    expect(screen.getByText(finalCounter || '')).toBeDefined();
+
+    fireEvent.click(controls.getByRole('button', { name: /Réinitialiser|Reset|إعادة/i }));
+    expect(screen.getByText(/Étape: 0 \//i)).toBeDefined();
+    vi.useRealTimers();
+  });
+
+  test('manual actions and example changes stop playback without duplicate interval behavior', () => {
+    vi.useFakeTimers();
+    window.history.pushState({}, '', '/methods/ilp1');
+    render(<App />);
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+    const afterOneTick = screen.getByText(/Étape: \d+ \/ \d+/i).textContent;
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    const afterManualNext = screen.getByText(/Étape: \d+ \/ \d+/i).textContent;
+    act(() => {
+      vi.advanceTimersByTime(2200);
+    });
+    expect(screen.getByText(afterManualNext || '')).toBeDefined();
+    expect(afterManualNext).not.toBe(afterOneTick);
+
+    fireEvent.click(controls.getByRole('button', { name: /Réinitialiser|Reset|إعادة/i }));
+    const select = screen.getByLabelText(/Exemple|Example|المثال/i);
+    fireEvent.change(select, { target: { value: 'simple-valide' } });
+    expect(screen.getByText(/Étape: 0 \//i)).toBeDefined();
+    vi.useRealTimers();
+  });
+
+  test('mobile playback controls remain usable at 320px and 390px', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+
+    for (const width of [320, 390]) {
+      window.innerWidth = width;
+      window.dispatchEvent(new Event('resize'));
+      const controls = screen.getByTestId('method-playback-controls') as HTMLElement;
+      expect(controls.style.flexWrap).toBe('wrap');
+      expect(container.querySelector('.method-playback-bar')).toBeDefined();
+    }
+  });
+
+  test('graph panels use compact responsive sizing rather than old tall fixed layout', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+    const directed = container.querySelector('[data-testid="directed-graph-container"]') as HTMLElement;
+    const svg = container.querySelector('[data-testid="directed-graph-svg"]') as SVGElement;
+    expect(directed.style.minHeight).not.toBe('360px');
+    expect(directed.style.maxHeight).toBe('340px');
+    expect(svg.style.minHeight).not.toBe('270px');
+    expect(svg.style.aspectRatio).toBe('16 / 7');
+  });
+
   test('CP2 page supports mobile graph tabs at 320px and 390px', () => {
     window.history.pushState({}, '', '/methods/cp2');
+    const { container } = render(<App />);
+
+    const viewports = [320, 390];
+    for (const width of viewports) {
+      window.innerWidth = width;
+      window.dispatchEvent(new Event('resize'));
+
+      const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+      if (mobileSelector) {
+        mobileSelector.style.display = 'flex';
+      }
+
+      const btnTabD = screen.getByRole('button', { name: 'D', hidden: true });
+      const btnTabG = screen.getByRole('button', { name: 'G', hidden: true });
+      const wrappers = container.querySelectorAll('.graph-panel-container .grid-2 > div');
+      expect(wrappers.length).toBe(2);
+
+      fireEvent.click(btnTabG);
+      expect(wrappers[0].classList.contains('mobile-hide-graph')).toBe(true);
+      expect(wrappers[1].getAttribute('aria-hidden')).toBe('false');
+
+      fireEvent.click(btnTabD);
+      expect(wrappers[0].getAttribute('aria-hidden')).toBe('false');
+      expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
+    }
+  });
+
+  test('ILP1 page supports mobile graph tabs at 320px and 390px', () => {
+    window.history.pushState({}, '', '/methods/ilp1');
     const { container } = render(<App />);
 
     const viewports = [320, 390];

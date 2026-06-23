@@ -6,6 +6,7 @@ import { solveCP1 } from '../domain/cpSolver';
 import { solveCP2, type CP2TraceEvent } from '../domain/cp2Solver';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
+import { MethodPlaybackControls } from './MethodPlaybackControls';
 
 interface CP2ModelProps {
   lang: Language;
@@ -171,7 +172,9 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
   const activePath = currentEvent?.currentPath || [];
 
   useEffect(() => {
-    activeLedgerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (typeof activeLedgerRef.current?.scrollIntoView === 'function') {
+      activeLedgerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [currentStepIndex]);
 
   const handleExampleSelect = (id: string) => {
@@ -242,21 +245,14 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
         </label>
       </section>
 
-      <section className="card" style={{ padding: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', alignItems: 'center' }}>
-          {currentStepIndex === -1 ? (
-            <button className="btn btn-primary" onClick={() => setCurrentStepIndex(0)} style={{ width: 'auto' }}><span className="icon-label"><Icon name="play" /> {t.start}</span></button>
-          ) : (
-            <>
-              <button className="btn btn-secondary" onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))} disabled={currentStepIndex <= 0} style={{ width: 'auto' }}>{t.prev}</button>
-              <button className="btn btn-primary" onClick={() => setCurrentStepIndex(Math.min(traceEvents.length - 1, currentStepIndex + 1))} disabled={currentStepIndex >= traceEvents.length - 1} style={{ width: 'auto' }}>{t.next}</button>
-              <button className="btn btn-secondary" onClick={() => setCurrentStepIndex(traceEvents.length - 1)} disabled={currentStepIndex >= traceEvents.length - 1} style={{ width: 'auto' }}>{t.end}</button>
-              <button className="btn btn-secondary" onClick={() => setCurrentStepIndex(-1)} style={{ width: 'auto', color: 'var(--danger)', borderColor: 'var(--danger-border)' }}><span className="icon-label"><Icon name="reset" /> {t.reset}</span></button>
-            </>
-          )}
-          {isRunning && <strong>{currentStepIndex + 1} / {traceEvents.length}</strong>}
-        </div>
-      </section>
+      <MethodPlaybackControls
+        lang={lang}
+        currentStepIndex={currentStepIndex}
+        totalSteps={traceEvents.length}
+        onStepChange={setCurrentStepIndex}
+        onReset={() => setCurrentStepIndex(-1)}
+        labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
+      />
 
       <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
         <div className="lang-selector-group" style={{ width: '100%' }}>
