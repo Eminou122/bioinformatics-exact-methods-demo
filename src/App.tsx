@@ -18,6 +18,7 @@ import { useNavigation, Navbar } from './components/Navigation';
 import { StartHere } from './components/StartHere';
 import { MethodMap } from './components/MethodMap';
 import { CP1Model } from './components/CP1Model';
+import { CP2Model } from './components/CP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
 
@@ -139,6 +140,9 @@ function App() {
     }
     if (currentPath === '/methods/cp1') {
       return <CP1Model lang={lang} dict={dict} />;
+    }
+    if (currentPath === '/methods/cp2') {
+      return <CP2Model lang={lang} dict={dict} />;
     }
     if (currentPath === '/methods/algobb-plus-plus') {
       return <AlgoBBPlusPlusModel lang={lang} dict={dict} />;

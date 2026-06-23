@@ -33,6 +33,11 @@ describe('Routing and Educational UI QA Suite', () => {
     fireEvent.click(cp1Link);
     expect(screen.getByText('Modèle Éducatif CP1 — Programmation par Contraintes')).toBeDefined();
 
+    // Click "Modèle CP2"
+    const cp2Link = screen.getByText('Modèle CP2');
+    fireEvent.click(cp2Link);
+    expect(screen.getByText('CP2 — CP1 avec Bornes Supérieures Sûres')).toBeDefined();
+
     // Click "Démo Énumération (Legacy)"
     const legacyLink = screen.getByText('Démo Énumération (Legacy)');
     fireEvent.click(legacyLink);
@@ -70,7 +75,9 @@ describe('Routing and Educational UI QA Suite', () => {
 
     // Check CP1 has exact badge
     expect(screen.getAllByText(/Implémentation graphe borné exact/i).length).toBeGreaterThan(0);
-    // Check CP2 has reference badge
+    // Check CP2 is now included in the exact small-graph implementation group
+    expect(screen.getByText(/Implémentation exacte pour petits DAG/i)).toBeDefined();
+    // Check paper-only methods still keep reference badges
     expect(screen.getAllByText(/Méthode de référence papier/i).length).toBeGreaterThan(0);
     // Check Enumeration has simulation badge
     expect(screen.getAllByText(/Simulation pédagogique/i).length).toBeGreaterThan(0);
@@ -271,8 +278,8 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(container.querySelectorAll('[data-state="active-genomic-edge"]').length).toBeGreaterThan(0);
   });
 
-  test('CP1, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
-    const routes = ['/methods/cp1', '/methods/algobb-plus-plus', '/legacy'];
+  test('CP1, CP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/legacy'];
 
     for (const route of routes) {
       cleanup();
@@ -298,6 +305,35 @@ describe('Routing and Educational UI QA Suite', () => {
     // Verify presence of synchronized containers for desktop and layout containers for mobile
     const cpVarInspector = screen.getByText(/Inspecteur des Variables CP1/i);
     expect(cpVarInspector).toBeDefined();
+  });
+
+  test('CP2 page supports mobile graph tabs at 320px and 390px', () => {
+    window.history.pushState({}, '', '/methods/cp2');
+    const { container } = render(<App />);
+
+    const viewports = [320, 390];
+    for (const width of viewports) {
+      window.innerWidth = width;
+      window.dispatchEvent(new Event('resize'));
+
+      const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+      if (mobileSelector) {
+        mobileSelector.style.display = 'flex';
+      }
+
+      const btnTabD = screen.getByRole('button', { name: 'D', hidden: true });
+      const btnTabG = screen.getByRole('button', { name: 'G', hidden: true });
+      const wrappers = container.querySelectorAll('.graph-panel-container .grid-2 > div');
+      expect(wrappers.length).toBe(2);
+
+      fireEvent.click(btnTabG);
+      expect(wrappers[0].classList.contains('mobile-hide-graph')).toBe(true);
+      expect(wrappers[1].getAttribute('aria-hidden')).toBe('false');
+
+      fireEvent.click(btnTabD);
+      expect(wrappers[0].getAttribute('aria-hidden')).toBe('false');
+      expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
+    }
   });
 
   test('AlgoBB++ page supports trace controls, mobile graph tabs, and Arabic RTL shell', () => {
