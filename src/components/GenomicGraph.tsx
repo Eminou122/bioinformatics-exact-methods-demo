@@ -24,7 +24,16 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
   lang,
   dict,
 }) => {
-  const radius = 22;
+  const titleId = React.useId();
+  const descId = React.useId();
+  const radius = 30;
+  const boundsPadding = 44;
+  const positions = vertices.map((vertex) => nodePositions[vertex]).filter(Boolean);
+  const minX = Math.min(...positions.map((pos) => pos.x)) - boundsPadding;
+  const maxX = Math.max(...positions.map((pos) => pos.x)) + boundsPadding;
+  const minY = Math.min(...positions.map((pos) => pos.y)) - boundsPadding;
+  const maxY = Math.max(...positions.map((pos) => pos.y)) + boundsPadding;
+  const viewBox = `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
 
   // An edge is in the induced subgraph if both endpoints are in the highlightedNodes set.
   const isInducedEdge = (u: string, v: string): boolean => {
@@ -41,41 +50,46 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
   return (
     <div 
       dir="ltr" /* Force Left-To-Right direction on container to prevent graph mirroring */
-      style={{ 
-        position: 'relative', 
-        width: '100%', 
-        height: '300px', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 'var(--radius-md)', 
-        backgroundColor: '#ffffff', 
-        overflow: 'hidden' 
+      data-testid="genomic-graph-container"
+      style={{
+        position: 'relative',
+        width: '100%',
+        minHeight: '360px',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-sm)',
+        backgroundColor: '#ffffff',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
+      <div style={{ padding: 'var(--space-sm) var(--space-md)', borderBlockEnd: '1px solid var(--border-color)' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700, color: 'var(--neutral-dark)' }}>
+          {dict.legendGTitle}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBlockStart: '4px', fontSize: '0.78rem', color: 'var(--neutral-medium)' }}>
+          <span>thick solid = selected G link</span>
+          <span>dotted = inactive G link</span>
+          <span>outlined node = selected reaction</span>
+        </div>
+      </div>
       <svg
-        viewBox="0 0 600 300"
+        viewBox={viewBox}
         width="100%"
         height="100%"
-        style={{ display: 'block' }}
-        aria-label={
-          lang === 'ar'
-            ? `مخطط التقارب الجينومي G. روابط غير موجهة.`
-            : (lang === 'fr'
-              ? `Graphe de proximité génomique G. Liaisons non-orientées.`
-              : `Genomic proximity graph G. Undirected links.`)
-        }
+        preserveAspectRatio="xMidYMid meet"
+        data-testid="genomic-graph-svg"
+        style={{ display: 'block', flex: 1, minHeight: '270px' }}
+        aria-labelledby={`${titleId} ${descId}`}
       >
-        <text
-          x="15"
-          y="25"
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            fill: 'var(--neutral-medium)',
-          }}
-        >
-          {dict.legendGTitle}
-        </text>
+        <title id={titleId}>{dict.legendGTitle}</title>
+        <desc id={descId}>
+          {lang === 'ar'
+            ? `مخطط التقارب الجينومي G. الروابط غير موجهة، وتبقى الهندسة غير معكوسة في الواجهة العربية.`
+            : (lang === 'fr'
+              ? `Graphe de proximité génomique G. Les liens pleins appartiennent au sous-graphe induit sélectionné.`
+              : `Genomic proximity graph G. Solid links are selected induced links; dotted links are inactive context.`)}
+        </desc>
 
         {/* Draw Edges */}
         {edgesG.map((edge, index) => {
@@ -100,8 +114,8 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
           
           // Induced edges are solid and thick, uninduced edges are light and dashed
           const strokeWidth = isInduced ? 3 : 1;
-          const strokeDasharray = isInduced ? undefined : '3,3';
-          const opacity = isInduced ? 1 : 0.4;
+          const strokeDasharray = isInduced ? undefined : '7,5';
+          const opacity = isInduced ? 1 : 0.65;
 
           return (
             <line
@@ -111,10 +125,11 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
               x2={endX}
               y2={endY}
               stroke={color}
-              strokeWidth={strokeWidth}
+              strokeWidth={isInduced ? 5 : Math.max(strokeWidth, 2.25)}
               strokeDasharray={strokeDasharray}
               opacity={opacity}
               className="graph-edge"
+              data-state={isInduced ? 'active-genomic-edge' : 'inactive-genomic-edge'}
             />
           );
         })}
@@ -129,11 +144,11 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
           // Determine node styling in G
           let fill = 'var(--bg-card)';
           let stroke = 'var(--neutral-light)';
-          let strokeWidth = 1.5;
+          let strokeWidth = 2.25;
 
           if (isNodeInPath) {
             stroke = getHighlightColor();
-            strokeWidth = 3;
+            strokeWidth = 4;
             fill = isFinalResult
               ? 'var(--accent-gold-bg)'
               : (isAcceptedStep ? 'var(--primary-bg)' : 'var(--danger-bg)');
@@ -155,7 +170,7 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
                 textAnchor="middle"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: '0.8rem',
+                  fontSize: '1rem',
                   fontWeight: isNodeInPath ? 700 : 500,
                   fill: isNodeInPath ? 'var(--neutral-dark)' : 'var(--neutral-medium)',
                   userSelect: 'none',

@@ -1365,6 +1365,10 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           border-radius: var(--radius-sm);
           box-shadow: var(--shadow-lg);
         }
+        .start-diagram-panel svg {
+          width: min(100%, 360px);
+          height: auto;
+        }
       `}</style>
 
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
@@ -1455,7 +1459,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           </div>
 
           {/* Graphical/Diagram component */}
-          <div style={{
+          <div className="start-diagram-panel" style={{
             backgroundColor: 'var(--bg-app)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
@@ -1464,7 +1468,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            minHeight: '120px'
+            minHeight: '150px'
           }}>
             {activeChapterData.diagram}
           </div>
