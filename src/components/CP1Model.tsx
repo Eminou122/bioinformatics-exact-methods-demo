@@ -6,6 +6,7 @@ import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { GraphPanel } from './GraphPanel';
 import { examples } from '../data/examples';
 import { Icon } from './Icons';
+import { MethodPlaybackControls } from './MethodPlaybackControls';
 
 interface CP1ModelProps {
   lang: Language;
@@ -281,52 +282,21 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
         </div>
       </section>
 
-      {/* Main Solver Controls */}
-      <section className="card" style={{ padding: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
-          {currentStepIndex === -1 ? (
-            <button onClick={handleRun} className="btn btn-primary" style={{ width: 'auto' }}>
-              {t.btnStart}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => handleStepChange(currentStepIndex - 1)}
-                disabled={currentStepIndex <= 0}
-                className="btn btn-secondary"
-                style={{ width: 'auto' }}
-              >
-                {t.btnPrev}
-              </button>
-              <button
-                onClick={() => handleStepChange(currentStepIndex + 1)}
-                disabled={currentStepIndex >= traceEvents.length - 1}
-                className="btn btn-primary"
-                style={{ width: 'auto' }}
-              >
-                {t.btnNext}
-              </button>
-              <button
-                onClick={() => setCurrentStepIndex(traceEvents.length - 1)}
-                disabled={currentStepIndex >= traceEvents.length - 1}
-                className="btn btn-secondary"
-                style={{ width: 'auto' }}
-              >
-                {lang === 'fr' ? 'Aller à la Fin' : (lang === 'en' ? 'Jump to End' : 'الانتقال للنهاية')}
-              </button>
-              <button onClick={handleReset} className="btn btn-secondary" style={{ width: 'auto', color: 'var(--danger)', borderColor: 'var(--danger-border)' }}>
-                {t.btnReset}
-              </button>
-            </>
-          )}
-
-          {currentStepIndex !== -1 && (
-            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--neutral-medium)' }}>
-              {t.stepIndicator}: {currentStepIndex + 1} / {traceEvents.length}
-            </span>
-          )}
-        </div>
-      </section>
+      <MethodPlaybackControls
+        lang={lang}
+        currentStepIndex={currentStepIndex}
+        totalSteps={traceEvents.length}
+        onStepChange={handleStepChange}
+        onReset={handleReset}
+        labels={{
+          start: t.btnStart,
+          previous: t.btnPrev,
+          next: t.btnNext,
+          reset: t.btnReset,
+          end: lang === 'fr' ? 'Aller à la Fin' : (lang === 'en' ? 'Jump to End' : 'الانتقال للنهاية'),
+          counter: t.stepIndicator,
+        }}
+      />
 
       {/* SVG Graphs and Panels (Desktop Side-by-side, Mobile Tabs) */}
       <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
@@ -365,9 +335,23 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
           </h3>
 
           {!isRunning ? (
-            <p style={{ fontStyle: 'italic', fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
-              {lang === 'fr' ? 'Lancez la recherche pour visualiser les domaines des variables.' : (lang === 'en' ? 'Start search to inspect variables.' : 'ابدأ البحث لمعاينة المتغيرات.')}
-            </p>
+            <div style={{ display: 'grid', gap: 'var(--space-sm)', fontSize: '0.9rem', color: 'var(--neutral-medium)' }}>
+              <p style={{ margin: 0 }}>
+                {lang === 'fr'
+                  ? 'La recherche affichera les domaines x, succ, start et end au fil des affectations.'
+                  : (lang === 'en'
+                    ? 'Search will show x, succ, start, and end domains as assignments are made.'
+                    : 'سيعرض البحث نطاقات x و succ و start و end أثناء التعيين.')}
+              </p>
+              <div dir="ltr" style={{ display: 'grid', gap: '4px', fontFamily: 'monospace', background: 'var(--neutral-bg-hover)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>
+                <span>x[v] ∈ {'{0,1}'}</span>
+                <span>succ[v] ∈ outgoing(v) ∪ {'{END, UNSELECTED}'}</span>
+                <span>start,end ∈ V ∪ {'{UNSELECTED}'}</span>
+              </div>
+              <button onClick={handleRun} className="btn btn-primary" style={{ width: 'fit-content' }}>
+                <span className="icon-label"><Icon name="play" /> {t.btnStart}</span>
+              </button>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', overflowY: 'auto', flex: 1 }}>
               {/* Chosen start / end */}

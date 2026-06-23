@@ -22,6 +22,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
     learnMore: string;
       runCP1: string;
       runCP2: string;
+      runILP1: string;
       runLegacy: string;
     methods: {
       id: string;
@@ -43,6 +44,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'En savoir plus',
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
+      runILP1: 'Lancer l\'application ILP1',
       runLegacy: 'Lancer la démo énumération',
       methods: [
         {
@@ -89,8 +91,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'ilp1',
           name: 'ILP1 (Integer Linear Programming 1)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'Formulation PLNE (Programmation Linéaire en Nombres Entiers) avec une première modélisation de la connexité.',
+          badge: 'exact',
+          desc: 'Formulation éducative bornée exacte pour petits DAG : variables binaires x/y/z et témoin de connexité génomique.',
           route: '/methods/ilp1'
         },
         {
@@ -138,6 +140,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'Learn More',
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
+      runILP1: 'Launch ILP1 Solver App',
       runLegacy: 'Launch Legacy Enumeration',
       methods: [
         {
@@ -184,8 +187,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'ilp1',
           name: 'ILP1 (Integer Linear Programming 1)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'ILP formulation using a single network connectivity formulation.',
+          badge: 'exact',
+          desc: 'Exact bounded educational formulation for small DAGs: binary x/y/z variables and a genomic connectivity witness.',
           route: '/methods/ilp1'
         },
         {
@@ -233,6 +236,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'اقرأ المزيد',
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
+      runILP1: 'تشغيل نموذج ILP1',
       runLegacy: 'تشغيل محاكاة التعداد القديمة',
       methods: [
         {
@@ -279,8 +283,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'ilp1',
           name: 'ILP1 (البرمجة الخطية الصحيحة ١)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'صياغة البرمجة الخطية الصحيحة مع تمثيل واحد للاتصال الجيني.',
+          badge: 'exact',
+          desc: 'صياغة تعليمية دقيقة ومحدودة لمخططات DAG الصغيرة: متغيرات x/y/z ثنائية وشاهد اتصال جينومي.',
           route: '/methods/ilp1'
         },
         {
@@ -409,7 +413,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ilp1' ? t.runILP1 : t.learnMore}
                   </Link>
                   {method.id === 'enumeration' && (
                     <Link 

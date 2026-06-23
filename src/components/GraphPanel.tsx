@@ -33,11 +33,11 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
   const headingId = React.useId();
 
   return (
-    <section className="card graph-panel-container" aria-labelledby={headingId} style={{ marginBlockEnd: 'var(--space-xl)' }}>
-      <h2 id={headingId} style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBlockEnd: 'var(--space-sm)' }}>
+    <section className="card graph-panel-container" aria-labelledby={headingId} style={{ marginBlockEnd: 'var(--space-md)', padding: 'var(--space-sm)' }}>
+      <h2 id={headingId} style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', marginBlockEnd: '4px' }}>
         {dict.visTitle}
       </h2>
-      <p style={{ fontSize: '0.88rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-md)' }}>
+      <p style={{ fontSize: '0.8rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-sm)' }}>
         {lang === 'ar'
           ? 'لوحة مقارنة بصرية: D يحافظ على اتجاه الأسهم، وG يوضح روابط التقارب الجينومي النشطة وغير النشطة.'
           : lang === 'fr'
@@ -45,7 +45,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
             : 'Visual comparison panel: D preserves arrow direction, while G separates active and inactive genomic links.'}
       </p>
 
-      <div className="grid grid-2 graph-workspace-grid" style={{ gap: 'var(--space-md)', alignItems: 'stretch' }}>
+      <div className="grid grid-2 graph-workspace-grid" style={{ gap: 'var(--space-sm)', alignItems: 'stretch' }}>
         {/* Metabolic Graph D */}
         <div 
           className={mobileActiveTab === 'G' ? 'mobile-hide-graph' : ''} 

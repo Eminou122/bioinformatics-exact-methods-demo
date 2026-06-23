@@ -54,7 +54,8 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        minHeight: '360px',
+        minHeight: '220px',
+        maxHeight: '340px',
         border: '1px solid var(--border-color)',
         borderRadius: 'var(--radius-sm)',
         backgroundColor: '#ffffff',
@@ -63,11 +64,11 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
         flexDirection: 'column',
       }}
     >
-      <div style={{ padding: 'var(--space-sm) var(--space-md)', borderBlockEnd: '1px solid var(--border-color)' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700, color: 'var(--neutral-dark)' }}>
+      <div style={{ padding: '6px var(--space-sm)', borderBlockEnd: '1px solid var(--border-color)' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem', fontWeight: 700, color: 'var(--neutral-dark)' }}>
           {dict.legendGTitle}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBlockStart: '4px', fontSize: '0.78rem', color: 'var(--neutral-medium)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBlockStart: '2px', fontSize: '0.72rem', color: 'var(--neutral-medium)' }}>
           <span>thick solid = selected G link</span>
           <span>dotted = inactive G link</span>
           <span>outlined node = selected reaction</span>
@@ -79,7 +80,7 @@ export const GenomicGraph: React.FC<GenomicGraphProps> = ({
         height="100%"
         preserveAspectRatio="xMidYMid meet"
         data-testid="genomic-graph-svg"
-        style={{ display: 'block', flex: 1, minHeight: '270px' }}
+        style={{ display: 'block', flex: 1, minHeight: '170px', maxHeight: '270px', aspectRatio: '16 / 7' }}
         aria-labelledby={`${titleId} ${descId}`}
       >
         <title id={titleId}>{dict.legendGTitle}</title>
