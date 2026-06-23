@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Language } from '../i18n/types';
 import { Link } from './Navigation';
+import { Icon } from './Icons';
 
 interface MethodMapProps {
   lang: Language;
@@ -78,8 +79,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'algobb',
           name: 'AlgoBB++',
           paper: '2022',
-          badge: 'reference',
-          desc: 'Algorithme d\'évaluation et de séparation (Branch-and-Bound) amélioré pour le problème One-To-One SkewGraM.',
+          badge: 'exact',
+          desc: 'Implémentation exacte pour petits graphes : branch-and-bound borné avec exploration arc par arc dans D et validation de connexité dans G.',
           route: '/methods/algobb-plus-plus'
         },
         {
@@ -172,8 +173,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'algobb',
           name: 'AlgoBB++',
           paper: '2022',
-          badge: 'reference',
-          desc: 'Improved Branch-and-Bound algorithm for the One-To-One SkewGraM problem.',
+          badge: 'exact',
+          desc: 'Exact small-graph implementation: bounded branch-and-bound with arc-by-arc exploration in D and connectivity validation in G.',
           route: '/methods/algobb-plus-plus'
         },
         {
@@ -266,8 +267,8 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           id: 'algobb',
           name: 'AlgoBB++',
           paper: '2022',
-          badge: 'reference',
-          desc: 'خوارزمية التفريع والتقييد المحسنة لحل مشكلة One-To-One SkewGraM.',
+          badge: 'exact',
+          desc: 'تطبيق دقيق للمخططات الصغيرة: تفريع وتقييد محدود مع استكشاف قوس تلو الآخر في D والتحقق من الاتصال في G.',
           route: '/methods/algobb-plus-plus'
         },
         {
@@ -368,7 +369,10 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                     paddingInline: 'var(--space-sm)',
                     borderRadius: 'var(--radius-sm)'
                   }}>
-                    {badgeText}
+                    <span className="icon-label">
+                      <Icon name={method.badge === 'exact' ? 'check' : method.badge === 'simulation' ? 'route' : 'info'} size={15} />
+                      {badgeText}
+                    </span>
                   </span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--neutral-light)', fontWeight: 600 }}>
                     {method.paper} Paper
@@ -376,7 +380,10 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                 </div>
                 
                 <h3 style={{ fontSize: '1.2rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
-                  {method.name}
+                  <span className="icon-label">
+                    <Icon name={method.id === 'algobb' ? 'route' : method.id === 'cp1' ? 'network' : 'book'} size={18} />
+                    {method.name}
+                  </span>
                 </h3>
                 
                 <p style={{ fontSize: '0.9rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-md)' }}>

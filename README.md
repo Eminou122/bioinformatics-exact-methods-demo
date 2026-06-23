@@ -2,7 +2,7 @@
 
 An interactive educational web application designed to demonstrate the resolution of the **(D,G)-consistent path** problem in systems biology.
 
-## 🔬 Academic Problem Context
+## Academic Problem Context
 
 In systems biology, reconstructing metabolic pathways requires integrating two distinct biological data sources:
 1. **Metabolic pathways (flow constraint)**: the sequence in which chemical reactions must occur to synthesize a target molecule.
@@ -18,7 +18,7 @@ By finding pathways that satisfy both metabolic succession and genomic proximity
 
 ---
 
-## 🌐 Multilingual and RTL Interface Support
+## Multilingual and RTL Interface Support
 
 The application is built with a typed internationalization layer that supports:
 - **Languages:** French, English, and Arabic.
@@ -28,7 +28,7 @@ The application is built with a typed internationalization layer that supports:
 
 ---
 
-## 📱 Mobile-Friendly Responsive Design
+## Mobile-Friendly Responsive Design
 
 The application supports responsive scaling across different viewports (tested at 1440px, 1024px, 768px, 390px, and 320px):
 - **Desktop:** Graphe D and Graphe G are displayed side-by-side.
@@ -37,7 +37,7 @@ The application supports responsive scaling across different viewports (tested a
 
 ---
 
-## 🛠️ Exact Resolution Method & Cycle Validation
+## Exact Resolution Method & Cycle Validation
 
 This application uses an **exact exhaustive enumeration** algorithm:
 1. **Validation & Cycle Rejection:** The solver validates the graph structure before enumeration. The demo **supports DAG inputs only**; if a cycle is found in the metabolic graph $D$, the solver stops safely and rejects the dataset with a structured cycle detection error instead of silently loop-falling or utilizing repeated-vertex checks. Duplicate edges in $D$ or $G$ are also rejected during initial validation.
@@ -49,13 +49,13 @@ Because it searches the entire search space, the demo mathematically guarantees 
 
 ---
 
-## ⚠️ Limitations & Scope
+## Limitations & Scope
 
 This is a small educational exact-enumeration demo for small graphs. It is designed to illustrate the core concepts of the $(D,G)$-consistent path problem and is **not intended as a scalable production biological-analysis engine** for large real-world biological networks or genome-scale reconstructions.
 
 ---
 
-## 📂 Included Biological Datasets
+## Included Biological Datasets
 
 The demo includes three pre-loaded educational scenarios:
 
@@ -65,7 +65,7 @@ The demo includes three pre-loaded educational scenarios:
 
 ---
 
-## 🚀 Installation & Local Run
+## Installation & Local Run
 
 ### Prerequisites
 - Node.js (v18+ recommended)
@@ -85,7 +85,7 @@ npm run dev
 
 ---
 
-## 🧪 Validation & Test Commands
+## Validation & Test Commands
 
 To run unit tests, check formatting/style, type validity, and build the production bundle:
 
