@@ -1305,6 +1305,8 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
 
   const currentChapters = chapters[lang];
   const activeChapterData = currentChapters[activeChapter];
+  const completedChapterCount = Object.keys(selectedAnswers).length;
+  const progressPercent = Math.round((completedChapterCount / currentChapters.length) * 100);
 
   const handleAnswerSelect = (optIndex: number) => {
     setSelectedAnswers({
@@ -1336,7 +1338,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
   };
 
   return (
-    <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
+    <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr', paddingBlockEnd: 'var(--space-lg)' }}>
       <a href="#main-course-content" onClick={handleSkipNav} className="skip-link">
         {lang === 'fr' ? 'Aller directement au contenu' : (lang === 'en' ? 'Skip to main content' : 'الانتقال إلى المحتوى مباشرة')}
       </a>
@@ -1371,45 +1373,50 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
         }
       `}</style>
 
-      <header style={{ marginBlockEnd: 'var(--space-md)' }}>
-        <h2 style={{ fontSize: '1.6rem', color: 'var(--primary)' }}>
+      <header style={{ marginBlockEnd: 'var(--space-lg)' }}>
+        <h2 style={{ fontSize: '1.85rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
           {lang === 'fr' ? 'Module d\'Apprentissage Pas-à-Pas' : (lang === 'en' ? 'Step-by-Step Learning Course' : 'وحدة التعلم التدريجي خطوة بخطوة')}
         </h2>
-        <p style={{ fontSize: '1rem', color: 'var(--neutral-medium)' }}>
+        <p style={{ fontSize: '1rem', color: 'var(--neutral-medium)', maxWidth: '68ch' }}>
           {lang === 'fr' ? 'Apprenez les bases de la théorie des graphes et de la cohérence métabolique.' : (lang === 'en' ? 'Learn the foundations of graph theory and metabolic consistency.' : 'تعلم أسس نظرية المخططات والاتساق الاستقلابي الجيني.')}
         </p>
       </header>
 
       {/* Progress tracker */}
-      <div className="card" style={{ padding: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>
-        <h3 style={{ fontSize: '1rem', marginBlockEnd: 'var(--space-xs)' }}>{t.progress}</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          <div style={{ flex: 1, height: '8px', backgroundColor: 'var(--neutral-bg-hover)', borderRadius: '4px', overflow: 'hidden' }}>
+      <div className="card learning-panel" style={{ padding: 'var(--space-md) var(--space-lg)', marginBlockEnd: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-md)' }}>
+          <h3 style={{ fontSize: '0.76rem', marginBlockEnd: 0, textTransform: 'uppercase', color: 'var(--primary)' }}>{t.progress}</h3>
+          <span style={{ fontSize: '0.82rem', color: 'var(--neutral-medium)' }}>
+            {completedChapterCount} / {currentChapters.length}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBlockStart: 'var(--space-sm)' }}>
+          <div style={{ flex: 1, height: '10px', backgroundColor: 'var(--neutral-bg-hover)', border: '1px solid var(--border-color)', borderRadius: '999px', overflow: 'hidden' }}>
             <div style={{
-              width: `${((Object.keys(selectedAnswers).length / currentChapters.length) * 100).toFixed(0)}%`,
+              width: `${progressPercent}%`,
               height: '100%',
               backgroundColor: 'var(--primary)',
               transition: 'width 0.3s ease'
             }} />
           </div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>
-            {((Object.keys(selectedAnswers).length / currentChapters.length) * 100).toFixed(0)}%
+          <span style={{ minWidth: '3ch', textAlign: 'end', fontSize: '0.9rem', fontWeight: 700, color: 'var(--neutral-dark)', fontFamily: 'var(--font-sans)' }}>
+            {progressPercent}%
           </span>
         </div>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         {/* Chapters Left Sidebar */}
-        <aside style={{ flex: '1 1 250px', maxHeight: '600px', overflowY: 'auto' }} className="card">
-          <h3 style={{ fontSize: '1.05rem', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--space-xs)', marginBlockEnd: 'var(--space-sm)' }}>
+        <aside style={{ flex: '1 1 250px', maxHeight: '600px', overflowY: 'auto', backgroundColor: 'var(--bg-card)' }} className="card learning-panel learning-panel--subtle">
+          <h3 style={{ fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--neutral-medium)', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--space-sm)', marginBlockEnd: 'var(--space-sm)' }}>
             {t.chaptersTitle}
           </h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
             {currentChapters.map((ch, idx) => {
               const isCompleted = selectedAnswers[idx] !== undefined;
               const isActive = idx === activeChapter;
               return (
-                <li key={idx} style={{ marginBlockEnd: '4px' }}>
+                <li key={idx}>
                   <button
                     onClick={() => {
                       setActiveChapter(idx);
@@ -1417,28 +1424,29 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
                       const element = document.getElementById('main-course-content');
                       if (element) element.focus();
                     }}
+                    aria-current={isActive ? 'step' : undefined}
                     style={{
                       width: '100%',
                       textAlign: isAr ? 'right' : 'left',
-                      background: isActive ? 'var(--primary-bg)' : 'transparent',
-                      border: 'none',
-                      borderLeft: !isAr && isActive ? '3px solid var(--primary)' : 'none',
-                      borderRight: isAr && isActive ? '3px solid var(--primary)' : 'none',
-                      paddingBlock: 'var(--space-xs)',
+                      background: isActive ? 'var(--primary-bg)' : (isCompleted ? 'rgba(15, 83, 77, 0.04)' : 'transparent'),
+                      border: '1px solid var(--border-color)',
+                      borderInlineStart: isActive ? '4px solid var(--primary)' : (isCompleted ? '4px solid var(--primary-light)' : '4px solid transparent'),
+                      paddingBlock: 'var(--space-sm)',
                       paddingInline: 'var(--space-sm)',
                       borderRadius: 'var(--radius-sm)',
                       cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? 'var(--primary)' : 'var(--neutral-medium)',
+                      fontSize: '0.88rem',
+                      lineHeight: 1.35,
+                      fontWeight: isActive ? 700 : (isCompleted ? 600 : 500),
+                      color: isActive ? 'var(--primary)' : 'var(--neutral-dark)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}
                   >
-                    <span>{ch.title}</span>
+                    <span style={{ paddingInlineEnd: 'var(--space-sm)' }}>{ch.title}</span>
                     {isCompleted && (
-                      <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}><Icon name="check" size={14} /></span>
+                      <span style={{ color: 'var(--primary)', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center' }}><Icon name="check" size={14} /></span>
                     )}
                   </button>
                 </li>
@@ -1448,12 +1456,12 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
         </aside>
 
         {/* Chapters Main Content Area */}
-        <section id="main-course-content" style={{ flex: '2 1 500px', outline: 'none' }} className="card" tabIndex={0}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--space-sm)', marginBlockEnd: 'var(--space-md)' }}>
-            <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--primary)' }}>
+        <section id="main-course-content" style={{ flex: '2 1 500px', outline: 'none' }} className="card learning-panel" tabIndex={0}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--space-md)', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--space-sm)', marginBlockEnd: 'var(--space-md)' }}>
+            <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--primary)', backgroundColor: 'var(--primary-bg)', border: '1px solid var(--border-color)', borderRadius: '999px', paddingBlock: '0.35rem', paddingInline: '0.65rem', whiteSpace: 'nowrap' }}>
               {t.chapter} {activeChapter + 1} / {currentChapters.length}
             </span>
-            <h3 style={{ fontSize: '1.25rem', border: 'none', padding: 0, margin: 0 }}>
+            <h3 style={{ fontSize: '1.5rem', lineHeight: 1.15, border: 'none', padding: 0, margin: 0, fontFamily: 'var(--font-serif)' }}>
               {activeChapterData.title}
             </h3>
           </div>
@@ -1462,34 +1470,36 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           <div className="start-diagram-panel" style={{
             backgroundColor: 'var(--bg-app)',
             border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-md)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-lg)',
             marginBlockEnd: 'var(--space-md)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            minHeight: '150px'
+            minHeight: '168px'
           }}>
             {activeChapterData.diagram}
           </div>
 
-          <p style={{ fontSize: '1.05rem', color: 'var(--neutral-dark)' }}>
+          <p style={{ fontSize: '1.05rem', color: 'var(--neutral-dark)', maxWidth: '72ch' }}>
             {activeChapterData.explanation}
           </p>
 
           {/* Delivery Metaphor Block */}
           <div style={{
             backgroundColor: 'var(--accent-gold-bg)',
-            borderLeft: isAr ? 'none' : '4px solid var(--accent-gold)',
-            borderRight: isAr ? '4px solid var(--accent-gold)' : 'none',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            borderInlineStart: isAr ? 'none' : '4px solid var(--accent-gold)',
+            borderInlineEnd: isAr ? '4px solid var(--accent-gold)' : 'none',
+            padding: 'var(--space-md)',
+            borderRadius: 'var(--radius-md)',
             marginBlockEnd: 'var(--space-sm)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
-            <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBlockEnd: '2px' }}>
+            <strong style={{ display: 'block', fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBlockEnd: 'var(--space-xs)' }}>
               {t.metaphorTitle}
             </strong>
-            <p style={{ fontSize: '0.9rem', color: 'var(--neutral-dark)', margin: 0 }}>
+            <p style={{ fontSize: '0.93rem', color: 'var(--neutral-dark)', margin: 0, lineHeight: 1.55 }}>
               {activeChapterData.metaphor}
             </p>
           </div>
@@ -1497,16 +1507,18 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           {/* Biological Mapping Block */}
           <div style={{
             backgroundColor: 'var(--primary-bg)',
-            borderLeft: isAr ? 'none' : '4px solid var(--primary)',
-            borderRight: isAr ? '4px solid var(--primary)' : 'none',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            borderInlineStart: isAr ? 'none' : '4px solid var(--primary)',
+            borderInlineEnd: isAr ? '4px solid var(--primary)' : 'none',
+            padding: 'var(--space-md)',
+            borderRadius: 'var(--radius-md)',
             marginBlockEnd: 'var(--space-sm)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
-            <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--primary)', textTransform: 'uppercase', marginBlockEnd: '2px' }}>
+            <strong style={{ display: 'block', fontSize: '0.72rem', color: 'var(--primary)', textTransform: 'uppercase', marginBlockEnd: 'var(--space-xs)' }}>
               {t.biologyTitle}
             </strong>
-            <p style={{ fontSize: '0.9rem', color: 'var(--neutral-dark)', margin: 0 }}>
+            <p style={{ fontSize: '0.93rem', color: 'var(--neutral-dark)', margin: 0, lineHeight: 1.55 }}>
               {activeChapterData.biology}
             </p>
           </div>
@@ -1514,16 +1526,18 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           {/* Formal Scientific Block */}
           <div style={{
             backgroundColor: 'var(--neutral-bg-hover)',
-            borderLeft: isAr ? 'none' : '4px solid var(--neutral-medium)',
-            borderRight: isAr ? '4px solid var(--neutral-medium)' : 'none',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            borderInlineStart: isAr ? 'none' : '4px solid var(--neutral-medium)',
+            borderInlineEnd: isAr ? '4px solid var(--neutral-medium)' : 'none',
+            padding: 'var(--space-md)',
+            borderRadius: 'var(--radius-md)',
             marginBlockEnd: 'var(--space-md)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
-            <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--neutral-medium)', textTransform: 'uppercase', marginBlockEnd: '2px' }}>
+            <strong style={{ display: 'block', fontSize: '0.72rem', color: 'var(--neutral-medium)', textTransform: 'uppercase', marginBlockEnd: 'var(--space-xs)' }}>
               {t.formalTitle}
             </strong>
-            <code style={{ fontSize: '0.85rem', color: 'var(--neutral-dark)', display: 'block', fontFamily: 'monospace' }}>
+            <code style={{ fontSize: '0.9rem', color: 'var(--neutral-dark)', display: 'block', fontFamily: 'monospace', lineHeight: 1.55, whiteSpace: 'normal' }}>
               {activeChapterData.formal}
             </code>
           </div>
@@ -1541,13 +1555,13 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           </div>
 
           {/* Interactive Example Block */}
-          <div className="card" style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-app)', borderStyle: 'dashed' }}>
-            <h4 style={{ fontSize: '0.95rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>{t.interactiveTitle}</h4>
-            <p style={{ fontSize: '0.85rem', marginBlockEnd: 'var(--space-sm)' }}>{activeChapterData.example.interactiveText}</p>
+          <div className="card learning-panel learning-panel--subtle" style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-app)', borderStyle: 'dashed', marginBlockEnd: 'var(--space-md)' }}>
+            <h4 style={{ fontSize: '0.78rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)', textTransform: 'uppercase' }}>{t.interactiveTitle}</h4>
+            <p style={{ fontSize: '0.9rem', marginBlockEnd: 'var(--space-sm)' }}>{activeChapterData.example.interactiveText}</p>
             <button
               onClick={() => runExampleAction(activeChapter)}
               className="btn btn-secondary"
-              style={{ minHeight: '36px', fontSize: '0.85rem', width: 'auto', paddingBlock: '4px', paddingInline: 'var(--space-md)' }}
+              style={{ minHeight: '36px', fontSize: '0.85rem', width: 'auto', paddingBlock: '4px', paddingInline: 'var(--space-md)', borderRadius: '999px' }}
             >
               {activeChapterData.example.actionLabel}
             </button>
@@ -1561,15 +1575,17 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
           {/* Checkpoint Question Block */}
           <div style={{
             backgroundColor: 'var(--neutral-bg-hover)',
+            border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-md)',
             marginBlockStart: 'var(--space-md)',
-            marginBlockEnd: 'var(--space-md)'
+            marginBlockEnd: 'var(--space-md)',
+            boxShadow: 'var(--shadow-sm)'
           }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-sm)' }}>
+            <h4 style={{ fontSize: '0.8rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-sm)', textTransform: 'uppercase' }}>
               <span className="icon-label"><Icon name="help" /> {t.checkpoint}</span>
             </h4>
-            <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-md)' }}>
+            <p style={{ fontSize: '0.98rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-md)', lineHeight: 1.55 }}>
               {activeChapterData.question}
             </p>
 
@@ -1597,7 +1613,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
                     style={{
                       width: '100%',
                       textAlign: isAr ? 'right' : 'left',
-                      padding: 'var(--space-sm)',
+                      padding: 'var(--space-sm) var(--space-md)',
                       borderRadius: 'var(--radius-sm)',
                       border: borderStyle,
                       backgroundColor: bgStyle,
