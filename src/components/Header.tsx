@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
+import { Icon } from './Icons';
 
 interface HeaderProps {
   lang: Language;
@@ -77,8 +78,11 @@ export const Header: React.FC<HeaderProps> = ({ lang, setLang, dict }) => {
           className="lang-selector-group" 
           role="group" 
           aria-label={lang === 'ar' ? 'تغيير اللغة' : (lang === 'fr' ? 'Changer de langue' : 'Change language')}
-          style={{ flexShrink: 0 }}
+          style={{ flexShrink: 0, alignItems: 'center' }}
         >
+          <span aria-hidden="true" style={{ color: 'var(--primary)', paddingInline: 'var(--space-sm)', display: 'inline-flex' }}>
+            <Icon name="language" />
+          </span>
           {languages.map((l) => (
             <button
               key={l.code}

@@ -5,6 +5,7 @@ import type { CP1TraceEvent } from '../domain/cpSolver';
 import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { GraphPanel } from './GraphPanel';
 import { examples } from '../data/examples';
+import { Icon } from './Icons';
 
 interface CP1ModelProps {
   lang: Language;
@@ -104,7 +105,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
   // Scroll to active trace ledger element
   const activeLedgerRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (activeLedgerRef.current) {
+    if (typeof activeLedgerRef.current?.scrollIntoView === 'function') {
       activeLedgerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [currentStepIndex]);
@@ -360,7 +361,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
         {/* CP Variables Domains Inspector Panel */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
-            📋 {t.varInspector}
+            <span className="icon-label"><Icon name="clipboard" /> {t.varInspector}</span>
           </h3>
 
           {!isRunning ? (
@@ -428,19 +429,19 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
         {/* CP Constraints checking */}
         <div className="card">
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
-            🛡️ {t.constraintsTitle}
+            <span className="icon-label"><Icon name="shield" /> {t.constraintsTitle}</span>
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', fontSize: '0.9rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}>✓</span>
+              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}><Icon name="check" /></span>
               <span>{t.c1}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}>✓</span>
+              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}><Icon name="check" /></span>
               <span>{t.c2}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}>✓</span>
+              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}><Icon name="check" /></span>
               <span>{t.c3}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
@@ -449,12 +450,12 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
                   ? 'var(--primary)'
                   : (currentEvent?.type === 'contradiction' && currentEvent?.message.includes('disconnected') ? 'var(--danger)' : 'var(--neutral-light)')
               }}>
-                {currentEvent?.type === 'contradiction' && currentEvent?.message.includes('disconnected') ? '✗' : '✓'}
+                <Icon name={currentEvent?.type === 'contradiction' && currentEvent?.message.includes('disconnected') ? 'x' : 'check'} />
               </span>
               <span>{t.c4}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}>✓</span>
+              <span style={{ color: isRunning ? 'var(--primary)' : 'var(--neutral-light)' }}><Icon name="check" /></span>
               <span>{t.c5}</span>
             </div>
           </div>
@@ -463,7 +464,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
         {/* Trace Ledger (rendered using keyboard-accessible buttons instead of divs) */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '350px' }}>
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
-            📜 {t.traceLedger}
+            <span className="icon-label"><Icon name="ledger" /> {t.traceLedger}</span>
           </h3>
           
           <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -527,7 +528,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
       {/* Differential validation panel and final results */}
       <section className="card">
         <h3 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
-          🔍 {t.diffTitle}
+          <span className="icon-label"><Icon name="search" /> {t.diffTitle}</span>
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Language } from '../i18n/types';
+import { Icon } from './Icons';
 
 interface StartHereProps {
   lang: Language;
@@ -54,7 +55,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       biologyTitle: 'Mapping Biologique',
       formalTitle: 'Définition Scientifique Formelle',
       interactiveTitle: 'Exemple Interactif',
-      warningLabel: '⚠️ Avertissement d\'honnêteté scientifique : La métaphore routière n\'est qu\'une aide pédagogique. Les routes ne représentent pas la cinétique métabolique réelle et les gènes ne sont pas de simples arrêts de livraison.',
+      warningLabel: 'Avertissement d\'honnêteté scientifique : La métaphore routière n\'est qu\'une aide pédagogique. Les routes ne représentent pas la cinétique métabolique réelle et les gènes ne sont pas de simples arrêts de livraison.',
       chaptersTitle: 'Index du cours',
     },
     en: {
@@ -71,7 +72,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       biologyTitle: 'Biological Mapping',
       formalTitle: 'Formal Scientific Definition',
       interactiveTitle: 'Interactive Example',
-      warningLabel: '⚠️ Scientific Honesty Disclaimer: The road metaphor is an educational aid only. Roads do not represent actual metabolic kinetics, and genes are not simple delivery stops.',
+      warningLabel: 'Scientific Honesty Disclaimer: The road metaphor is an educational aid only. Roads do not represent actual metabolic kinetics, and genes are not simple delivery stops.',
       chaptersTitle: 'Course Index',
     },
     ar: {
@@ -88,7 +89,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       biologyTitle: 'الإسقاط الحيوي (البيولوجي)',
       formalTitle: 'التعريف العلمي الرسمي',
       interactiveTitle: 'مثال تفاعلي',
-      warningLabel: '⚠️ تنبيه الأمانة العلمية: المجاز المرتبط بالطرق هو وسيلة تعليمية مساعدة فقط. فالطرق لا تمثل حركية الاستقلاب الحقيقية، والجينات ليست مجرد محطات لتسليم الطلبات.',
+      warningLabel: 'تنبيه الأمانة العلمية: المجاز المرتبط بالطرق هو وسيلة تعليمية مساعدة فقط. فالطرق لا تمثل حركية الاستقلاب الحقيقية، والجينات ليست مجرد محطات لتسليم الطلبات.',
       chaptersTitle: 'فهرس الفصول',
     }
   };
@@ -246,7 +247,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
         formal: 'Une coordonnée physique sur le chromosome associée à un gène codant.',
         diagram: (
           <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent-gold)' }}>
-            {"🧬 ADN: [ Gène 1 ] ===== [ Gène 2 ] ===== [ Gène 3 ]"}
+            {"ADN: [ Gène 1 ] ===== [ Gène 2 ] ===== [ Gène 3 ]"}
           </div>
         ),
         example: {
@@ -649,7 +650,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
         formal: 'A physical gene coordinate associated with the vertex.',
         diagram: (
           <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent-gold)' }}>
-            🧬 DNA: [ Gene 1 ] === [ Gene 2 ]
+            DNA: [ Gene 1 ] === [ Gene 2 ]
           </div>
         ),
         example: {
@@ -1047,7 +1048,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
         formal: 'إحداثي فيزيائي للجين مرتبط بالرأس.',
         diagram: (
           <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent-gold)' }}>
-            🧬 DNA: [ Gene 1 ] === [ Gene 2 ]
+            DNA: [ Gene 1 ] === [ Gene 2 ]
           </div>
         ),
         example: {
@@ -1433,7 +1434,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
                   >
                     <span>{ch.title}</span>
                     {isCompleted && (
-                      <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>✓</span>
+                      <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}><Icon name="check" size={14} /></span>
                     )}
                   </button>
                 </li>
@@ -1532,7 +1533,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
             paddingTop: 'var(--space-xs)',
             marginBlockEnd: 'var(--space-md)'
           }}>
-            {t.warningLabel}
+            <span className="icon-label"><Icon name="alert" size={15} /> {t.warningLabel}</span>
           </div>
 
           {/* Interactive Example Block */}
@@ -1562,7 +1563,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
             marginBlockEnd: 'var(--space-md)'
           }}>
             <h4 style={{ fontSize: '1rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-sm)' }}>
-              ❓ {t.checkpoint}
+              <span className="icon-label"><Icon name="help" /> {t.checkpoint}</span>
             </h4>
             <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-md)' }}>
               {activeChapterData.question}

@@ -39,6 +39,31 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
   });
 
+  test('all public routes render their expected page surfaces', () => {
+    const routes = [
+      { path: '/', text: /Module d'Apprentissage Pas-à-Pas/i },
+      { path: '/methods', text: /Carte des Méthodes de Recherche/i },
+      { path: '/methods/cp1', text: /Modèle Éducatif CP1/i },
+      { path: '/methods/algobb-plus-plus', text: /AlgoBB\+\+ éducatif/i },
+      { path: '/methods/cp2', text: /CP2/i },
+      { path: '/methods/cp3', text: /CP3/i },
+      { path: '/methods/cp4', text: /CP4/i },
+      { path: '/methods/ilp1', text: /ILP1/i },
+      { path: '/methods/ilp2', text: /ILP2/i },
+      { path: '/methods/hnet', text: /HNet/i },
+      { path: '/methods/enumeration', text: /Énumération Arc-par-Arc/i },
+      { path: '/methods/conservation', text: /Regroupement de Pistes/i },
+      { path: '/legacy', text: translations.fr.selectionTitle },
+    ];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route.path);
+      render(<App />);
+      expect(screen.getAllByText(route.text).length).toBeGreaterThan(0);
+    }
+  });
+
   test('method badges match declared status', () => {
     window.history.pushState({}, '', '/methods');
     render(<App />);
@@ -228,6 +253,31 @@ describe('Routing and Educational UI QA Suite', () => {
     // Verify presence of synchronized containers for desktop and layout containers for mobile
     const cpVarInspector = screen.getByText(/Inspecteur des Variables CP1/i);
     expect(cpVarInspector).toBeDefined();
+  });
+
+  test('AlgoBB++ page supports trace controls, mobile graph tabs, and Arabic RTL shell', () => {
+    window.history.pushState({}, '', '/methods/algobb-plus-plus');
+    const { container } = render(<App />);
+
+    expect(screen.getAllByText(/AlgoBB\+\+ éducatif/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/bounded implementation/i)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Démarrer/i }));
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDefined();
+    fireEvent.keyDown(screen.getByRole('button', { name: /Suivant/i }), { key: 'Enter' });
+
+    window.innerWidth = 320;
+    window.dispatchEvent(new Event('resize'));
+    const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+    if (mobileSelector) mobileSelector.style.display = 'flex';
+    fireEvent.click(screen.getByRole('button', { name: /Afficher le graphe génomique G/i }));
+    expect(container.querySelectorAll('.mobile-hide-graph').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.lang).toBe('ar');
+    expect(document.documentElement.dir).toBe('rtl');
+    const svg = container.querySelector('svg');
+    expect(svg?.getAttribute('dir')).toBeNull();
   });
 
   test('differential boundary caps and malformed inputs validation', () => {

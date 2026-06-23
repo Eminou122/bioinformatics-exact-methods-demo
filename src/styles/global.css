@@ -11,7 +11,7 @@ body {
   background-color: var(--bg-app);
   color: var(--neutral-dark);
   font-family: var(--font-sans);
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -63,7 +63,7 @@ select:focus-visible,
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
   margin-block-end: var(--space-lg);
@@ -196,6 +196,21 @@ select:focus-visible,
   font-weight: 600;
 }
 
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.icon-label svg {
+  flex: 0 0 auto;
+}
+
+.instrument-panel {
+  border: 1px solid var(--border-color);
+  background: #fbfdfd;
+}
+
 /* RTL Helpers */
 [dir="rtl"] ul,
 [dir="rtl"] ol {
@@ -221,4 +236,15 @@ select:focus-visible,
 
 .skip-link:focus {
   top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
