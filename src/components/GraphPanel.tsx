@@ -30,17 +30,27 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
   dict,
   mobileActiveTab,
 }) => {
+  const headingId = React.useId();
+
   return (
-    <section className="card" style={{ marginBlockEnd: 'var(--space-xl)' }}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBlockEnd: 'var(--space-md)' }}>
+    <section className="card graph-panel-container" aria-labelledby={headingId} style={{ marginBlockEnd: 'var(--space-xl)' }}>
+      <h2 id={headingId} style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBlockEnd: 'var(--space-sm)' }}>
         {dict.visTitle}
       </h2>
+      <p style={{ fontSize: '0.88rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-md)' }}>
+        {lang === 'ar'
+          ? 'لوحة مقارنة بصرية: D يحافظ على اتجاه الأسهم، وG يوضح روابط التقارب الجينومي النشطة وغير النشطة.'
+          : lang === 'fr'
+            ? 'Panneau de comparaison visuelle : D conserve le sens des flèches, G distingue les liens génomiques actifs et inactifs.'
+            : 'Visual comparison panel: D preserves arrow direction, while G separates active and inactive genomic links.'}
+      </p>
 
-      <div className="grid grid-2" style={{ gap: 'var(--space-md)' }}>
+      <div className="grid grid-2 graph-workspace-grid" style={{ gap: 'var(--space-md)', alignItems: 'stretch' }}>
         {/* Metabolic Graph D */}
         <div 
           className={mobileActiveTab === 'G' ? 'mobile-hide-graph' : ''} 
           aria-hidden={mobileActiveTab === 'G' ? 'true' : 'false'}
+          style={{ minWidth: 0 }}
         >
           <DirectedGraph
             vertices={vertices}
@@ -53,7 +63,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
             lang={lang}
             dict={dict}
           />
-          <p style={{ fontSize: '0.8rem', marginBlockStart: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
+          <p style={{ fontSize: '0.82rem', marginBlockStart: 'var(--space-sm)', marginBlockEnd: 0, textAlign: 'center', color: 'var(--neutral-medium)' }}>
             {dict.visDescD}
           </p>
         </div>
@@ -62,6 +72,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
         <div 
           className={mobileActiveTab === 'D' ? 'mobile-hide-graph' : ''} 
           aria-hidden={mobileActiveTab === 'D' ? 'true' : 'false'}
+          style={{ minWidth: 0 }}
         >
           <GenomicGraph
             vertices={vertices}
@@ -74,7 +85,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
             lang={lang}
             dict={dict}
           />
-          <p style={{ fontSize: '0.8rem', marginBlockStart: 'var(--space-sm)', textAlign: 'center', color: 'var(--neutral-medium)' }}>
+          <p style={{ fontSize: '0.82rem', marginBlockStart: 'var(--space-sm)', marginBlockEnd: 0, textAlign: 'center', color: 'var(--neutral-medium)' }}>
             {dict.visDescG}
           </p>
         </div>
@@ -82,6 +93,9 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
 
       <style>{`
         @media (max-width: 767px) {
+          .graph-workspace-grid {
+            grid-template-columns: 1fr;
+          }
           .mobile-hide-graph {
             display: none !important;
           }

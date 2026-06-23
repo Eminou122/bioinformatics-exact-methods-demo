@@ -242,6 +242,51 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
+  test('shared graph visualization uses readable viewports, labels, arrows, and genomic edge states', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+
+    const directedSvg = container.querySelector('[data-testid="directed-graph-svg"]');
+    const genomicSvg = container.querySelector('[data-testid="genomic-graph-svg"]');
+    expect(directedSvg).toBeDefined();
+    expect(genomicSvg).toBeDefined();
+
+    expect(directedSvg?.getAttribute('viewBox')).not.toBe('0 0 600 300');
+    expect(genomicSvg?.getAttribute('viewBox')).not.toBe('0 0 600 300');
+    expect(directedSvg?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
+    expect(genomicSvg?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
+
+    const nodeCircles = Array.from(container.querySelectorAll('[data-testid="directed-graph-svg"] circle'));
+    expect(nodeCircles.some((circle) => circle.getAttribute('r') === '30')).toBe(true);
+    expect(Array.from(container.querySelectorAll('text')).some((text) => text.textContent === 'R1')).toBe(true);
+
+    const markers = Array.from(container.querySelectorAll('[data-testid="directed-graph-svg"] marker'));
+    expect(markers.length).toBeGreaterThan(0);
+    expect(markers.every((marker) => marker.getAttribute('markerWidth') === '10')).toBe(true);
+    expect(container.querySelectorAll('[data-state="inactive-directed-edge"]').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[data-state="inactive-genomic-edge"]').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('Démarrer la recherche CP1'));
+    fireEvent.click(screen.getByText('Aller à la Fin'));
+    expect(container.querySelectorAll('[data-state="active-genomic-edge"]').length).toBeGreaterThan(0);
+  });
+
+  test('CP1, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
+    const routes = ['/methods/cp1', '/methods/algobb-plus-plus', '/legacy'];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route);
+      const { container } = render(<App />);
+      expect(screen.getAllByText(translations.fr.visTitle).length).toBeGreaterThan(0);
+
+      fireEvent.click(screen.getByText('العربية'));
+      expect(document.documentElement.dir).toBe('rtl');
+      expect(container.querySelector('[data-testid="directed-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+      expect(container.querySelector('[data-testid="genomic-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+    }
+  });
+
   test('responsive layout components behave correctly across different screen resolutions', () => {
     window.history.pushState({}, '', '/methods/cp1');
     render(<App />);

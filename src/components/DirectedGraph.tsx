@@ -24,7 +24,16 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
   lang,
   dict,
 }) => {
-  const radius = 22;
+  const titleId = React.useId();
+  const descId = React.useId();
+  const radius = 30;
+  const boundsPadding = 44;
+  const positions = vertices.map((vertex) => nodePositions[vertex]).filter(Boolean);
+  const minX = Math.min(...positions.map((pos) => pos.x)) - boundsPadding;
+  const maxX = Math.max(...positions.map((pos) => pos.x)) + boundsPadding;
+  const minY = Math.min(...positions.map((pos) => pos.y)) - boundsPadding;
+  const maxY = Math.max(...positions.map((pos) => pos.y)) + boundsPadding;
+  const viewBox = `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
 
   // Helper to check if an edge is part of the active path sequence
   const isEdgeInActivePath = (from: string, to: string): boolean => {
@@ -45,40 +54,57 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
   };
 
   return (
-    <div 
+    <div
       dir="ltr" /* Force Left-To-Right direction on container to prevent graph mirroring */
-      style={{ 
-        position: 'relative', 
-        width: '100%', 
-        height: '300px', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 'var(--radius-md)', 
-        backgroundColor: '#ffffff', 
-        overflow: 'hidden' 
+      data-testid="directed-graph-container"
+      style={{
+        position: 'relative',
+        width: '100%',
+        minHeight: '360px',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-sm)',
+        backgroundColor: '#ffffff',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
+      <div style={{ padding: 'var(--space-sm) var(--space-md)', borderBlockEnd: '1px solid var(--border-color)' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700, color: 'var(--neutral-dark)' }}>
+          {dict.legendDTitle}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBlockStart: '4px', fontSize: '0.78rem', color: 'var(--neutral-medium)' }}>
+          <span>solid arrow = D arc</span>
+          <span>thick arrow = current path</span>
+          <span>dashed inner ring = start</span>
+        </div>
+      </div>
       <svg
-        viewBox="0 0 600 300"
+        viewBox={viewBox}
         width="100%"
         height="100%"
-        style={{ display: 'block' }}
-        aria-label={
-          lang === 'ar'
-            ? `الشبكة الاستقلابية D. الرؤوس: ${vertices.join(', ')}.`
-            : (lang === 'fr'
-              ? `Réseau métabolique D. Sommets: ${vertices.join(', ')}.`
-              : `Metabolic network D. Vertices: ${vertices.join(', ')}.`)
-        }
+        preserveAspectRatio="xMidYMid meet"
+        data-testid="directed-graph-svg"
+        style={{ display: 'block', flex: 1, minHeight: '270px' }}
+        aria-labelledby={`${titleId} ${descId}`}
       >
+        <title id={titleId}>{dict.legendDTitle}</title>
+        <desc id={descId}>
+          {lang === 'ar'
+            ? `الشبكة الاستقلابية D. الرؤوس: ${vertices.join(', ')}. الأسهم تبقى من اليسار إلى اليمين عند اختيار العربية.`
+            : (lang === 'fr'
+              ? `Réseau métabolique D. Sommets: ${vertices.join(', ')}. Les flèches montrent le sens du flux métabolique.`
+              : `Metabolic network D. Vertices: ${vertices.join(', ')}. Arrows show metabolic flow direction.`)}
+        </desc>
         <defs>
           {/* Arrow markers for edges */}
           <marker
             id="arrow-default"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="8"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="10"
+            markerHeight="10"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--neutral-light)" />
@@ -86,10 +112,10 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
           <marker
             id="arrow-active-primary"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="8"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="10"
+            markerHeight="10"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--primary)" />
@@ -97,10 +123,10 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
           <marker
             id="arrow-active-gold"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="8"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="10"
+            markerHeight="10"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent-gold)" />
@@ -108,28 +134,15 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
           <marker
             id="arrow-active-danger"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="8"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="10"
+            markerHeight="10"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--danger)" />
           </marker>
         </defs>
-
-        <text
-          x="15"
-          y="25"
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            fill: 'var(--neutral-medium)',
-          }}
-        >
-          {dict.legendDTitle}
-        </text>
 
         {/* Draw Edges */}
         {edgesD.map((edge, index) => {
@@ -152,7 +165,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
           const color = isActive
             ? getHighlightColor()
             : 'var(--border-color)';
-          const strokeWidth = isActive ? 3 : 1.5;
+          const strokeWidth = isActive ? 5 : 2.5;
           const markerId = isActive
             ? (isFinalResult ? 'arrow-active-gold' : (isAcceptedStep ? 'arrow-active-primary' : 'arrow-active-danger'))
             : 'arrow-default';
@@ -168,6 +181,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
               strokeWidth={strokeWidth}
               markerEnd={`url(#${markerId})`}
               className="graph-edge"
+              data-state={isActive ? 'active-directed-edge' : 'inactive-directed-edge'}
             />
           );
         })}
@@ -182,11 +196,11 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
           
           let fill = 'var(--bg-card)';
           let stroke = 'var(--neutral-light)';
-          let strokeWidth = 1.5;
+          let strokeWidth = 2.25;
 
           if (isNodeInPath) {
             stroke = getHighlightColor();
-            strokeWidth = 3;
+            strokeWidth = 4;
             fill = isFinalResult 
               ? 'var(--accent-gold-bg)' 
               : (isAcceptedStep ? 'var(--primary-bg)' : 'var(--danger-bg)');
@@ -208,11 +222,11 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
                 <circle
                   cx={pos.x}
                   cy={pos.y}
-                  r={radius - 4}
+                  r={radius - 7}
                   fill="none"
                   stroke={stroke}
-                  strokeWidth={1}
-                  strokeDasharray="2,2"
+                  strokeWidth={2}
+                  strokeDasharray="4,4"
                 />
               )}
 
@@ -222,7 +236,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
                 textAnchor="middle"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: '0.8rem',
+                  fontSize: '1rem',
                   fontWeight: isNodeInPath ? 700 : 500,
                   fill: isNodeInPath ? 'var(--neutral-dark)' : 'var(--neutral-medium)',
                   userSelect: 'none',
