@@ -22,6 +22,7 @@ import { CP2Model } from './components/CP2Model';
 import { ILP1Model } from './components/ILP1Model';
 import { ILP2Model } from './components/ILP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
+import { AIGuidedExactModel } from './components/AIGuidedExactModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
 
 function App() {
@@ -154,6 +155,9 @@ function App() {
     }
     if (currentPath === '/methods/algobb-plus-plus') {
       return <AlgoBBPlusPlusModel lang={lang} dict={dict} />;
+    }
+    if (currentPath === '/methods/ai-guided-exact') {
+      return <AIGuidedExactModel lang={lang} dict={dict} />;
     }
     if (currentPath.startsWith('/methods/')) {
       const parts = currentPath.split('/');
