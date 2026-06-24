@@ -50,7 +50,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
         <div 
           className={mobileActiveTab === 'G' ? 'mobile-hide-graph' : ''} 
           aria-hidden={mobileActiveTab === 'G' ? 'true' : 'false'}
-          style={{ minWidth: 0 }}
+          style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}
         >
           <DirectedGraph
             vertices={vertices}
@@ -72,7 +72,7 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
         <div 
           className={mobileActiveTab === 'D' ? 'mobile-hide-graph' : ''} 
           aria-hidden={mobileActiveTab === 'D' ? 'true' : 'false'}
-          style={{ minWidth: 0 }}
+          style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}
         >
           <GenomicGraph
             vertices={vertices}
@@ -92,9 +92,26 @@ export const GraphPanel: React.FC<GraphPanelProps> = ({
       </div>
 
       <style>{`
+        .graph-panel-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+
+        .graph-workspace-grid {
+          flex: 1;
+          min-height: 0;
+        }
+
+        .graph-workspace-grid [data-testid="directed-graph-container"],
+        .graph-workspace-grid [data-testid="genomic-graph-container"] {
+          flex: 1;
+        }
+
         @media (max-width: 767px) {
           .graph-workspace-grid {
             grid-template-columns: 1fr;
+            flex: initial;
           }
           .mobile-hide-graph {
             display: none !important;

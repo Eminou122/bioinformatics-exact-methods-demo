@@ -9,6 +9,7 @@ import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { examples } from '../data/examples';
 import { getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
+import { GraphPanel } from './GraphPanel';
 
 function MethodCockpitSyncHarness({
   activeTraceIndex,
@@ -36,6 +37,39 @@ function MethodCockpitSyncHarness({
       </div>
     </>
   );
+}
+
+function getCP2ActiveTraceParts(container: HTMLElement) {
+  const header = screen.getByTestId('cp2-active-trace-state') as HTMLElement;
+  const activeTrace = container.querySelector('[aria-current="step"]') as HTMLElement | null;
+  expect(activeTrace).toBeDefined();
+  expect(container.querySelectorAll('[aria-current="step"]').length).toBe(1);
+  return {
+    header,
+    activeTrace: activeTrace as HTMLElement,
+    headerEventId: header.getAttribute('data-trace-event-id') || '',
+    activeEventId: activeTrace?.getAttribute('data-trace-event-id') || '',
+    headerIndex: header.getAttribute('data-current-step-index') || '',
+    activeIndex: activeTrace?.getAttribute('data-trace-index') || '',
+    headerType: header.getAttribute('data-event-type') || '',
+    activeType: activeTrace?.getAttribute('data-event-type') || '',
+  };
+}
+
+function expectCP2CanonicalTraceMatch(container: HTMLElement, zeroBasedIndex: number) {
+  const parts = getCP2ActiveTraceParts(container);
+  const ordinal = zeroBasedIndex + 1;
+  expect(parts.headerIndex).toBe(String(zeroBasedIndex));
+  expect(parts.activeIndex).toBe(String(zeroBasedIndex));
+  expect(parts.headerEventId).toBeTruthy();
+  expect(parts.headerEventId).toBe(parts.activeEventId);
+  expect(parts.headerType).toBe(parts.activeType);
+  expect(parts.header.textContent).toContain(`${ordinal} /`);
+  expect(parts.header.textContent).toContain(parts.activeType);
+  expect(parts.activeTrace.textContent).toContain(`Current event — ${ordinal} /`);
+  expect(parts.activeTrace.textContent).toContain(parts.activeType);
+  const activeMessage = within(parts.activeTrace).getByTestId('cp2-active-trace-message');
+  expect(activeMessage.textContent?.trim().length).toBeGreaterThan(0);
 }
 
 describe('Routing and Educational UI QA Suite', () => {
@@ -324,6 +358,46 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(container.querySelectorAll('[data-state="active-genomic-edge"]').length).toBeGreaterThan(0);
   });
 
+  test('every built-in example graph uses padded SVG viewBox and non-clipping graph containers', () => {
+    for (const example of examples) {
+      cleanup();
+      const { container } = render(
+        <GraphPanel
+          vertices={example.vertices}
+          edgesD={example.edgesD}
+          edgesG={example.edgesG}
+          nodePositions={example.nodePositions}
+          highlightedNodes={new Set(example.vertices)}
+          activePath={example.vertices}
+          isFinalResult={false}
+          isAcceptedStep
+          lang="fr"
+          dict={translations.fr}
+        />
+      );
+
+      const positions = example.vertices.map((vertex) => example.nodePositions[vertex]);
+      const minX = Math.min(...positions.map((position) => position.x));
+      const maxX = Math.max(...positions.map((position) => position.x));
+      const minY = Math.min(...positions.map((position) => position.y));
+      const maxY = Math.max(...positions.map((position) => position.y));
+
+      for (const selector of ['[data-testid="directed-graph-svg"]', '[data-testid="genomic-graph-svg"]']) {
+        const svg = container.querySelector(selector) as SVGElement;
+        const [viewMinX, viewMinY, viewWidth, viewHeight] = (svg.getAttribute('viewBox') || '').split(' ').map(Number);
+        expect(viewMinX).toBeLessThanOrEqual(minX - 60);
+        expect(viewMinY).toBeLessThanOrEqual(minY - 60);
+        expect(viewMinX + viewWidth).toBeGreaterThanOrEqual(maxX + 60);
+        expect(viewMinY + viewHeight).toBeGreaterThanOrEqual(maxY + 60);
+        expect(svg.style.aspectRatio).toBe('');
+        expect(svg.style.height).toBe('100%');
+      }
+
+      expect((container.querySelector('[data-testid="directed-graph-container"]') as HTMLElement).style.overflow).toBe('visible');
+      expect((container.querySelector('[data-testid="genomic-graph-container"]') as HTMLElement).style.overflow).toBe('visible');
+    }
+  });
+
   test('CP1, CP2, ILP1, ILP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
     const routes = ['/methods/cp1', '/methods/cp2', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
 
@@ -519,7 +593,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
   test('CP2 trace scroll fires once per trace-index transition and not on same-index rerender', () => {
     window.history.pushState({}, '', '/methods/cp2');
-    const { rerender } = render(<App />);
+    const { container, rerender } = render(<App />);
     const tracePanel = screen.getByTestId('method-trace-scroll') as HTMLElement;
     let traceScrollWrites = 0;
     Object.defineProperty(tracePanel, 'scrollTop', {
@@ -533,12 +607,82 @@ describe('Routing and Educational UI QA Suite', () => {
     const controls = within(screen.getByTestId('method-playback-controls'));
     fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
     expect(traceScrollWrites).toBe(1);
+    const firstActiveId = screen.getByTestId('cp2-active-trace-state').getAttribute('data-trace-event-id');
+    expect(firstActiveId).toBeTruthy();
+    expect((container.querySelector('[aria-current="step"]') as HTMLElement).getAttribute('data-trace-event-id')).toBe(firstActiveId);
 
     rerender(<App />);
     expect(traceScrollWrites).toBe(1);
+    expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-trace-event-id')).toBe(firstActiveId);
+    expect((container.querySelector('[aria-current="step"]') as HTMLElement).getAttribute('data-trace-event-id')).toBe(firstActiveId);
 
     fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
     expect(traceScrollWrites).toBe(2);
+    expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-trace-event-id')).not.toBe(firstActiveId);
+    expect((container.querySelector('[aria-current="step"]') as HTMLElement).getAttribute('data-trace-event-id')).toBe(screen.getByTestId('cp2-active-trace-state').getAttribute('data-trace-event-id'));
+  });
+
+  test('CP2 canonical step drives header, active trace, graph state, and inspector source at representative steps', () => {
+    window.history.pushState({}, '', '/methods/cp2');
+    const { container } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    expectCP2CanonicalTraceMatch(container, 0);
+    expect(container.querySelector('[data-testid="directed-graph-container"]')).toBeDefined();
+    expect(container.querySelector('[data-inspector-key].method-cockpit__active-row')).toBeDefined();
+
+    for (const targetIndex of [4, 7, 9]) {
+      while (Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')) < targetIndex) {
+        fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+      }
+      expectCP2CanonicalTraceMatch(container, targetIndex);
+    }
+
+    fireEvent.click(controls.getByRole('button', { name: /Fin|Aller à la fin|Go to end|النهاية/i }));
+    const finalIndex = Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index'));
+    expectCP2CanonicalTraceMatch(container, finalIndex);
+  });
+
+  test('CP2 playback advances one canonical index per tick and never activates future trace rows', () => {
+    vi.useFakeTimers();
+    window.history.pushState({}, '', '/methods/cp2');
+    const { container } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+
+    expectCP2CanonicalTraceMatch(container, 1);
+    expect(screen.getByText(/Étape: 2 \//i)).toBeDefined();
+    vi.useRealTimers();
+  });
+
+  test('CP2 previous reset end and example changes keep active trace aligned', () => {
+    window.history.pushState({}, '', '/methods/cp2');
+    const { container } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Précédent|Previous|السابقة/i }));
+    expectCP2CanonicalTraceMatch(container, 0);
+
+    fireEvent.click(controls.getByRole('button', { name: /Fin|Aller à la fin|Go to end|النهاية/i }));
+    const finalIndex = Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index'));
+    expectCP2CanonicalTraceMatch(container, finalIndex);
+
+    fireEvent.click(controls.getByRole('button', { name: /Réinitialiser|Reset|إعادة/i }));
+    expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')).toBe('-1');
+    expect(container.querySelector('[aria-current="step"]')).toBeNull();
+
+    const select = screen.getByLabelText(/Exemple|Example|المثال/i);
+    fireEvent.change(select, { target: { value: 'simple-valide' } });
+    expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')).toBe('-1');
+    expect(container.querySelector('[aria-current="step"]')).toBeNull();
   });
 
   test('Play requests one cockpit viewport scroll and reduced motion disables smooth scrolling', () => {
@@ -683,9 +827,10 @@ describe('Routing and Educational UI QA Suite', () => {
     const directed = container.querySelector('[data-testid="directed-graph-container"]') as HTMLElement;
     const svg = container.querySelector('[data-testid="directed-graph-svg"]') as SVGElement;
     expect(directed.style.minHeight).not.toBe('360px');
-    expect(directed.style.maxHeight).toBe('340px');
+    expect(directed.style.overflow).toBe('visible');
     expect(svg.style.minHeight).not.toBe('270px');
-    expect(svg.style.aspectRatio).toBe('16 / 7');
+    expect(svg.style.aspectRatio).toBe('');
+    expect(svg.style.height).toBe('100%');
   });
 
   test('CP2 page supports mobile graph tabs at 320px and 390px', () => {
