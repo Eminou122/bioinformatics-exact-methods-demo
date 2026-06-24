@@ -4,7 +4,39 @@ import { render, screen, fireEvent, cleanup, act, within } from '@testing-librar
 import App from '../App';
 import { translations } from '../i18n/translations';
 import { solveCP1 } from '../domain/cpSolver';
+import type { CP1TraceEvent } from '../domain/cpSolver';
 import { solveConsistentPath } from '../domain/pathAlgorithms';
+import { examples } from '../data/examples';
+import { getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
+import { useMethodCockpitSync } from './useMethodCockpitSync';
+
+function MethodCockpitSyncHarness({
+  activeTraceIndex,
+  activeInspectorKey,
+  traceIdentity,
+}: {
+  activeTraceIndex: number;
+  activeInspectorKey: string | null;
+  traceIdentity: unknown;
+}) {
+  const { traceScrollerRef, setInspectorScrollerRef } = useMethodCockpitSync(
+    activeTraceIndex,
+    activeInspectorKey,
+    traceIdentity
+  );
+
+  return (
+    <>
+      <div ref={traceScrollerRef} data-testid="method-trace-scroll">
+        <div data-trace-index="0">first</div>
+        <div data-trace-index="1">second</div>
+      </div>
+      <div ref={setInspectorScrollerRef} data-testid="method-inspector-scroll">
+        <div data-inspector-key="x[R1]">x R1</div>
+      </div>
+    </>
+  );
+}
 
 describe('Routing and Educational UI QA Suite', () => {
   beforeAll(() => {
@@ -401,6 +433,84 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(secondActive).toBeTruthy();
   });
 
+  test('CP1 maps representative trace events to exact rendered inspector keys', () => {
+    const example = examples.find((ex) => ex.id === 'simple-valide') || examples[0];
+    const result = solveCP1(example.vertices, example.edgesD, example.edgesG);
+    const renderedKeys = new Set(['start', 'end', ...example.vertices.flatMap((vertex) => [`x[${vertex}]`, `succ[${vertex}]`])]);
+
+    const startEvent = result.trace.find((event) => event.variable === 'start');
+    const successorEvent = result.trace.find((event) => event.variable?.startsWith('succ['));
+    const xAssignmentEvent = result.trace.find(
+      (event) => !event.variable && /\bSet x\[[^\]]+\]\s*=\s*1\b/.test(event.message)
+    );
+    const endEvent = result.trace.find((event) => event.message.includes('Set end ='));
+
+    expect(getCP1InspectorKeyForTraceEvent(startEvent || null, renderedKeys)).toBe('start');
+    expect(getCP1InspectorKeyForTraceEvent(successorEvent || null, renderedKeys)).toMatch(/^succ\[R\d+\]$/);
+    expect(getCP1InspectorKeyForTraceEvent(xAssignmentEvent || null, renderedKeys)).toMatch(/^x\[R\d+\]$/);
+    expect(getCP1InspectorKeyForTraceEvent(endEvent || null, renderedKeys)).toBe('end');
+  });
+
+  test('CP1 does not derive an inspector key when no matching rendered row exists', () => {
+    const event = {
+      type: 'propagate',
+      variable: 'x[missing]',
+      message: 'Set x[missing] = 1.',
+      currentPath: ['missing'],
+      bestPath: null,
+      stepCount: 1,
+      domains: { x: {}, succ: {}, start: [], end: [] },
+    } satisfies CP1TraceEvent;
+
+    expect(getCP1InspectorKeyForTraceEvent(event, new Set(['start', 'end', 'x[R1]', 'succ[R1]']))).toBeNull();
+  });
+
+  test('CP1 inspector scroll fires once per valid trace-index/key transition', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { rerender } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+
+    const inspectorPanel = screen.getByTestId('method-inspector-scroll') as HTMLElement;
+    let inspectorScrollWrites = 0;
+    Object.defineProperty(inspectorPanel, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        inspectorScrollWrites += 1;
+      },
+    });
+    expect(inspectorScrollWrites).toBe(0);
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    expect(inspectorScrollWrites).toBe(1);
+
+    rerender(<App />);
+    expect(inspectorScrollWrites).toBe(1);
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    expect(inspectorScrollWrites).toBe(2);
+  });
+
+  test('missing inspector key does not trigger an inspector scroll action', () => {
+    const traceIdentity = [{ type: 'example' }];
+    const { rerender } = render(
+      <MethodCockpitSyncHarness activeTraceIndex={-1} activeInspectorKey={null} traceIdentity={traceIdentity} />
+    );
+    const inspectorPanel = screen.getByTestId('method-inspector-scroll') as HTMLElement;
+    let inspectorScrollWrites = 0;
+    Object.defineProperty(inspectorPanel, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        inspectorScrollWrites += 1;
+      },
+    });
+
+    rerender(<MethodCockpitSyncHarness activeTraceIndex={0} activeInspectorKey="x[missing]" traceIdentity={traceIdentity} />);
+    expect(inspectorScrollWrites).toBe(0);
+  });
+
   test('CP2 trace scroll fires once per trace-index transition and not on same-index rerender', () => {
     window.history.pushState({}, '', '/methods/cp2');
     const { rerender } = render(<App />);
@@ -435,7 +545,7 @@ describe('Routing and Educational UI QA Suite', () => {
       value: vi.fn().mockReturnValue({ matches: false }),
     });
 
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container, unmount } = render(<App />);
     const cockpit = container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
     cockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });
@@ -450,7 +560,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
     scrollToSpy.mockClear();
     (window.matchMedia as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ matches: true });
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const reduced = render(<App />);
     const reducedCockpit = reduced.container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
     reducedCockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });

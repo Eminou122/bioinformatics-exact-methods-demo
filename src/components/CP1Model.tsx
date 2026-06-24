@@ -9,6 +9,7 @@ import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
+import { cp1InspectorKeys, getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
 
 interface CP1ModelProps {
   lang: Language;
@@ -105,8 +106,9 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
   // Accessibility: Screen Reader Announcer derived dynamically
   const ariaLiveMsg = currentEvent ? `CP1 Solver: ${currentEvent.message}` : '';
 
-  const activeInspectorKey = currentEvent?.variable || (currentEvent?.currentPath.at(-1) ? `succ[${currentEvent.currentPath.at(-1)}]` : null);
-  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
+  const renderedInspectorKeys = useMemo(() => cp1InspectorKeys(currentExample.vertices), [currentExample.vertices]);
+  const activeInspectorKey = getCP1InspectorKeyForTraceEvent(currentEvent, renderedInspectorKeys);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey, traceEvents);
 
   const labels = {
     fr: {

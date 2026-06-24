@@ -204,7 +204,7 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
     return key;
   }
 
-  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey, trace);
 
   const reasonLabels: Record<AlgoBBTraceEvent['reasonCode'], string> = {
     SEARCH_INITIALIZED: 'search initialized',

@@ -180,7 +180,7 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
           ? 'partial'
           : null
   );
-  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef } = useMethodCockpitSync(currentStepIndex, activeInspectorKey, traceEvents);
 
   const handleExampleSelect = (id: string) => {
     setSelectedExampleId(id);
@@ -259,7 +259,6 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
             totalSteps={traceEvents.length}
             onStepChange={setCurrentStepIndex}
             onReset={() => setCurrentStepIndex(-1)}
-            onPlayRequest={scrollCockpitIntoViewForPlay}
             labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
           />
         )}

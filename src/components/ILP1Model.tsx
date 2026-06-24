@@ -214,7 +214,7 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
     ];
   }, [activeDecisions]);
   const activeInspectorKey = selectedVariables[0] || (currentEvent ? 'selectedPath' : null);
-  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey, traceEvents);
 
   const rows = [
     { method: t.legacy, best: legacyResult.longestConsistentPath, style: t.enumStyle, completion: legacyResult.error ? t.incomplete : t.exactLabel },
