@@ -52,6 +52,7 @@ interface MethodPlaybackControlsProps {
   totalSteps: number;
   onStepChange: (index: number) => void;
   onReset: () => void;
+  onPlayRequest?: () => void;
   labels?: Partial<PlaybackLabels>;
 }
 
@@ -65,6 +66,7 @@ export const MethodPlaybackControls: React.FC<MethodPlaybackControlsProps> = ({
   totalSteps,
   onStepChange,
   onReset,
+  onPlayRequest,
   labels,
 }) => {
   const t = { ...playbackLabels[lang], ...labels };
@@ -122,6 +124,7 @@ export const MethodPlaybackControls: React.FC<MethodPlaybackControlsProps> = ({
     onReset();
   };
   const play = () => {
+    onPlayRequest?.();
     if (!hasStarted) onStepChange(0);
     if (!atEnd && totalSteps > 0) setIsPlaying(true);
   };
