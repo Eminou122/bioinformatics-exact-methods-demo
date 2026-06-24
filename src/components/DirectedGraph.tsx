@@ -27,7 +27,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
   const titleId = React.useId();
   const descId = React.useId();
   const radius = 30;
-  const boundsPadding = 44;
+  const boundsPadding = 72;
   const positions = vertices.map((vertex) => nodePositions[vertex]).filter(Boolean);
   const minX = Math.min(...positions.map((pos) => pos.x)) - boundsPadding;
   const maxX = Math.max(...positions.map((pos) => pos.x)) + boundsPadding;
@@ -60,12 +60,11 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        minHeight: '220px',
-        maxHeight: '340px',
+        minHeight: '280px',
         border: '1px solid var(--border-color)',
         borderRadius: 'var(--radius-sm)',
         backgroundColor: '#ffffff',
-        overflow: 'hidden',
+        overflow: 'visible',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -86,7 +85,7 @@ export const DirectedGraph: React.FC<DirectedGraphProps> = ({
         height="100%"
         preserveAspectRatio="xMidYMid meet"
         data-testid="directed-graph-svg"
-        style={{ display: 'block', flex: 1, minHeight: '170px', maxHeight: '270px', aspectRatio: '16 / 7' }}
+        style={{ display: 'block', flex: 1, minHeight: 0, width: '100%', height: '100%' }}
         aria-labelledby={`${titleId} ${descId}`}
       >
         <title id={titleId}>{dict.legendDTitle}</title>

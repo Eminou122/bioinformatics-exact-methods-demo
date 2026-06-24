@@ -143,6 +143,15 @@ function completionLabel(event: CP2TraceEvent | null, result: ReturnType<typeof 
   return t.incomplete;
 }
 
+function getCP2TraceEventId(exampleId: string, event: CP2TraceEvent, index: number): string {
+  return `cp2:${exampleId}:${index + 1}:${event.stepCount}:${event.type}`;
+}
+
+function resolveCanonicalStepIndex(index: number, traceLength: number): number {
+  if (traceLength <= 0 || index < 0) return -1;
+  return Math.min(index, traceLength - 1);
+}
+
 export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
   const isAr = lang === 'ar';
   const t = labels[lang];
@@ -168,19 +177,31 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
   );
 
   const traceEvents = cp2Result.trace;
-  const isRunning = currentStepIndex !== -1 && traceEvents.length > 0;
-  const currentEvent = isRunning ? traceEvents[currentStepIndex] || null : null;
-  const activePath = currentEvent?.currentPath || [];
-  const activeInspectorKey = currentEvent?.variable || (
-    currentEvent?.type === 'upper-bound' || currentEvent?.type === 'bound-pruning'
+  const canonicalStepIndex = resolveCanonicalStepIndex(currentStepIndex, traceEvents.length);
+  const canonicalTraceEvent = canonicalStepIndex >= 0 ? traceEvents[canonicalStepIndex] : null;
+  const canonicalTraceOrdinal = canonicalStepIndex >= 0 ? canonicalStepIndex + 1 : 0;
+  const canonicalTraceEventId = canonicalTraceEvent ? getCP2TraceEventId(selectedExampleId, canonicalTraceEvent, canonicalStepIndex) : null;
+  const isRunning = canonicalTraceEvent !== null;
+  const activePath = canonicalTraceEvent?.currentPath || [];
+  const activeInspectorKey = canonicalTraceEvent?.variable || (
+    canonicalTraceEvent?.type === 'upper-bound' || canonicalTraceEvent?.type === 'bound-pruning'
       ? 'currentBound'
-      : currentEvent?.type === 'incumbent-update'
+      : canonicalTraceEvent?.type === 'incumbent-update'
         ? 'currentIncumbent'
-        : currentEvent
+        : canonicalTraceEvent
           ? 'partial'
           : null
   );
-  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef } = useMethodCockpitSync(currentStepIndex, activeInspectorKey, traceEvents);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef } = useMethodCockpitSync(
+    canonicalStepIndex,
+    activeInspectorKey,
+    traceEvents,
+    canonicalTraceEventId
+  );
+
+  const handleStepChange = (index: number) => {
+    setCurrentStepIndex(resolveCanonicalStepIndex(index, traceEvents.length));
+  };
 
   const handleExampleSelect = (id: string) => {
     setSelectedExampleId(id);
@@ -213,7 +234,7 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
-      <div className="sr-only" aria-live="assertive">{currentEvent?.message || ''}</div>
+      <div className="sr-only" aria-live="assertive">{canonicalTraceEvent?.message || ''}</div>
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1.6rem', color: 'var(--primary)', border: 'none', margin: 0, padding: 0 }}>{t.title}</h2>
@@ -255,9 +276,9 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
         controls={(
           <MethodPlaybackControls
             lang={lang}
-            currentStepIndex={currentStepIndex}
+            currentStepIndex={canonicalStepIndex}
             totalSteps={traceEvents.length}
-            onStepChange={setCurrentStepIndex}
+            onStepChange={handleStepChange}
             onReset={() => setCurrentStepIndex(-1)}
             labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
           />
@@ -277,8 +298,8 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
               nodePositions={currentExample.nodePositions}
               highlightedNodes={new Set(activePath)}
               activePath={activePath}
-              isFinalResult={currentEvent?.type === 'proof-complete'}
-              isAcceptedStep={currentEvent?.type === 'candidate-path' || currentEvent?.type === 'incumbent-update' || currentEvent?.type === 'proof-complete'}
+              isFinalResult={canonicalTraceEvent?.type === 'proof-complete'}
+              isAcceptedStep={canonicalTraceEvent?.type === 'candidate-path' || canonicalTraceEvent?.type === 'incumbent-update' || canonicalTraceEvent?.type === 'proof-complete'}
               lang={lang}
               dict={dict}
               mobileActiveTab={viewTab}
@@ -289,19 +310,19 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
           <section className="card">
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="clipboard" /> {t.completion}</span></h3>
           <dl ref={setInspectorScrollerRef} data-testid="method-inspector-scroll" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)', fontSize: '0.9rem', overflowY: 'auto' }}>
-            {currentEvent?.variable && (
+            {canonicalTraceEvent?.variable && (
               <>
-                <dt data-inspector-key={currentEvent.variable} className={activeInspectorKey === currentEvent.variable ? 'method-cockpit__active-row' : ''}>Variable</dt><dd dir="ltr">{currentEvent.variable}</dd>
+                <dt data-inspector-key={canonicalTraceEvent.variable} className={activeInspectorKey === canonicalTraceEvent.variable ? 'method-cockpit__active-row' : ''}>Variable</dt><dd dir="ltr">{canonicalTraceEvent.variable}</dd>
               </>
             )}
             <dt data-inspector-key="partial" className={activeInspectorKey === 'partial' ? 'method-cockpit__active-row' : ''}>{t.partial}</dt><dd dir="ltr">{pathText(activePath)}</dd>
-            <dt data-inspector-key="currentIncumbent" className={activeInspectorKey === 'currentIncumbent' ? 'method-cockpit__active-row' : ''}>{t.currentIncumbent}</dt><dd dir="ltr">{pathText(currentEvent?.bestPath || cp2Result.bestPath)}</dd>
-            <dt data-inspector-key="currentBound" className={activeInspectorKey === 'currentBound' ? 'method-cockpit__active-row' : ''}>{t.currentBound}</dt><dd>{currentEvent?.upperBound ?? '-'}</dd>
-            <dt data-inspector-key="explored" className={activeInspectorKey === 'explored' ? 'method-cockpit__active-row' : ''}>{t.explored}</dt><dd>{currentEvent?.exploredStates ?? cp2Result.exploredStates}</dd>
-            <dt data-inspector-key="pruned" className={activeInspectorKey === 'pruned' ? 'method-cockpit__active-row' : ''}>{t.pruned}</dt><dd>{currentEvent?.prunedStates ?? cp2Result.prunedStates}</dd>
-            <dt data-inspector-key="reason" className={activeInspectorKey === 'reason' ? 'method-cockpit__active-row' : ''}>{t.reason}</dt><dd>{currentEvent?.reason || '-'}</dd>
+            <dt data-inspector-key="currentIncumbent" className={activeInspectorKey === 'currentIncumbent' ? 'method-cockpit__active-row' : ''}>{t.currentIncumbent}</dt><dd dir="ltr">{pathText(canonicalTraceEvent?.bestPath || cp2Result.bestPath)}</dd>
+            <dt data-inspector-key="currentBound" className={activeInspectorKey === 'currentBound' ? 'method-cockpit__active-row' : ''}>{t.currentBound}</dt><dd>{canonicalTraceEvent?.upperBound ?? '-'}</dd>
+            <dt data-inspector-key="explored" className={activeInspectorKey === 'explored' ? 'method-cockpit__active-row' : ''}>{t.explored}</dt><dd>{canonicalTraceEvent?.exploredStates ?? cp2Result.exploredStates}</dd>
+            <dt data-inspector-key="pruned" className={activeInspectorKey === 'pruned' ? 'method-cockpit__active-row' : ''}>{t.pruned}</dt><dd>{canonicalTraceEvent?.prunedStates ?? cp2Result.prunedStates}</dd>
+            <dt data-inspector-key="reason" className={activeInspectorKey === 'reason' ? 'method-cockpit__active-row' : ''}>{t.reason}</dt><dd>{canonicalTraceEvent?.reason || '-'}</dd>
           </dl>
-          <p style={{ marginBlockEnd: 0, fontWeight: 700, color: 'var(--primary)' }}>{completionLabel(currentEvent, cp2Result, t as typeof labels.en)}</p>
+          <p style={{ marginBlockEnd: 0, fontWeight: 700, color: 'var(--primary)' }}>{completionLabel(canonicalTraceEvent, cp2Result, t as typeof labels.en)}</p>
           </section>
         )}
         constraints={(
@@ -315,21 +336,43 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
         trace={(
         <section className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="ledger" /> {t.trace}</span></h3>
+          <p
+            data-testid="cp2-active-trace-state"
+            data-current-step-index={canonicalStepIndex}
+            data-trace-event-id={canonicalTraceEventId || ''}
+            data-event-type={canonicalTraceEvent?.type || ''}
+            style={{ marginBlockStart: 0, marginBlockEnd: 'var(--space-xs)', fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary)' }}
+          >
+            {isRunning && canonicalTraceEvent
+              ? `${canonicalTraceOrdinal} / ${traceEvents.length}: ${canonicalTraceEvent.type}`
+              : `0 / ${traceEvents.length}`}
+          </p>
           <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {traceEvents.map((event, idx) => {
-              const isActive = idx === currentStepIndex;
+              const eventId = getCP2TraceEventId(selectedExampleId, event, idx);
+              const isActive = eventId === canonicalTraceEventId;
               return (
                 <button
-                  key={`${event.type}-${idx}`}
+                  key={eventId}
                   data-trace-index={idx}
+                  data-trace-event-id={eventId}
+                  data-event-type={event.type}
                   data-active-trace={isActive ? 'true' : 'false'}
+                  data-current-step-index={isActive ? canonicalStepIndex : undefined}
                   type="button"
                   aria-pressed={isActive}
-                  onClick={() => setCurrentStepIndex(idx)}
-                  style={{ textAlign: isAr ? 'right' : 'left', border: 'none', borderInlineStart: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent', background: isActive ? 'var(--neutral-bg-hover)' : 'transparent', padding: '6px var(--space-sm)', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontFamily: 'inherit' }}
+                  aria-current={isActive ? 'step' : undefined}
+                  className={isActive ? 'method-cockpit__active-row' : undefined}
+                  onClick={() => handleStepChange(idx)}
+                  style={{ textAlign: isAr ? 'right' : 'left', border: isActive ? '2px solid var(--accent-gold)' : '1px solid transparent', borderInlineStart: isActive ? '6px solid var(--accent-gold)' : '3px solid transparent', background: isActive ? 'var(--primary-bg)' : 'transparent', padding: '6px var(--space-sm)', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontFamily: 'inherit' }}
                 >
+                  {isActive && (
+                    <span data-testid="cp2-current-event-label" style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-gold)', marginBlockEnd: 2 }}>
+                      Current event — {canonicalTraceOrdinal} / {traceEvents.length}
+                    </span>
+                  )}
                   <strong style={{ display: 'block', color: event.type === 'bound-pruning' || event.type === 'genomic-rejection' ? 'var(--danger)' : 'var(--primary)', textTransform: 'uppercase', fontSize: '0.72rem' }}>{event.type}</strong>
-                  <span style={{ fontSize: '0.82rem' }}>{event.message}</span>
+                  <span data-testid={isActive ? 'cp2-active-trace-message' : undefined} style={{ fontSize: '0.82rem' }}>{event.message}</span>
                 </button>
               );
             })}

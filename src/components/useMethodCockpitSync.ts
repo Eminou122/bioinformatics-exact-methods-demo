@@ -23,6 +23,15 @@ function findInspectorElement(scroller: HTMLElement, activeKey: string): HTMLEle
   ) || null;
 }
 
+function findTraceElement(scroller: HTMLElement, activeTraceIndex: number, activeTraceEventId?: string | null): HTMLElement | null {
+  if (activeTraceEventId) {
+    return Array.from(scroller.querySelectorAll<HTMLElement>('[data-trace-event-id]')).find(
+      (element) => element.dataset.traceEventId === activeTraceEventId
+    ) || null;
+  }
+  return scroller.querySelector<HTMLElement>(`[data-trace-index="${activeTraceIndex}"]`);
+}
+
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 }
@@ -30,24 +39,25 @@ function prefersReducedMotion(): boolean {
 export function useMethodCockpitSync(
   activeTraceIndex: number,
   activeInspectorKey: string | null,
-  traceIdentity: unknown = null
+  traceIdentity: unknown = null,
+  activeTraceEventId: string | null = null
 ) {
   const cockpitRef = useRef<HTMLElement | null>(null);
   const traceScrollerRef = useRef<HTMLDivElement | null>(null);
   const inspectorScrollerRef = useRef<HTMLElement | null>(null);
-  const previousTraceScrollRef = useRef<{ index: number; identity: unknown } | null>(null);
+  const previousTraceScrollRef = useRef<{ index: number; eventId: string | null; identity: unknown } | null>(null);
   const previousInspectorScrollRef = useRef<{ index: number; key: string } | null>(null);
 
   useEffect(() => {
     if (activeTraceIndex < 0) return;
     const previous = previousTraceScrollRef.current;
-    if (previous?.index === activeTraceIndex && previous.identity === traceIdentity) return;
+    if (previous?.index === activeTraceIndex && previous.eventId === activeTraceEventId && previous.identity === traceIdentity) return;
     const scroller = traceScrollerRef.current;
-    const active = scroller?.querySelector<HTMLElement>(`[data-trace-index="${activeTraceIndex}"]`);
+    const active = scroller ? findTraceElement(scroller, activeTraceIndex, activeTraceEventId) : null;
     if (!scroller || !active) return;
-    previousTraceScrollRef.current = { index: activeTraceIndex, identity: traceIdentity };
+    previousTraceScrollRef.current = { index: activeTraceIndex, eventId: activeTraceEventId, identity: traceIdentity };
     centerInScroller(scroller, active);
-  }, [activeTraceIndex, traceIdentity]);
+  }, [activeTraceEventId, activeTraceIndex, traceIdentity]);
 
   useEffect(() => {
     if (activeTraceIndex < 0 || !activeInspectorKey) return;

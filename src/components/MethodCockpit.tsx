@@ -49,7 +49,7 @@ export const MethodCockpit: React.FC<MethodCockpitProps> = ({
         .method-cockpit__body {
           display: grid;
           grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.82fr);
-          grid-template-rows: minmax(250px, 1fr) minmax(220px, 0.82fr);
+          grid-template-rows: minmax(360px, 1.18fr) minmax(220px, 0.82fr);
           gap: var(--space-md);
           align-items: stretch;
         }
@@ -67,7 +67,8 @@ export const MethodCockpit: React.FC<MethodCockpitProps> = ({
         }
 
         .method-cockpit__graph > .graph-panel-container {
-          overflow: hidden;
+          overflow: visible;
+          min-height: 0;
         }
 
         .method-cockpit__trace > .card {
