@@ -10,6 +10,7 @@ import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 
 const OLLAMA_CHAT_URL = 'http://localhost:11434/api/chat';
+const CLOUD_ASSISTANT_URL = '/api/ai-branch-explanation';
 const OLLAMA_TIMEOUT_MS = 8000;
 const OLLAMA_MODEL = 'llama3.2:1b';
 
@@ -19,6 +20,7 @@ interface AIGuidedExactModelProps {
 }
 
 type LocalAssistantStatus = 'not-connected' | 'checking' | 'available' | 'unavailable';
+type AssistantProvider = 'local' | 'cloud' | null;
 
 const labels = {
   fr: {
@@ -61,10 +63,11 @@ const labels = {
     assistantTitle: 'Experimental Local AI Assistant',
     assistantButton: 'Ask local AI for branch explanation',
     assistantSuggestion: 'Local AI suggestion — advisory only',
+    assistantCloudSuggestion: 'Cloud AI suggestion — advisory only',
     assistantDisclaimer: 'The deterministic exact solver remains the only source of validity and optimality.',
-    assistantLocalOnly: 'Available only when Ollama runs on this computer; production users keep the deterministic guide.',
+    assistantLocalOnly: 'Local Ollama is attempted first when available. Cloud AI advisory fallback is used in production when configured. Both are advisory only; the deterministic exact solver remains the sole source of validity and optimality.',
     assistantNeedsCandidates: 'Advance the search to a branch-ranking step first.',
-    assistantUnavailable: 'Local Ollama is unavailable or returned unreadable content. The deterministic guide remains active.',
+    assistantUnavailable: 'AI assistant is unavailable; the deterministic guide remains active.',
   },
   en: {
     title: 'Explainable AI-Guided Exact Search',
@@ -106,10 +109,11 @@ const labels = {
     assistantTitle: 'Experimental Local AI Assistant',
     assistantButton: 'Ask local AI for branch explanation',
     assistantSuggestion: 'Local AI suggestion — advisory only',
+    assistantCloudSuggestion: 'Cloud AI suggestion — advisory only',
     assistantDisclaimer: 'The deterministic exact solver remains the only source of validity and optimality.',
-    assistantLocalOnly: 'Available only when Ollama runs on this computer; production users keep the deterministic guide.',
+    assistantLocalOnly: 'Local Ollama is attempted first when available. Cloud AI advisory fallback is used in production when configured. Both are advisory only; the deterministic exact solver remains the sole source of validity and optimality.',
     assistantNeedsCandidates: 'Advance the search to a branch-ranking step first.',
-    assistantUnavailable: 'Local Ollama is unavailable or returned unreadable content. The deterministic guide remains active.',
+    assistantUnavailable: 'AI assistant is unavailable; the deterministic guide remains active.',
   },
   ar: {
     title: 'Explainable AI-Guided Exact Search',
@@ -151,10 +155,11 @@ const labels = {
     assistantTitle: 'Experimental Local AI Assistant',
     assistantButton: 'Ask local AI for branch explanation',
     assistantSuggestion: 'Local AI suggestion — advisory only',
+    assistantCloudSuggestion: 'Cloud AI suggestion — advisory only',
     assistantDisclaimer: 'The deterministic exact solver remains the only source of validity and optimality.',
-    assistantLocalOnly: 'Available only when Ollama runs on this computer; production users keep the deterministic guide.',
+    assistantLocalOnly: 'Local Ollama is attempted first when available. Cloud AI advisory fallback is used in production when configured. Both are advisory only; the deterministic exact solver remains the sole source of validity and optimality.',
     assistantNeedsCandidates: 'Advance the search to a branch-ranking step first.',
-    assistantUnavailable: 'Local Ollama is unavailable or returned unreadable content. The deterministic guide remains active.',
+    assistantUnavailable: 'AI assistant is unavailable; the deterministic guide remains active.',
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -163,6 +168,11 @@ const localAssistantStatusText: Record<LocalAssistantStatus, string> = {
   checking: 'Checking Ollama',
   available: 'Available locally',
   unavailable: 'Unavailable — deterministic guide remains active',
+};
+
+const cloudAssistantStatusText: Record<LocalAssistantStatus, string> = {
+  ...localAssistantStatusText,
+  available: 'Available from cloud',
 };
 
 function pathText(path: string[] | null | undefined): string {
@@ -205,6 +215,26 @@ function readOllamaResponseText(payload: unknown): string | null {
   return null;
 }
 
+function readCloudAssistantResponseText(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as { ok?: unknown; advisory?: unknown };
+  if (record.ok !== true) return null;
+  if (typeof record.advisory === 'string' && record.advisory.trim()) return record.advisory.trim();
+  return null;
+}
+
+function buildCloudAssistantPayload(event: AIGuidedTraceEvent, locale: Language) {
+  return {
+    currentPath: event.currentPath,
+    locale,
+    rankedCandidates: event.rankedCandidates.slice(0, 3).map((candidate) => ({
+      vertex: candidate.vertex,
+      priorityScore: candidate.priorityScore,
+      genomicSupportLinks: candidate.genomicSupportLinks,
+    })),
+  };
+}
+
 export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, dict }) => {
   const isAr = lang === 'ar';
   const t = labels[lang];
@@ -212,6 +242,7 @@ export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, di
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
   const [assistantStatus, setAssistantStatus] = useState<LocalAssistantStatus>('not-connected');
+  const [assistantProvider, setAssistantProvider] = useState<AssistantProvider>(null);
   const [assistantText, setAssistantText] = useState('');
 
   const currentExample = useMemo(
@@ -246,14 +277,16 @@ export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, di
     setSelectedExampleId(id);
     setCurrentStepIndex(-1);
     setAssistantStatus('not-connected');
+    setAssistantProvider(null);
     setAssistantText('');
   };
   const askLocalAssistant = async () => {
-    if (!hasRankedCandidates) {
+    if (!activeEvent || !hasRankedCandidates) {
       setAssistantText('');
       return;
     }
     setAssistantStatus('checking');
+    setAssistantProvider(null);
     setAssistantText('');
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
@@ -278,10 +311,26 @@ export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, di
       const text = readOllamaResponseText(await response.json());
       if (!text) throw new Error('Local Ollama returned malformed content.');
       setAssistantStatus('available');
+      setAssistantProvider('local');
       setAssistantText(text);
     } catch {
-      setAssistantStatus('unavailable');
-      setAssistantText(t.assistantUnavailable);
+      try {
+        const cloudResponse = await fetch(CLOUD_ASSISTANT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildCloudAssistantPayload(activeEvent, lang)),
+        });
+        if (!cloudResponse.ok) throw new Error('Cloud AI request failed.');
+        const cloudText = readCloudAssistantResponseText(await cloudResponse.json());
+        if (!cloudText) throw new Error('Cloud AI returned malformed content.');
+        setAssistantStatus('available');
+        setAssistantProvider('cloud');
+        setAssistantText(cloudText);
+      } catch {
+        setAssistantStatus('unavailable');
+        setAssistantProvider(null);
+        setAssistantText(t.assistantUnavailable);
+      }
     } finally {
       window.clearTimeout(timeout);
     }
@@ -437,7 +486,7 @@ export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, di
             <span className="icon-label"><Icon name="info" /> {t.assistantTitle}</span>
           </h3>
           <span aria-live="polite" style={{ fontWeight: 800, color: assistantStatus === 'available' ? 'var(--success)' : assistantStatus === 'unavailable' ? 'var(--danger)' : 'var(--neutral-medium)' }}>
-            {localAssistantStatusText[assistantStatus]}
+            {(assistantProvider === 'cloud' ? cloudAssistantStatusText : localAssistantStatusText)[assistantStatus]}
           </span>
         </div>
         <button
@@ -462,7 +511,9 @@ export const AIGuidedExactModel: React.FC<AIGuidedExactModelProps> = ({ lang, di
         </p>
         {assistantText && (
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', marginBlockEnd: 'var(--space-xs)' }}>{t.assistantSuggestion}</h4>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', marginBlockEnd: 'var(--space-xs)' }}>
+              {assistantProvider === 'cloud' ? t.assistantCloudSuggestion : t.assistantSuggestion}
+            </h4>
             <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 160, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)', background: 'var(--neutral-bg-hover)', fontFamily: 'var(--font-sans)', fontSize: '0.86rem' }}>
               {assistantText}
             </pre>

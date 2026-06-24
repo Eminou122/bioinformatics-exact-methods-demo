@@ -25,8 +25,20 @@ import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
 import { AIGuidedExactModel } from './components/AIGuidedExactModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
 
+const LANGUAGE_STORAGE_KEY = 'bioinformatics-demo-language';
+const supportedLanguages: Language[] = ['fr', 'en', 'ar'];
+
+function readStoredLanguage(): Language {
+  try {
+    const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return supportedLanguages.includes(storedLanguage as Language) ? storedLanguage as Language : 'fr';
+  } catch {
+    return 'fr';
+  }
+}
+
 function App() {
-  const [lang, setLang] = useState<Language>('fr');
+  const [lang, setLang] = useState<Language>(readStoredLanguage);
   const { currentPath, navigate } = useNavigation();
 
   // Selected example state (used for legacy demo)
@@ -42,6 +54,7 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
     document.title = dict.appTitle;
 
     const metaDescription = document.querySelector('meta[name="description"]');

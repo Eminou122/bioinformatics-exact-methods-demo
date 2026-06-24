@@ -18,6 +18,7 @@ describe('UI Workflow and Internationalization QA', () => {
 
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
   });
 
   test('initial dataset renders correctly', () => {
@@ -68,6 +69,42 @@ describe('UI Workflow and Internationalization QA', () => {
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
     expect(screen.getByText(/المرشح 1 \/ 13/)).toBeDefined(); 
+  });
+
+  test('English survives a refresh remount', () => {
+    const firstRender = render(<App />);
+    fireEvent.click(screen.getByText('English'));
+    expect(document.documentElement.lang).toBe('en');
+    firstRender.unmount();
+
+    render(<App />);
+
+    expect(document.documentElement.lang).toBe('en');
+    expect(document.documentElement.dir).toBe('ltr');
+    expect(screen.getByText(translations.en.selectionTitle)).toBeDefined();
+  });
+
+  test('Arabic survives a refresh remount and restores RTL', () => {
+    const firstRender = render(<App />);
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.lang).toBe('ar');
+    firstRender.unmount();
+
+    render(<App />);
+
+    expect(document.documentElement.lang).toBe('ar');
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(screen.getByText(translations.ar.selectionTitle)).toBeDefined();
+  });
+
+  test('invalid stored language falls back to French', () => {
+    window.localStorage.setItem('bioinformatics-demo-language', 'de');
+
+    render(<App />);
+
+    expect(document.documentElement.lang).toBe('fr');
+    expect(document.documentElement.dir).toBe('ltr');
+    expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
   });
 
   test('stepper navigation and reset workflow works correctly', () => {

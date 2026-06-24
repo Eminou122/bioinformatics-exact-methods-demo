@@ -88,6 +88,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
   });
 
   test('all routes render properly through navbar navigation', () => {
@@ -415,6 +416,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
     for (const route of routes) {
       cleanup();
+      window.localStorage.clear();
       window.history.pushState({}, '', route);
       const { container } = render(<App />);
       expect(screen.getAllByText(translations.fr.visTitle).length).toBeGreaterThan(0);
@@ -948,12 +950,12 @@ describe('Routing and Educational UI QA Suite', () => {
     expect((screen.getByRole('button', { name: 'Ask local AI for branch explanation' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  test('local AI assistant renders local-only Ollama note', () => {
+  test('local AI assistant renders local and cloud advisory status note', () => {
     window.history.pushState({}, '', '/methods/ai-guided-exact');
 
     render(<App />);
 
-    expect(screen.getByText('Available only when Ollama runs on this computer; production users keep the deterministic guide.')).toBeDefined();
+    expect(screen.getByText('Local Ollama is attempted first when available. Cloud AI advisory fallback is used in production when configured. Both are advisory only; the deterministic exact solver remains the sole source of validity and optimality.')).toBeDefined();
   });
 
   test('unavailable Ollama does not break deterministic guide', async () => {
@@ -969,8 +971,68 @@ describe('Routing and Educational UI QA Suite', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
 
     expect(await screen.findByText('Unavailable — deterministic guide remains active')).toBeDefined();
-    expect(screen.getByText(/Local Ollama is unavailable/i)).toBeDefined();
+    expect(screen.getByText(/AI assistant is unavailable/i)).toBeDefined();
     expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
+    vi.unstubAllGlobals();
+  });
+
+  test('cloud AI response is labeled advisory only after Ollama is unavailable', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === 'http://localhost:11434/api/chat') return Promise.reject(new Error('offline'));
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          provider: 'groq',
+          advisory: '- R2 remains the top ranked branch.\n- R3 has less deterministic support.\n- The exact solver remains authoritative.',
+          errorCode: null,
+        }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.pushState({}, '', '/methods/ai-guided-exact');
+
+    render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
+
+    expect(await screen.findByText('Available from cloud')).toBeDefined();
+    expect(screen.getByText('Cloud AI suggestion — advisory only')).toBeDefined();
+    expect(screen.getByText('The deterministic exact solver remains the only source of validity and optimality.')).toBeDefined();
+    expect(screen.getByText(/R2 remains the top ranked branch/i)).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/ai-branch-explanation');
+    const cloudRequest = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(cloudRequest.currentPath).toBeDefined();
+    expect(cloudRequest.locale).toBe('fr');
+    expect(cloudRequest.rankedCandidates.length).toBeLessThanOrEqual(3);
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('GROQ_API_KEY');
+    vi.unstubAllGlobals();
+  });
+
+  test('cloud AI error preserves deterministic guide without provider details', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === 'http://localhost:11434/api/chat') return Promise.reject(new Error('offline'));
+      return Promise.resolve({
+        ok: false,
+        json: async () => ({ ok: false, provider: 'groq', advisory: '', errorCode: 'MISSING_KEY' }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.pushState({}, '', '/methods/ai-guided-exact');
+
+    render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
+
+    expect(await screen.findByText('Unavailable — deterministic guide remains active')).toBeDefined();
+    expect(screen.getByText(/AI assistant is unavailable/i)).toBeDefined();
+    expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
+    expect(document.body.textContent).not.toContain('MISSING_KEY');
     vi.unstubAllGlobals();
   });
 
