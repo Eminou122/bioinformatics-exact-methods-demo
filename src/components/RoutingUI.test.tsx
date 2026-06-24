@@ -40,18 +40,18 @@ function MethodCockpitSyncHarness({
 }
 
 function getCP2ActiveTraceParts(container: HTMLElement) {
-  const header = screen.getByTestId('cp2-active-trace-state') as HTMLElement;
+  const currentCard = screen.getByTestId('cp2-active-trace-state') as HTMLElement;
   const activeTrace = container.querySelector('[aria-current="step"]') as HTMLElement | null;
   expect(activeTrace).toBeDefined();
   expect(container.querySelectorAll('[aria-current="step"]').length).toBe(1);
   return {
-    header,
+    currentCard,
     activeTrace: activeTrace as HTMLElement,
-    headerEventId: header.getAttribute('data-trace-event-id') || '',
+    cardEventId: currentCard.getAttribute('data-trace-event-id') || '',
     activeEventId: activeTrace?.getAttribute('data-trace-event-id') || '',
-    headerIndex: header.getAttribute('data-current-step-index') || '',
+    cardIndex: currentCard.getAttribute('data-current-step-index') || '',
     activeIndex: activeTrace?.getAttribute('data-trace-index') || '',
-    headerType: header.getAttribute('data-event-type') || '',
+    cardType: currentCard.getAttribute('data-event-type') || '',
     activeType: activeTrace?.getAttribute('data-event-type') || '',
   };
 }
@@ -59,17 +59,24 @@ function getCP2ActiveTraceParts(container: HTMLElement) {
 function expectCP2CanonicalTraceMatch(container: HTMLElement, zeroBasedIndex: number) {
   const parts = getCP2ActiveTraceParts(container);
   const ordinal = zeroBasedIndex + 1;
-  expect(parts.headerIndex).toBe(String(zeroBasedIndex));
+  expect(parts.cardIndex).toBe(String(zeroBasedIndex));
   expect(parts.activeIndex).toBe(String(zeroBasedIndex));
-  expect(parts.headerEventId).toBeTruthy();
-  expect(parts.headerEventId).toBe(parts.activeEventId);
-  expect(parts.headerType).toBe(parts.activeType);
-  expect(parts.header.textContent).toContain(`${ordinal} /`);
-  expect(parts.header.textContent).toContain(parts.activeType);
-  expect(parts.activeTrace.textContent).toContain(`Current event — ${ordinal} /`);
-  expect(parts.activeTrace.textContent).toContain(parts.activeType);
+  expect(parts.cardEventId).toBeTruthy();
+  expect(parts.cardEventId).toBe(parts.activeEventId);
+  expect(parts.cardType).toBe(parts.activeType);
+  expect(screen.getByText(new RegExp(`Étape: ${ordinal} /`, 'i'))).toBeDefined();
+  expect(screen.getByTestId('cp2-current-event-title').textContent).toBe('Current event');
+  expect(screen.getByTestId('cp2-current-event-ordinal').textContent).toContain(`${ordinal} /`);
+  expect(screen.getByTestId('cp2-current-event-type').textContent).toBe(parts.activeType.toUpperCase());
+  expect(screen.getByTestId('cp2-current-event-status').textContent).toBe('ACTIVE STEP');
+  expect(parts.activeTrace.textContent).toContain('ACTIVE STEP');
+  expect(parts.activeTrace.textContent).toContain(parts.activeType.toUpperCase());
   const activeMessage = within(parts.activeTrace).getByTestId('cp2-active-trace-message');
+  expect(screen.getByTestId('cp2-current-event-description').textContent).toBe(activeMessage.textContent);
   expect(activeMessage.textContent?.trim().length).toBeGreaterThan(0);
+  const futureRows = Array.from(container.querySelectorAll<HTMLElement>('[data-trace-index]'))
+    .filter((row) => Number(row.getAttribute('data-trace-index')) > zeroBasedIndex);
+  expect(futureRows.every((row) => !row.textContent?.includes('ACTIVE STEP'))).toBe(true);
 }
 
 describe('Routing and Educational UI QA Suite', () => {
@@ -622,7 +629,7 @@ describe('Routing and Educational UI QA Suite', () => {
     expect((container.querySelector('[aria-current="step"]') as HTMLElement).getAttribute('data-trace-event-id')).toBe(screen.getByTestId('cp2-active-trace-state').getAttribute('data-trace-event-id'));
   });
 
-  test('CP2 canonical step drives header, active trace, graph state, and inspector source at representative steps', () => {
+  test('CP2 canonical step drives current event card, active trace, graph state, and inspector source at representative steps', () => {
     window.history.pushState({}, '', '/methods/cp2');
     const { container } = render(<App />);
     const controls = within(screen.getByTestId('method-playback-controls'));
@@ -632,9 +639,11 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(container.querySelector('[data-testid="directed-graph-container"]')).toBeDefined();
     expect(container.querySelector('[data-inspector-key].method-cockpit__active-row')).toBeDefined();
 
-    for (const targetIndex of [4, 7, 9]) {
+    for (const targetIndex of [4, 7, 9, 14]) {
       while (Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')) < targetIndex) {
+        const before = Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index'));
         fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+        expect(Number(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index'))).toBe(before + 1);
       }
       expectCP2CanonicalTraceMatch(container, targetIndex);
     }
@@ -652,12 +661,13 @@ describe('Routing and Educational UI QA Suite', () => {
 
     fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
     fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
-    act(() => {
-      vi.advanceTimersByTime(1100);
-    });
-
-    expectCP2CanonicalTraceMatch(container, 1);
-    expect(screen.getByText(/Étape: 2 \//i)).toBeDefined();
+    for (let expectedIndex = 1; expectedIndex <= 10; expectedIndex += 1) {
+      act(() => {
+        vi.advanceTimersByTime(1100);
+      });
+      expectCP2CanonicalTraceMatch(container, expectedIndex);
+      expect(screen.getByText(new RegExp(`Étape: ${expectedIndex + 1} /`, 'i'))).toBeDefined();
+    }
     vi.useRealTimers();
   });
 
@@ -668,6 +678,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
     fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
     fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    const staleDescription = screen.getByTestId('cp2-current-event-description').textContent;
     fireEvent.click(controls.getByRole('button', { name: /Précédent|Previous|السابقة/i }));
     expectCP2CanonicalTraceMatch(container, 0);
 
@@ -677,11 +688,14 @@ describe('Routing and Educational UI QA Suite', () => {
 
     fireEvent.click(controls.getByRole('button', { name: /Réinitialiser|Reset|إعادة/i }));
     expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')).toBe('-1');
+    expect(screen.getByTestId('cp2-current-event-description').textContent).not.toBe(staleDescription);
+    expect(screen.getByTestId('cp2-current-event-description').textContent).toBe('No active event');
     expect(container.querySelector('[aria-current="step"]')).toBeNull();
 
     const select = screen.getByLabelText(/Exemple|Example|المثال/i);
     fireEvent.change(select, { target: { value: 'simple-valide' } });
     expect(screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index')).toBe('-1');
+    expect(screen.getByTestId('cp2-current-event-description').textContent).toBe('No active event');
     expect(container.querySelector('[aria-current="step"]')).toBeNull();
   });
 

@@ -37,7 +37,11 @@ const labels = {
     explored: 'États explorés',
     pruned: 'États élagués',
     reason: 'Raison',
-    trace: 'Trace CP2',
+    trace: 'CP2 Search Trace',
+    currentEvent: 'Current event',
+    activeStep: 'ACTIVE STEP',
+    traceLedger: 'Trace ledger',
+    noActiveEvent: 'No active event',
     completion: 'État de complétion',
     exact: 'Exact / preuve complète',
     incomplete: 'Incomplet',
@@ -75,7 +79,11 @@ const labels = {
     explored: 'Explored states',
     pruned: 'Pruned states',
     reason: 'Reason',
-    trace: 'CP2 trace',
+    trace: 'CP2 Search Trace',
+    currentEvent: 'Current event',
+    activeStep: 'ACTIVE STEP',
+    traceLedger: 'Trace ledger',
+    noActiveEvent: 'No active event',
     completion: 'Completion state',
     exact: 'Exact / proof complete',
     incomplete: 'Incomplete',
@@ -113,7 +121,11 @@ const labels = {
     explored: 'الحالات المستكشفة',
     pruned: 'الحالات المقلمة',
     reason: 'السبب',
-    trace: 'تتبع CP2',
+    trace: 'CP2 Search Trace',
+    currentEvent: 'Current event',
+    activeStep: 'ACTIVE STEP',
+    traceLedger: 'Trace ledger',
+    noActiveEvent: 'No active event',
     completion: 'حالة الاكتمال',
     exact: 'دقيق / برهان مكتمل',
     incomplete: 'غير مكتمل',
@@ -150,6 +162,10 @@ function getCP2TraceEventId(exampleId: string, event: CP2TraceEvent, index: numb
 function resolveCanonicalStepIndex(index: number, traceLength: number): number {
   if (traceLength <= 0 || index < 0) return -1;
   return Math.min(index, traceLength - 1);
+}
+
+function formatTraceType(type: CP2TraceEvent['type'] | undefined): string {
+  return type ? type.toUpperCase() : '';
 }
 
 export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
@@ -335,22 +351,46 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
         )}
         trace={(
         <section className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="ledger" /> {t.trace}</span></h3>
-          <p
+          <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem', marginBlockEnd: 'var(--space-sm)' }}><span className="icon-label"><Icon name="ledger" /> {t.trace}</span></h3>
+          <article
             data-testid="cp2-active-trace-state"
             data-current-step-index={canonicalStepIndex}
             data-trace-event-id={canonicalTraceEventId || ''}
             data-event-type={canonicalTraceEvent?.type || ''}
-            style={{ marginBlockStart: 0, marginBlockEnd: 'var(--space-xs)', fontSize: '0.84rem', fontWeight: 700, color: 'var(--primary)' }}
+            style={{
+              marginBlockEnd: 'var(--space-sm)',
+              padding: 'var(--space-sm)',
+              border: '2px solid var(--accent-gold)',
+              borderInlineStart: '8px solid var(--accent-gold)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--primary-bg)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+            }}
           >
-            {isRunning && canonicalTraceEvent
-              ? `${canonicalTraceOrdinal} / ${traceEvents.length}: ${canonicalTraceEvent.type}`
-              : `0 / ${traceEvents.length}`}
-          </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-sm)', alignItems: 'center', flexWrap: 'wrap', marginBlockEnd: 'var(--space-xs)' }}>
+              <strong data-testid="cp2-current-event-title" style={{ color: 'var(--primary)', fontSize: '0.86rem' }}>{t.currentEvent}</strong>
+              {isRunning && canonicalTraceEvent && (
+                <span data-testid="cp2-current-event-status" style={{ background: 'var(--accent-gold)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '2px 8px', fontSize: '0.7rem', fontWeight: 900, letterSpacing: 0 }}>
+                  {t.activeStep}
+                </span>
+              )}
+            </div>
+            <div data-testid="cp2-current-event-ordinal" style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '1rem' }}>
+              {isRunning && canonicalTraceEvent ? `${canonicalTraceOrdinal} / ${traceEvents.length}` : `0 / ${traceEvents.length}`}
+            </div>
+            <div data-testid="cp2-current-event-type" style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '0.78rem', textTransform: 'uppercase', marginBlockStart: 2 }}>
+              {formatTraceType(canonicalTraceEvent?.type) || t.noActiveEvent}
+            </div>
+            <p data-testid="cp2-current-event-description" style={{ marginBlockEnd: 0, fontSize: '0.86rem' }}>
+              {canonicalTraceEvent?.message || t.noActiveEvent}
+            </p>
+          </article>
+          <h4 style={{ color: 'var(--primary)', fontSize: '0.86rem', marginBlock: '0 var(--space-xs)' }}>{t.traceLedger}</h4>
           <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {traceEvents.map((event, idx) => {
               const eventId = getCP2TraceEventId(selectedExampleId, event, idx);
               const isActive = eventId === canonicalTraceEventId;
+              const isFuture = canonicalStepIndex < 0 || idx > canonicalStepIndex;
               return (
                 <button
                   key={eventId}
@@ -364,14 +404,14 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
                   aria-current={isActive ? 'step' : undefined}
                   className={isActive ? 'method-cockpit__active-row' : undefined}
                   onClick={() => handleStepChange(idx)}
-                  style={{ textAlign: isAr ? 'right' : 'left', border: isActive ? '2px solid var(--accent-gold)' : '1px solid transparent', borderInlineStart: isActive ? '6px solid var(--accent-gold)' : '3px solid transparent', background: isActive ? 'var(--primary-bg)' : 'transparent', padding: '6px var(--space-sm)', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontFamily: 'inherit' }}
+                  style={{ textAlign: isAr ? 'right' : 'left', border: isActive ? '2px solid var(--accent-gold)' : '1px solid transparent', borderInlineStart: isActive ? '6px solid var(--accent-gold)' : '3px solid transparent', background: isActive ? 'var(--primary-bg)' : 'transparent', opacity: isFuture ? 0.52 : 1, padding: '6px var(--space-sm)', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontFamily: 'inherit' }}
                 >
                   {isActive && (
                     <span data-testid="cp2-current-event-label" style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-gold)', marginBlockEnd: 2 }}>
-                      Current event — {canonicalTraceOrdinal} / {traceEvents.length}
+                      {t.activeStep}
                     </span>
                   )}
-                  <strong style={{ display: 'block', color: event.type === 'bound-pruning' || event.type === 'genomic-rejection' ? 'var(--danger)' : 'var(--primary)', textTransform: 'uppercase', fontSize: '0.72rem' }}>{event.type}</strong>
+                  <strong style={{ display: 'block', color: event.type === 'bound-pruning' || event.type === 'genomic-rejection' ? 'var(--danger)' : 'var(--primary)', textTransform: 'uppercase', fontSize: '0.72rem' }}>{formatTraceType(event.type)}</strong>
                   <span data-testid={isActive ? 'cp2-active-trace-message' : undefined} style={{ fontSize: '0.82rem' }}>{event.message}</span>
                 </button>
               );
