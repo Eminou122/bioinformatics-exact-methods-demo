@@ -23,6 +23,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: string;
       runCP2: string;
       runILP1: string;
+      runILP2: string;
       runLegacy: string;
     methods: {
       id: string;
@@ -45,6 +46,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
       runILP1: 'Lancer l\'application ILP1',
+      runILP2: 'Lancer l\'application ILP2',
       runLegacy: 'Lancer la démo énumération',
       methods: [
         {
@@ -97,10 +99,10 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
         },
         {
           id: 'ilp2',
-          name: 'ILP2 (Formulation PLNE alternative)',
+          name: 'ILP2 (Racine et niveaux)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'Formulation alternative PLNE optimisant les flux de connectivité génomique.',
+          badge: 'exact',
+          desc: 'Implémentation exacte pour petits DAG : formulation éducative avec racine génomique, liens parents et niveaux.',
           route: '/methods/ilp2'
         },
         {
@@ -141,6 +143,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
       runILP1: 'Launch ILP1 Solver App',
+      runILP2: 'Launch ILP2 Solver App',
       runLegacy: 'Launch Legacy Enumeration',
       methods: [
         {
@@ -193,10 +196,10 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
         },
         {
           id: 'ilp2',
-          name: 'ILP2 (Alternate ILP)',
+          name: 'ILP2 (Rooted Levels)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'Alternative ILP formulation with optimized flow connectivity constraints.',
+          badge: 'exact',
+          desc: 'Exact small-DAG implementation: educational root, parent-link, and level formulation for genomic connectivity.',
           route: '/methods/ilp2'
         },
         {
@@ -237,6 +240,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
       runILP1: 'تشغيل نموذج ILP1',
+      runILP2: 'تشغيل نموذج ILP2',
       runLegacy: 'تشغيل محاكاة التعداد القديمة',
       methods: [
         {
@@ -289,10 +293,10 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
         },
         {
           id: 'ilp2',
-          name: 'ILP2 (صياغة برمجة خطية بديلة)',
+          name: 'ILP2 (الجذر والمستويات)',
           paper: '2022',
-          badge: 'reference',
-          desc: 'صياغة برمجة خطية صحيحة بديلة مع قيود اتصال محسنة للتدفق.',
+          badge: 'exact',
+          desc: 'تطبيق دقيق لمخططات DAG الصغيرة: صياغة تعليمية بجذر جينومي وروابط آباء ومستويات.',
           route: '/methods/ilp2'
         },
         {
@@ -413,7 +417,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ilp1' ? t.runILP1 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
                   </Link>
                   {method.id === 'enumeration' && (
                     <Link 
