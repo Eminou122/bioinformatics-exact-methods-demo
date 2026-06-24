@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
 import { solveCP1, stateToString } from '../domain/cpSolver';
 import type { CP1TraceEvent } from '../domain/cpSolver';
@@ -6,7 +6,9 @@ import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { GraphPanel } from './GraphPanel';
 import { examples } from '../data/examples';
 import { Icon } from './Icons';
+import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
+import { useMethodCockpitSync } from './useMethodCockpitSync';
 
 interface CP1ModelProps {
   lang: Language;
@@ -103,13 +105,8 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
   // Accessibility: Screen Reader Announcer derived dynamically
   const ariaLiveMsg = currentEvent ? `CP1 Solver: ${currentEvent.message}` : '';
 
-  // Scroll to active trace ledger element
-  const activeLedgerRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (typeof activeLedgerRef.current?.scrollIntoView === 'function') {
-      activeLedgerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [currentStepIndex]);
+  const activeInspectorKey = currentEvent?.variable || (currentEvent?.currentPath.at(-1) ? `succ[${currentEvent.currentPath.at(-1)}]` : null);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
 
   const labels = {
     fr: {
@@ -282,36 +279,34 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
         </div>
       </section>
 
-      <MethodPlaybackControls
-        lang={lang}
-        currentStepIndex={currentStepIndex}
-        totalSteps={traceEvents.length}
-        onStepChange={handleStepChange}
-        onReset={handleReset}
-        labels={{
-          start: t.btnStart,
-          previous: t.btnPrev,
-          next: t.btnNext,
-          reset: t.btnReset,
-          end: lang === 'fr' ? 'Aller à la Fin' : (lang === 'en' ? 'Jump to End' : 'الانتقال للنهاية'),
-          counter: t.stepIndicator,
-        }}
-      />
-
-      {/* SVG Graphs and Panels (Desktop Side-by-side, Mobile Tabs) */}
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        {/* Visualizer Column */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {/* Graph view selector for 320/390px screens */}
-          <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
-            <div className="lang-selector-group" style={{ width: '100%' }}>
-              <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D (Metabolism)</button>
-              <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G (Genome)</button>
+      <MethodCockpit
+        cockpitRef={cockpitRef}
+        controls={(
+          <MethodPlaybackControls
+            lang={lang}
+            currentStepIndex={currentStepIndex}
+            totalSteps={traceEvents.length}
+            onStepChange={handleStepChange}
+            onReset={handleReset}
+            onPlayRequest={scrollCockpitIntoViewForPlay}
+            labels={{
+              start: t.btnStart,
+              previous: t.btnPrev,
+              next: t.btnNext,
+              reset: t.btnReset,
+              end: lang === 'fr' ? 'Aller à la Fin' : (lang === 'en' ? 'Jump to End' : 'الانتقال للنهاية'),
+              counter: t.stepIndicator,
+            }}
+          />
+        )}
+        graph={(
+          <>
+            <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
+              <div className="lang-selector-group" style={{ width: '100%' }}>
+                <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D (Metabolism)</button>
+                <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G (Genome)</button>
+              </div>
             </div>
-          </div>
-
-          {/* GraphPanel container always block display, inner containers hide/show */}
-          <div className="graph-panel-container" style={{ display: 'block' }}>
             <GraphPanel
               vertices={currentExample.vertices}
               edgesD={currentExample.edgesD}
@@ -325,10 +320,9 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
               dict={dict}
               mobileActiveTab={viewTab}
             />
-          </div>
-        </div>
-
-        {/* CP Variables Domains Inspector Panel */}
+          </>
+        )}
+        state={(
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
             <span className="icon-label"><Icon name="clipboard" /> {t.varInspector}</span>
@@ -353,16 +347,16 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', overflowY: 'auto', flex: 1 }}>
+            <div ref={setInspectorScrollerRef} data-testid="method-inspector-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', overflowY: 'auto', flex: 1 }}>
               {/* Chosen start / end */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--space-sm)' }}>
-                <div>
+                <div data-inspector-key="start" className={activeInspectorKey === 'start' ? 'method-cockpit__active-row' : ''}>
                   <strong style={{ fontSize: '0.85rem', color: 'var(--neutral-medium)' }}>start</strong>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary)' }}>
                     {currentEvent?.domains.start.map(stateToString).join(', ') || 'UNSELECTED'}
                   </div>
                 </div>
-                <div>
+                <div data-inspector-key="end" className={activeInspectorKey === 'end' ? 'method-cockpit__active-row' : ''}>
                   <strong style={{ fontSize: '0.85rem', color: 'var(--neutral-medium)' }}>end</strong>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary)' }}>
                     {currentEvent?.domains.end.map(stateToString).join(', ') || 'UNSELECTED'}
@@ -386,13 +380,13 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
 
                     return (
                       <React.Fragment key={v}>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isSelectedInPath ? 'var(--primary-bg)' : 'transparent' }}>
+                        <tr data-inspector-key={`x[${v}]`} className={activeInspectorKey === `x[${v}]` ? 'method-cockpit__active-row' : ''} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isSelectedInPath ? 'var(--primary-bg)' : 'transparent' }}>
                           <td style={{ paddingBlock: '8px', fontWeight: 700 }}>x[{v}] (selected boolean)</td>
                           <td style={{ paddingBlock: '8px', fontFamily: 'monospace' }}>
                             {"{"}{xDomain.join(', ')}{"}"}
                           </td>
                         </tr>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isSelectedInPath ? 'var(--primary-bg)' : 'transparent' }}>
+                        <tr data-inspector-key={`succ[${v}]`} className={activeInspectorKey === `succ[${v}]` ? 'method-cockpit__active-row' : ''} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: isSelectedInPath ? 'var(--primary-bg)' : 'transparent' }}>
                           <td style={{ paddingBlock: '8px', fontWeight: 700 }}>succ[{v}] (successor vertex)</td>
                           <td style={{ paddingBlock: '8px', fontFamily: 'monospace' }}>
                             {"{"}{succDomain.map(stateToString).join(', ')}{"}"}
@@ -406,11 +400,8 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Constraints and Trace ledger side-by-side */}
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        {/* CP Constraints checking */}
+        )}
+        constraints={(
         <div className="card">
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
             <span className="icon-label"><Icon name="shield" /> {t.constraintsTitle}</span>
@@ -444,14 +435,14 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
             </div>
           </div>
         </div>
-
-        {/* Trace Ledger (rendered using keyboard-accessible buttons instead of divs) */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '350px' }}>
+        )}
+        trace={(
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1.15rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
             <span className="icon-label"><Icon name="ledger" /> {t.traceLedger}</span>
           </h3>
           
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {traceEvents.map((evt, idx) => {
               const isActive = idx === currentStepIndex;
               let badgeColor = 'var(--neutral-medium)';
@@ -470,7 +461,8 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
                 <button
                   key={idx}
                   type="button"
-                  ref={isActive ? activeLedgerRef : null}
+                  data-trace-index={idx}
+                  data-active-trace={isActive ? 'true' : 'false'}
                   onClick={() => handleStepChange(idx)}
                   aria-pressed={isActive}
                   style={{
@@ -507,13 +499,14 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
             })}
           </div>
         </div>
-      </div>
+        )}
+      />
 
       {/* Differential validation panel and final results */}
-      <section className="card">
-        <h3 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
+      <details className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>
           <span className="icon-label"><Icon name="search" /> {t.diffTitle}</span>
-        </h3>
+        </summary>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>
           {/* CP1 outcome */}
@@ -550,7 +543,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
             {differentialMatch ? t.comparisonMatch : t.comparisonMismatch}
           </div>
         )}
-      </section>
+      </details>
 
       {/* CSS specific styles injection */}
       <style>{`

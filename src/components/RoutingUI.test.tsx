@@ -328,6 +328,166 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
+  test('CP1, CP2, AlgoBB++, and ILP1 render the shared method cockpit', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1'];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route);
+      render(<App />);
+      expect(screen.getByTestId('method-cockpit')).toBeDefined();
+      expect(screen.getByTestId('method-cockpit-grid').classList.contains('method-cockpit__body')).toBe(true);
+      expect(screen.getByTestId('method-cockpit-graph')).toBeDefined();
+      expect(screen.getByTestId('method-cockpit-state')).toBeDefined();
+      expect(screen.getByTestId('method-cockpit-constraints')).toBeDefined();
+      expect(screen.getByTestId('method-cockpit-trace')).toBeDefined();
+    }
+  });
+
+  test('manual and automatic step changes do not call document-level scroll APIs', () => {
+    vi.useFakeTimers();
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    const scrollIntoViewSpy = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewSpy,
+    });
+
+    window.history.pushState({}, '', '/methods/cp2');
+    render(<App />);
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Précédent|Previous|السابقة/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    scrollToSpy.mockClear();
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+
+    expect(scrollToSpy).not.toHaveBeenCalled();
+    expect(scrollIntoViewSpy).not.toHaveBeenCalled();
+    scrollToSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  test('each cockpit exposes one current active trace item after start', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1'];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route);
+      const { container } = render(<App />);
+      const controls = within(screen.getByTestId('method-playback-controls'));
+      fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+      expect(container.querySelectorAll('[data-active-trace="true"]').length).toBe(1);
+    }
+  });
+
+  test('CP1 inspector active row follows trace step changes', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    const firstActive = container.querySelector('[data-inspector-key].method-cockpit__active-row')?.getAttribute('data-inspector-key');
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    const secondActive = container.querySelector('[data-inspector-key].method-cockpit__active-row')?.getAttribute('data-inspector-key');
+
+    expect(firstActive).toBeTruthy();
+    expect(secondActive).toBeTruthy();
+  });
+
+  test('CP2 trace scroll fires once per trace-index transition and not on same-index rerender', () => {
+    window.history.pushState({}, '', '/methods/cp2');
+    const { rerender } = render(<App />);
+    const tracePanel = screen.getByTestId('method-trace-scroll') as HTMLElement;
+    let traceScrollWrites = 0;
+    Object.defineProperty(tracePanel, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        traceScrollWrites += 1;
+      },
+    });
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    expect(traceScrollWrites).toBe(1);
+
+    rerender(<App />);
+    expect(traceScrollWrites).toBe(1);
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    expect(traceScrollWrites).toBe(2);
+  });
+
+  test('Play requests one cockpit viewport scroll and reduced motion disables smooth scrolling', () => {
+    vi.useFakeTimers();
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 700 });
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false }),
+    });
+
+    window.history.pushState({}, '', '/methods/cp2');
+    const { container, unmount } = render(<App />);
+    const cockpit = container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
+    cockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    expect(scrollToSpy).not.toHaveBeenCalled();
+    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+    unmount();
+
+    scrollToSpy.mockClear();
+    (window.matchMedia as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ matches: true });
+    window.history.pushState({}, '', '/methods/cp2');
+    const reduced = render(<App />);
+    const reducedCockpit = reduced.container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
+    reducedCockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });
+    const reducedControls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(reducedControls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    fireEvent.click(reducedControls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'auto' }));
+
+    scrollToSpy.mockRestore();
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: originalMatchMedia,
+    });
+    vi.useRealTimers();
+  });
+
+  test('trace journal uses an internal scroll panel inside the cockpit', () => {
+    window.history.pushState({}, '', '/methods/ilp1');
+    render(<App />);
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+    const tracePanel = screen.getByTestId('method-trace-scroll') as HTMLElement;
+    expect(tracePanel.style.overflowY).toBe('auto');
+    expect(screen.getByTestId('method-cockpit-trace').contains(tracePanel)).toBe(true);
+  });
+
+  test('desktop cockpit class and mobile stacked fallback CSS are present', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+
+    expect(container.querySelector('.method-cockpit__body')).toBeDefined();
+    expect(container.querySelector('.method-cockpit__controls')).toBeDefined();
+    expect(Array.from(container.querySelectorAll('style')).some((style) => style.textContent?.includes('@media (max-width: 1023px)'))).toBe(true);
+  });
+
   test('shared playback advances, pauses, resets, and stops at the final trace step', () => {
     vi.useFakeTimers();
     window.history.pushState({}, '', '/methods/cp2');

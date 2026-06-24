@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
 import { solveAlgoBBPlusPlus, type AlgoBBTraceEvent } from '../domain/algoBBPlusPlus';
 import { solveCP1 } from '../domain/cpSolver';
@@ -6,7 +6,9 @@ import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { examples } from '../data/examples';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
+import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
+import { useMethodCockpitSync } from './useMethodCockpitSync';
 
 interface AlgoBBPlusPlusModelProps {
   lang: Language;
@@ -20,7 +22,6 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const activeTraceRef = useRef<HTMLButtonElement>(null);
 
   const currentExample = useMemo(
     () => examples.find((example) => example.id === selectedExampleId) || examples[0],
@@ -43,12 +44,13 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
   const trace = algoResult.trace;
   const currentEvent: AlgoBBTraceEvent | null =
     currentStepIndex >= 0 && currentStepIndex < trace.length ? trace[currentStepIndex] : null;
-
-  useEffect(() => {
-    if (typeof activeTraceRef.current?.scrollIntoView === 'function') {
-      activeTraceRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [currentStepIndex]);
+  const activeInspectorKey = currentEvent?.type === 'upper-bound' || currentEvent?.type === 'bound-pruning'
+    ? labelsPlaceholder('upperBound')
+    : currentEvent?.type === 'incumbent-update'
+      ? labelsPlaceholder('incumbent')
+      : currentEvent
+        ? labelsPlaceholder('candidate')
+        : null;
 
   const graphVisuals = useMemo(() => {
     const path = currentEvent?.path || [];
@@ -198,6 +200,12 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
     },
   }[lang];
 
+  function labelsPlaceholder(key: 'candidate' | 'incumbent' | 'upperBound'): string {
+    return key;
+  }
+
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
+
   const reasonLabels: Record<AlgoBBTraceEvent['reasonCode'], string> = {
     SEARCH_INITIALIZED: 'search initialized',
     SINGLETON_SEED: 'singleton seed',
@@ -314,73 +322,89 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
         </select>
       </section>
 
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        <div>
-          <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
-            <div className="lang-selector-group" style={{ width: '100%' }}>
-              <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} onClick={() => setViewTab('D')} style={{ flex: 1 }} aria-label={labels.showD}>
-                D
-              </button>
-              <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} onClick={() => setViewTab('G')} style={{ flex: 1 }} aria-label={labels.showG}>
-                G
-              </button>
-            </div>
-          </div>
-          <GraphPanel
-            vertices={currentExample.vertices}
-            edgesD={currentExample.edgesD}
-            edgesG={currentExample.edgesG}
-            nodePositions={currentExample.nodePositions}
-            highlightedNodes={graphVisuals.highlightedNodes}
-            activePath={graphVisuals.activePath}
-            isFinalResult={graphVisuals.isFinalResult}
-            isAcceptedStep={graphVisuals.isAcceptedStep}
-            lang={lang}
-            dict={dict}
-            mobileActiveTab={viewTab}
-          />
-        </div>
-
-        <section className="card">
+      <MethodCockpit
+        cockpitRef={cockpitRef}
+        controls={(
           <MethodPlaybackControls
             lang={lang}
             currentStepIndex={currentStepIndex}
             totalSteps={trace.length}
             onStepChange={goToStep}
             onReset={() => setCurrentStepIndex(-1)}
+            onPlayRequest={scrollCockpitIntoViewForPlay}
             labels={{ start: labels.start, previous: labels.prev, next: labels.next, end: labels.jump, reset: labels.reset }}
           />
-
+        )}
+        graph={(
+          <>
+            <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
+              <div className="lang-selector-group" style={{ width: '100%' }}>
+                <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} onClick={() => setViewTab('D')} style={{ flex: 1 }} aria-label={labels.showD}>
+                  D
+                </button>
+                <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} onClick={() => setViewTab('G')} style={{ flex: 1 }} aria-label={labels.showG}>
+                  G
+                </button>
+              </div>
+            </div>
+            <GraphPanel
+              vertices={currentExample.vertices}
+              edgesD={currentExample.edgesD}
+              edgesG={currentExample.edgesG}
+              nodePositions={currentExample.nodePositions}
+              highlightedNodes={graphVisuals.highlightedNodes}
+              activePath={graphVisuals.activePath}
+              isFinalResult={graphVisuals.isFinalResult}
+              isAcceptedStep={graphVisuals.isAcceptedStep}
+              lang={lang}
+              dict={dict}
+              mobileActiveTab={viewTab}
+            />
+          </>
+        )}
+        state={(
+          <section className="card">
           {currentStepIndex === -1 && (
             <div style={{ backgroundColor: 'var(--neutral-bg-hover)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)', marginBlockEnd: 'var(--space-md)', color: 'var(--neutral-medium)', fontSize: '0.9rem' }}>
               {labels.preview}
             </div>
           )}
-
-          <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
+          <div ref={setInspectorScrollerRef} data-testid="method-inspector-scroll" className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)', overflowY: 'auto' }}>
             {[
-              [labels.candidate, pathText(currentEvent?.path)],
-              [labels.incumbentLabel, pathText(currentEvent?.incumbent)],
-              [labels.upperBound, String(currentEvent?.upperBound ?? 0)],
-              [labels.explored, String(currentEvent?.exploredStates ?? 0)],
-              [labels.pruned, String(currentEvent?.prunedStates ?? 0)],
-              [labels.reason, currentEvent ? reasonLabels[currentEvent.reasonCode] : 'N/A'],
-            ].map(([label, value]) => (
-              <div key={label} style={{ backgroundColor: 'var(--neutral-bg-hover)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>
+              ['candidate', labels.candidate, pathText(currentEvent?.path)],
+              ['incumbent', labels.incumbentLabel, pathText(currentEvent?.incumbent)],
+              ['upperBound', labels.upperBound, String(currentEvent?.upperBound ?? 0)],
+              ['explored', labels.explored, String(currentEvent?.exploredStates ?? 0)],
+              ['pruned', labels.pruned, String(currentEvent?.prunedStates ?? 0)],
+              ['reason', labels.reason, currentEvent ? reasonLabels[currentEvent.reasonCode] : 'N/A'],
+            ].map(([key, label, value]) => (
+              <div key={key} data-inspector-key={key} className={activeInspectorKey === key ? 'method-cockpit__active-row' : ''} style={{ backgroundColor: 'var(--neutral-bg-hover)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>
                 <div style={{ color: 'var(--neutral-medium)', fontSize: '0.78rem', fontWeight: 700 }}>{label}</div>
                 <div style={{ direction: 'ltr', unicodeBidi: 'isolate', fontWeight: 700 }}>{value}</div>
               </div>
             ))}
           </div>
-
+          </section>
+        )}
+        constraints={(
+          <section className="card">
+            <h3 style={{ color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>{labels.problemTitle}</h3>
+            <p>{labels.upper}</p>
+            <p>{labels.pruning}</p>
+            <p style={{ marginBlockEnd: 0 }}>{labels.genomic}</p>
+          </section>
+        )}
+        trace={(
+          <section className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>{labels.trace}</h3>
-          <div style={{ maxHeight: '330px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {trace.map((event, index) => {
               const active = index === currentStepIndex;
               return (
                 <button
                   key={`${event.type}-${index}`}
-                  ref={active ? activeTraceRef : null}
+                  data-trace-index={index}
+                  data-active-trace={active ? 'true' : 'false'}
                   type="button"
                   onClick={() => goToStep(index)}
                   aria-pressed={active}
@@ -405,10 +429,13 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
             })}
           </div>
         </section>
-      </div>
+        )}
+      />
 
-      <section className="card">
-        <h3 style={{ color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>{labels.comparison}</h3>
+      <details className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>
+          {labels.comparison}
+        </summary>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '640px' }}>
             <thead>
@@ -438,7 +465,7 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
       <style>{`
         .sr-only {

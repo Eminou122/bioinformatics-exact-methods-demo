@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
 import { examples } from '../data/examples';
 import { solveConsistentPath } from '../domain/pathAlgorithms';
@@ -8,7 +8,9 @@ import { solveAlgoBBPlusPlus } from '../domain/algoBBPlusPlus';
 import { solveILP1, type ILP1TraceEvent } from '../domain/ilp1Solver';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
+import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
+import { useMethodCockpitSync } from './useMethodCockpitSync';
 
 interface ILP1ModelProps {
   lang: Language;
@@ -182,7 +184,6 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const activeLedgerRef = useRef<HTMLButtonElement>(null);
 
   const currentExample = useMemo(
     () => examples.find((ex) => ex.id === selectedExampleId) || examples[0],
@@ -204,12 +205,6 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
   const activeDecisions = currentEvent?.decisions || ilp1Result.bestCandidate?.decisions || null;
   const activeWitness = currentEvent?.witnessEdges || ilp1Result.bestCandidate?.witnessEdges || [];
 
-  useEffect(() => {
-    if (typeof activeLedgerRef.current?.scrollIntoView === 'function') {
-      activeLedgerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [currentStepIndex]);
-
   const selectedVariables = useMemo(() => {
     if (!activeDecisions) return [];
     return [
@@ -218,6 +213,8 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
       ...Object.entries(activeDecisions.z).filter(([, value]) => value === 1).map(([key]) => `z[${key}] = 1`),
     ];
   }, [activeDecisions]);
+  const activeInspectorKey = selectedVariables[0] || (currentEvent ? 'selectedPath' : null);
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
 
   const rows = [
     { method: t.legacy, best: legacyResult.longestConsistentPath, style: t.enumStyle, completion: legacyResult.error ? t.incomplete : t.exactLabel },
@@ -267,54 +264,61 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
         </label>
       </section>
 
-      <MethodPlaybackControls
-        lang={lang}
-        currentStepIndex={currentStepIndex}
-        totalSteps={traceEvents.length}
-        onStepChange={setCurrentStepIndex}
-        onReset={() => setCurrentStepIndex(-1)}
-        labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
-      />
-
-      <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
-        <div className="lang-selector-group" style={{ width: '100%' }}>
-          <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D</button>
-          <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G</button>
-        </div>
-      </div>
-
-      <GraphPanel
-        vertices={currentExample.vertices}
-        edgesD={currentExample.edgesD}
-        edgesG={currentExample.edgesG}
-        nodePositions={currentExample.nodePositions}
-        highlightedNodes={new Set(activePath)}
-        activePath={activePath}
-        isFinalResult={currentEvent?.type === 'proof-complete'}
-        isAcceptedStep={currentEvent?.type === 'constraint-check' || currentEvent?.type === 'incumbent-update' || currentEvent?.type === 'proof-complete'}
-        lang={lang}
-        dict={dict}
-        mobileActiveTab={viewTab}
-      />
-
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        <section className="card">
+      <MethodCockpit
+        cockpitRef={cockpitRef}
+        controls={(
+          <MethodPlaybackControls
+            lang={lang}
+            currentStepIndex={currentStepIndex}
+            totalSteps={traceEvents.length}
+            onStepChange={setCurrentStepIndex}
+            onReset={() => setCurrentStepIndex(-1)}
+            onPlayRequest={scrollCockpitIntoViewForPlay}
+            labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
+          />
+        )}
+        graph={(
+          <>
+            <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
+              <div className="lang-selector-group" style={{ width: '100%' }}>
+                <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D</button>
+                <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G</button>
+              </div>
+            </div>
+            <GraphPanel
+              vertices={currentExample.vertices}
+              edgesD={currentExample.edgesD}
+              edgesG={currentExample.edgesG}
+              nodePositions={currentExample.nodePositions}
+              highlightedNodes={new Set(activePath)}
+              activePath={activePath}
+              isFinalResult={currentEvent?.type === 'proof-complete'}
+              isAcceptedStep={currentEvent?.type === 'constraint-check' || currentEvent?.type === 'incumbent-update' || currentEvent?.type === 'proof-complete'}
+              lang={lang}
+              dict={dict}
+              mobileActiveTab={viewTab}
+            />
+          </>
+        )}
+        state={(
+          <section className="card">
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="clipboard" /> {t.constraints}</span></h3>
           <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)', fontSize: '0.9rem' }}>
-            <dt>{t.selectedPath}</dt><dd dir="ltr">{pathText(activePath)}</dd>
+            <dt data-inspector-key="selectedPath" className={activeInspectorKey === 'selectedPath' ? 'method-cockpit__active-row' : ''}>{t.selectedPath}</dt><dd dir="ltr">{pathText(activePath)}</dd>
             <dt>{t.incumbent}</dt><dd dir="ltr">{pathText(currentEvent?.bestPath || ilp1Result.bestPath)}</dd>
             <dt>{t.explored}</dt><dd>{currentEvent?.exploredCandidates ?? ilp1Result.exploredCandidates}</dd>
             <dt>{t.rejected}</dt><dd>{currentEvent?.rejectedCandidates ?? ilp1Result.rejectedCandidates}</dd>
             <dt>{t.reason}</dt><dd>{currentEvent?.reason || '-'}</dd>
           </dl>
           <p style={{ marginBlockEnd: 0, fontWeight: 700, color: 'var(--primary)' }}>{completionText(currentEvent, ilp1Result, t as typeof labels.en)}</p>
-        </section>
-
-        <section className="card">
+          </section>
+        )}
+        constraints={(
+          <section className="card">
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="network" /> {t.variables}</span></h3>
-          <div dir="ltr" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontFamily: 'monospace', fontSize: '0.82rem' }}>
+          <div ref={setInspectorScrollerRef} data-testid="method-inspector-scroll" dir="ltr" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontFamily: 'monospace', fontSize: '0.82rem', overflowY: 'auto' }}>
             {selectedVariables.length > 0 ? selectedVariables.map((value) => (
-              <span key={value} style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '4px 6px', background: 'var(--neutral-bg-hover)' }}>{value}</span>
+              <span key={value} data-inspector-key={value} className={activeInspectorKey === value ? 'method-cockpit__active-row' : ''} style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '4px 6px', background: 'var(--neutral-bg-hover)' }}>{value}</span>
             )) : <span>N/A</span>}
           </div>
           <h4 style={{ marginBlockStart: 'var(--space-md)', marginBlockEnd: 'var(--space-xs)' }}>{t.witnessTitle}</h4>
@@ -322,17 +326,18 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
             {activeWitness.length > 0 ? activeWitness.map((edge) => `${edge.u}--${edge.v}`).join(', ') : 'N/A'}
           </p>
         </section>
-      </div>
-
-      <section className="card" style={{ maxHeight: '360px', display: 'flex', flexDirection: 'column', marginBlockEnd: 'var(--space-md)' }}>
+        )}
+        trace={(
+      <section className="card" style={{ display: 'flex', flexDirection: 'column' }}>
         <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="ledger" /> {t.trace}</span></h3>
-        <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {traceEvents.map((event, idx) => {
             const isActive = idx === currentStepIndex;
             return (
               <button
                 key={`${event.type}-${idx}`}
-                ref={isActive ? activeLedgerRef : null}
+                data-trace-index={idx}
+                data-active-trace={isActive ? 'true' : 'false'}
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => setCurrentStepIndex(idx)}
@@ -345,9 +350,13 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
           })}
         </div>
       </section>
+        )}
+      />
 
-      <section className="card">
-        <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="search" /> ILP1 / CP / Legacy</span></h3>
+      <details className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>
+          <span className="icon-label"><Icon name="search" /> ILP1 / CP / Legacy</span>
+        </summary>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
@@ -370,7 +379,7 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
       <style>{`
         .sr-only {

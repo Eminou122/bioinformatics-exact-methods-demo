@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
 import { examples } from '../data/examples';
 import { solveConsistentPath } from '../domain/pathAlgorithms';
@@ -6,7 +6,9 @@ import { solveCP1 } from '../domain/cpSolver';
 import { solveCP2, type CP2TraceEvent } from '../domain/cp2Solver';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
+import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
+import { useMethodCockpitSync } from './useMethodCockpitSync';
 
 interface CP2ModelProps {
   lang: Language;
@@ -147,7 +149,6 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const activeLedgerRef = useRef<HTMLButtonElement>(null);
 
   const currentExample = useMemo(
     () => examples.find((ex) => ex.id === selectedExampleId) || examples[0],
@@ -170,12 +171,16 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
   const isRunning = currentStepIndex !== -1 && traceEvents.length > 0;
   const currentEvent = isRunning ? traceEvents[currentStepIndex] || null : null;
   const activePath = currentEvent?.currentPath || [];
-
-  useEffect(() => {
-    if (typeof activeLedgerRef.current?.scrollIntoView === 'function') {
-      activeLedgerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [currentStepIndex]);
+  const activeInspectorKey = currentEvent?.variable || (
+    currentEvent?.type === 'upper-bound' || currentEvent?.type === 'bound-pruning'
+      ? 'currentBound'
+      : currentEvent?.type === 'incumbent-update'
+        ? 'currentIncumbent'
+        : currentEvent
+          ? 'partial'
+          : null
+  );
+  const { cockpitRef, traceScrollerRef, setInspectorScrollerRef, scrollCockpitIntoViewForPlay } = useMethodCockpitSync(currentStepIndex, activeInspectorKey);
 
   const handleExampleSelect = (id: string) => {
     setSelectedExampleId(id);
@@ -245,59 +250,80 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
         </label>
       </section>
 
-      <MethodPlaybackControls
-        lang={lang}
-        currentStepIndex={currentStepIndex}
-        totalSteps={traceEvents.length}
-        onStepChange={setCurrentStepIndex}
-        onReset={() => setCurrentStepIndex(-1)}
-        labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
-      />
-
-      <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
-        <div className="lang-selector-group" style={{ width: '100%' }}>
-          <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D</button>
-          <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G</button>
-        </div>
-      </div>
-
-      <GraphPanel
-        vertices={currentExample.vertices}
-        edgesD={currentExample.edgesD}
-        edgesG={currentExample.edgesG}
-        nodePositions={currentExample.nodePositions}
-        highlightedNodes={new Set(activePath)}
-        activePath={activePath}
-        isFinalResult={currentEvent?.type === 'proof-complete'}
-        isAcceptedStep={currentEvent?.type === 'candidate-path' || currentEvent?.type === 'incumbent-update' || currentEvent?.type === 'proof-complete'}
-        lang={lang}
-        dict={dict}
-        mobileActiveTab={viewTab}
-      />
-
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        <section className="card">
+      <MethodCockpit
+        cockpitRef={cockpitRef}
+        controls={(
+          <MethodPlaybackControls
+            lang={lang}
+            currentStepIndex={currentStepIndex}
+            totalSteps={traceEvents.length}
+            onStepChange={setCurrentStepIndex}
+            onReset={() => setCurrentStepIndex(-1)}
+            onPlayRequest={scrollCockpitIntoViewForPlay}
+            labels={{ start: t.start, previous: t.prev, next: t.next, end: t.end, reset: t.reset }}
+          />
+        )}
+        graph={(
+          <>
+            <div className="show-mobile-only" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
+              <div className="lang-selector-group" style={{ width: '100%' }}>
+                <button className={`lang-btn ${viewTab === 'D' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('D')}>D</button>
+                <button className={`lang-btn ${viewTab === 'G' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setViewTab('G')}>G</button>
+              </div>
+            </div>
+            <GraphPanel
+              vertices={currentExample.vertices}
+              edgesD={currentExample.edgesD}
+              edgesG={currentExample.edgesG}
+              nodePositions={currentExample.nodePositions}
+              highlightedNodes={new Set(activePath)}
+              activePath={activePath}
+              isFinalResult={currentEvent?.type === 'proof-complete'}
+              isAcceptedStep={currentEvent?.type === 'candidate-path' || currentEvent?.type === 'incumbent-update' || currentEvent?.type === 'proof-complete'}
+              lang={lang}
+              dict={dict}
+              mobileActiveTab={viewTab}
+            />
+          </>
+        )}
+        state={(
+          <section className="card">
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="clipboard" /> {t.completion}</span></h3>
-          <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)', fontSize: '0.9rem' }}>
-            <dt>{t.partial}</dt><dd dir="ltr">{pathText(activePath)}</dd>
-            <dt>{t.currentIncumbent}</dt><dd dir="ltr">{pathText(currentEvent?.bestPath || cp2Result.bestPath)}</dd>
-            <dt>{t.currentBound}</dt><dd>{currentEvent?.upperBound ?? '-'}</dd>
-            <dt>{t.explored}</dt><dd>{currentEvent?.exploredStates ?? cp2Result.exploredStates}</dd>
-            <dt>{t.pruned}</dt><dd>{currentEvent?.prunedStates ?? cp2Result.prunedStates}</dd>
-            <dt>{t.reason}</dt><dd>{currentEvent?.reason || '-'}</dd>
+          <dl ref={setInspectorScrollerRef} data-testid="method-inspector-scroll" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)', fontSize: '0.9rem', overflowY: 'auto' }}>
+            {currentEvent?.variable && (
+              <>
+                <dt data-inspector-key={currentEvent.variable} className={activeInspectorKey === currentEvent.variable ? 'method-cockpit__active-row' : ''}>Variable</dt><dd dir="ltr">{currentEvent.variable}</dd>
+              </>
+            )}
+            <dt data-inspector-key="partial" className={activeInspectorKey === 'partial' ? 'method-cockpit__active-row' : ''}>{t.partial}</dt><dd dir="ltr">{pathText(activePath)}</dd>
+            <dt data-inspector-key="currentIncumbent" className={activeInspectorKey === 'currentIncumbent' ? 'method-cockpit__active-row' : ''}>{t.currentIncumbent}</dt><dd dir="ltr">{pathText(currentEvent?.bestPath || cp2Result.bestPath)}</dd>
+            <dt data-inspector-key="currentBound" className={activeInspectorKey === 'currentBound' ? 'method-cockpit__active-row' : ''}>{t.currentBound}</dt><dd>{currentEvent?.upperBound ?? '-'}</dd>
+            <dt data-inspector-key="explored" className={activeInspectorKey === 'explored' ? 'method-cockpit__active-row' : ''}>{t.explored}</dt><dd>{currentEvent?.exploredStates ?? cp2Result.exploredStates}</dd>
+            <dt data-inspector-key="pruned" className={activeInspectorKey === 'pruned' ? 'method-cockpit__active-row' : ''}>{t.pruned}</dt><dd>{currentEvent?.prunedStates ?? cp2Result.prunedStates}</dd>
+            <dt data-inspector-key="reason" className={activeInspectorKey === 'reason' ? 'method-cockpit__active-row' : ''}>{t.reason}</dt><dd>{currentEvent?.reason || '-'}</dd>
           </dl>
           <p style={{ marginBlockEnd: 0, fontWeight: 700, color: 'var(--primary)' }}>{completionLabel(currentEvent, cp2Result, t as typeof labels.en)}</p>
-        </section>
-
-        <section className="card" style={{ maxHeight: '360px', display: 'flex', flexDirection: 'column' }}>
+          </section>
+        )}
+        constraints={(
+          <section className="card">
+            <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="shield" /> {t.pruning}</span></h3>
+            <p>{t.upperBound}</p>
+            <p>{t.pruning}</p>
+            <p style={{ marginBlockEnd: 0, color: 'var(--primary)', fontWeight: 700 }}>{t.sameAnswer}</p>
+          </section>
+        )}
+        trace={(
+        <section className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="ledger" /> {t.trace}</span></h3>
-          <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div ref={traceScrollerRef} data-testid="method-trace-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {traceEvents.map((event, idx) => {
               const isActive = idx === currentStepIndex;
               return (
                 <button
                   key={`${event.type}-${idx}`}
-                  ref={isActive ? activeLedgerRef : null}
+                  data-trace-index={idx}
+                  data-active-trace={isActive ? 'true' : 'false'}
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => setCurrentStepIndex(idx)}
@@ -310,10 +336,13 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
             })}
           </div>
         </section>
-      </div>
+        )}
+      />
 
-      <section className="card">
-        <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem' }}><span className="icon-label"><Icon name="search" /> CP1 / CP2 / Legacy</span></h3>
+      <details className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary)', marginBlockEnd: 'var(--space-sm)' }}>
+          <span className="icon-label"><Icon name="search" /> CP1 / CP2 / Legacy</span>
+        </summary>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
@@ -338,7 +367,7 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
       <style>{`
         .sr-only {
