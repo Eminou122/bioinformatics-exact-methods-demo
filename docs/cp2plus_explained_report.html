@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CP2+ Explained — Safe Genomic-Feasibility Propagation</title>
+<style>
+:root{--ink:#122a31;--teal:#176b70;--teal2:#2c8c8e;--mist:#e7f2f0;--paper:#fbfaf7;--warm:#f2eadf;--gold:#b5792a;--red:#9a3b35;--line:#b9cbc8;--muted:#52666b}
+*{box-sizing:border-box}html{background:#dfe8e6}body{margin:0;color:var(--ink);background:var(--paper);font-family:"Segoe UI",Arial,sans-serif;line-height:1.55;font-size:10.4pt}
+main{max-width:210mm;margin:auto;background:var(--paper);box-shadow:0 0 30px #60706f55}.page{padding:16mm 17mm}.cover{min-height:297mm;padding:25mm 20mm;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(150deg,var(--ink) 0 54%,#16474d 54% 77%,var(--teal) 77%);color:white;position:relative;overflow:hidden}
+.cover:before,.cover:after{content:"";position:absolute;border:1px solid #ffffff42;border-radius:50%}.cover:before{width:150mm;height:150mm;right:-70mm;top:-55mm}.cover:after{width:95mm;height:95mm;left:-45mm;bottom:20mm}
+.eyebrow{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a7ded7}.cover h1{font-size:48pt;line-height:.95;margin:20mm 0 7mm;letter-spacing:-.04em}.cover h2{font-size:18pt;line-height:1.3;font-weight:500;max-width:145mm;margin:0}.cover .formula{font-family:Consolas,monospace;font-size:18pt;border:1px solid #ffffff66;padding:7mm 8mm;border-radius:4mm;background:#09252c99;display:inline-block;margin-top:14mm}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8mm;border-top:1px solid #ffffff55;padding-top:8mm;font-size:10pt}
+h1,h2,h3,h4{font-family:Georgia,"Times New Roman",serif;line-height:1.18}h2{font-size:25pt;color:var(--teal);margin:0 0 7mm;border-bottom:2px solid var(--line);padding-bottom:3mm}h3{font-size:16pt;color:var(--ink);margin:8mm 0 3mm}h4{font-size:12.5pt;margin:4mm 0 2mm}.lead{font-size:13pt;color:#274d53}.kicker{color:var(--gold);font-weight:800;text-transform:uppercase;letter-spacing:.09em;font-size:8.5pt}.small{font-size:8.8pt;color:var(--muted)}
+.grid2,.grid3,.grid4{display:grid;gap:5mm}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card,.theorem,.example,.figure,.callout,.metric,.table-wrap{break-inside:avoid;page-break-inside:avoid}.card,.example,.metric{border:1px solid var(--line);border-radius:3mm;background:white;padding:5mm}.callout{border-left:5px solid var(--gold);background:var(--warm);padding:4mm 5mm;margin:5mm 0}.theorem{border:2px solid var(--teal);background:var(--mist);padding:6mm;border-radius:3mm;margin:6mm 0}.theorem h3{margin-top:0;color:var(--teal)}.warning{border-left-color:var(--red);background:#f7e9e7}.truth{border-left-color:var(--teal);background:var(--mist)}
+code,.math{font-family:Consolas,"Courier New",monospace}.math{direction:ltr;unicode-bidi:isolate}.pill{display:inline-block;border:1px solid currentColor;border-radius:99px;padding:1mm 3mm;font-size:8pt;font-weight:800;letter-spacing:.04em}.prune{color:var(--red)}.keep{color:var(--teal)}.bound{color:#71531f}.tie{color:#594078}
+svg{display:block;width:100%;height:auto}.figure{border:1px solid var(--line);background:white;border-radius:3mm;padding:4mm;margin:4mm 0}.caption{font-size:8.5pt;color:var(--muted);margin-top:2mm}.node{fill:white;stroke:var(--ink);stroke-width:2}.sel{fill:#cbe8e2;stroke:var(--teal);stroke-width:3}.future{fill:#fff3cf;stroke:var(--gold);stroke-width:3}.dead{fill:#f4d8d5;stroke:var(--red);stroke-width:3}.edgeD{stroke:var(--ink);stroke-width:2;fill:none}.edgeG{stroke:var(--teal);stroke-width:3;fill:none;stroke-dasharray:7 4}.edgePath{stroke:var(--teal);stroke-width:5;fill:none}.lbl{font:700 14px "Segoe UI",Arial;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}.svgtitle{font:800 12px "Segoe UI",Arial;fill:var(--muted);letter-spacing:1px}
+.legend{display:flex;flex-wrap:wrap;gap:4mm;margin:4mm 0;font-size:8.5pt}.legend span{display:inline-flex;align-items:center;gap:2mm}.swatch{width:12mm;height:0;border-top:3px solid var(--ink)}.swatch.g{border-color:var(--teal);border-top-style:dashed}.dot{width:5mm;height:5mm;border-radius:50%;border:2px solid var(--ink);background:white}.dot.s{background:#cbe8e2;border-color:var(--teal)}.dot.f{background:#fff3cf;border-color:var(--gold)}.dot.x{background:#f4d8d5;border-color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:8.2pt}th{background:var(--ink);color:white;text-align:left}th,td{padding:2.4mm;border:1px solid var(--line);vertical-align:top}tr:nth-child(even) td{background:#f2f6f5}.wide{font-size:7.3pt}.table-wrap{overflow:visible;margin:4mm 0}
+.metric strong{display:block;font-size:23pt;color:var(--teal);line-height:1.1}.metric span{font-size:8.5pt;color:var(--muted)}.bars{display:grid;gap:4mm}.barrow{display:grid;grid-template-columns:30mm 1fr 20mm;align-items:center;gap:3mm}.track{height:8mm;background:#e1e7e5;border-radius:2mm;overflow:hidden}.bar{height:100%;background:var(--ink)}.bar.plus{background:var(--teal)}.barvalue{text-align:right;font-weight:800;font-family:Consolas,monospace}
+.example{margin:5mm 0}.example-head{display:flex;justify-content:space-between;gap:4mm;align-items:flex-start}.example h3{margin:0}.example-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:5mm;margin-top:3mm}.facts{display:grid;grid-template-columns:auto 1fr;gap:1.5mm 3mm;font-size:8.8pt}.facts dt{font-weight:800}.facts dd{margin:0}.result{font-weight:900;letter-spacing:.05em}.toc{columns:2;column-gap:12mm}.toc li{margin:1.7mm 0}.recap li{margin:2mm 0}.footer-note{position:fixed;bottom:3mm;left:17mm;right:17mm;font-size:7pt;color:#6b797b;border-top:1px solid #ccd7d5;padding-top:1mm}
+.one-sentence{border:2px solid var(--teal);border-radius:3mm;background:var(--mist);padding:5mm 6mm;margin:5mm 0;font-size:12pt}.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3mm}.summary-grid .card{padding:3.5mm;font-size:8.5pt}.summary-grid h3{font-size:11pt;margin:0 0 2mm}.pathways{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.pathway{border:1px solid var(--line);border-radius:3mm;background:white;padding:5mm;text-align:center;font:700 12pt Consolas,monospace}.caution{border:2px solid var(--red);border-radius:3mm;background:#f7e9e7;padding:5mm 6mm;margin:5mm 0;break-inside:avoid;page-break-inside:avoid}.caution h3{color:var(--red);margin-top:0}.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.qr-card{border:1px solid var(--line);border-radius:3mm;background:white;padding:5mm;text-align:center;break-inside:avoid;page-break-inside:avoid}.qr-card svg{width:46mm;height:46mm;margin:0 auto 3mm}.qr-card a{font-size:8pt;overflow-wrap:anywhere}.compact-table{font-size:7.8pt}.compact-table th,.compact-table td{padding:2mm}
+@page{size:A4;margin:11mm 0 10mm}@media print{html,body{background:white}body{font-size:9.7pt;line-height:1.45}main{box-shadow:none;max-width:none}.page{padding:8mm 16mm}.cover{height:276mm;min-height:276mm;page-break-after:always}.section{page-break-before:always}.section.continuation{page-break-before:auto}h2{font-size:23pt;margin-bottom:5mm}h3{margin-top:6mm}.card,.example,.metric{padding:4mm}.callout{margin:4mm 0;padding:3.5mm 4.5mm}.footer-note{display:block;left:16mm;right:16mm}a{color:inherit;text-decoration:none}.example{break-inside:avoid}thead{display:table-header-group}tr{break-inside:avoid}}
+@media(max-width:760px){main{max-width:none}.page{padding:8mm}.cover{min-height:100vh;padding:15mm 9mm}.cover h1{font-size:34pt}.grid2,.grid3,.grid4,.example-grid,.summary-grid,.pathways,.qr-grid{grid-template-columns:1fr}.toc{columns:1}.table-wrap{overflow-x:auto}.footer-note{display:none}}
+</style>
+</head>
+<body>
+<main>
+<section class="cover">
+  <div>
+    <div class="eyebrow">Bioinformatics Exact Methods Demo</div>
+    <h1>CP2+<br>Explained</h1>
+    <h2>How a safe genomic-feasibility check helps an exact path solver avoid impossible searches</h2>
+    <div class="formula">directed possibility + genomic possibility = useful search</div>
+  </div>
+  <div class="meta">
+    <div><strong>Project</strong><br>Bioinformatics Exact Methods Demo Cockpit</div>
+    <div><strong>Generated</strong><br>June 25, 2026</div>
+    <div><strong>Scope</strong><br>Educational implementation and deterministic evidence</div>
+    <div><strong>Audience</strong><br>Students, supervisors, jury members, and researchers</div>
+  </div>
+</section>
+
+<section class="page section">
+<p class="kicker">Executive Summary</p><h2>CP2+ in under one minute</h2>
+<div class="one-sentence"><strong>CP2+ in one sentence.</strong><br>CP2+ keeps CP2’s exact longest-path search and adds a safe early test that stops a branch when no still-reachable genomic bridge can reconnect the selected reactions.</div>
+<div class="summary-grid">
+<div class="card"><h3>Problem</h3><p>Find the longest valid simple directed path in acyclic <span class="math">D</span> whose selected reactions induce one connected neighborhood in genomic graph <span class="math">G</span>.</p></div>
+<div class="card"><h3>Addition</h3><p>Before extending a branch, test whether selected genomic components can still reconnect through unused vertices reachable from the current endpoint.</p></div>
+<div class="card"><h3>Preserved</h3><p>Same objective, directed bound, deterministic lexical winner, validity rule, exactness semantics, and proof-complete requirement.</p></div>
+<div class="card"><h3>Evidence</h3><p>16 deterministic cases; 0 equality mismatches; 35 safe genomic prunes; 417 CP2 states versus 232 CP2+ states.</p></div>
+<div class="card"><h3>Non-claim</h3><p>Structural evidence only: reduction in 3 cases, equality in 13, increase in 0. No universal runtime claim.</p></div>
+</div>
+<div class="callout truth"><strong>What the evidence supports.</strong> On this fixed educational corpus, completed CP2+ runs preserved the exact result while sometimes ending demonstrably hopeless branches earlier. It supports the integration and its traceable behavior—not a victory parade over every solver on every machine.</div>
+</section>
+
+<div class="page">
+<p class="kicker">Reader map</p><h2>From metabolic city to sound pruning</h2>
+<p class="lead">CP2 is a detective following one-way roads in a metabolic city. CP2+ is the same detective, carrying one extra map: before walking deeper into a branch, it checks whether the selected genomic neighborhoods could still be connected by any vertex that remains reachable ahead.</p>
+<div class="callout truth"><strong>The short version.</strong> CP2+ solves the same exact longest <span class="math">(D,G)</span>-consistent simple-path problem as CP2. It adds a safe necessary-condition filter. It does not change the objective, deterministic tie-break, proof semantics, or meaning of a valid answer.</div>
+<ol class="toc">
+<li>Executive summary</li><li>The biological-network story</li><li>The core challenge</li><li>CP1 through CP4</li><li>Exactly what CP2+ offers</li><li>CP2 in plain language</li><li>The CP2+ idea and theorem</li><li>Eight teaching examples</li><li>Two non-obvious cases</li><li>Other exact methods</li><li>Evidence benchmark</li><li>Honest interpretation</li><li>Traceability and proof</li><li>Final recap and appendix</li><li>Interactive demo</li>
+</ol>
+<div class="legend"><span><i class="swatch"></i>directed arc in D</span><span><i class="swatch g"></i>undirected link in G</span><span><i class="dot s"></i>selected path</span><span><i class="dot f"></i>forward reachable</span><span><i class="dot x"></i>impossible branch</span></div>
+</div>
+
+<section class="page section">
+<p class="kicker">1. Two graphs, one set of reactions</p><h2>The biological-network story</h2>
+<p>Imagine a city whose locations are biochemical reactions. The same reactions appear on two maps because each map answers a different question.</p>
+<div class="grid2">
+<div class="card"><h3>Metabolic graph D</h3><p><strong>D is directed and acyclic.</strong> An arc <span class="math">u → v</span> means reaction <span class="math">v</span> can follow reaction <span class="math">u</span> in the modeled metabolic ordering. Direction matters. A road behind the detective cannot be used as a right extension.</p></div>
+<div class="card"><h3>Genomic graph G</h3><p><strong>G is undirected.</strong> A link <span class="math">u — v</span> represents genomic proximity between the genes associated with reactions <span class="math">u</span> and <span class="math">v</span>. It says “nearby,” not “before” or “after.”</p></div>
+</div>
+<div class="figure">
+<svg viewBox="0 0 760 260" role="img" aria-label="The same reaction vertices shown in a directed metabolic graph and an undirected genomic graph">
+<defs><marker id="a1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs>
+<text x="180" y="25" class="svgtitle">D: METABOLIC ORDER</text><text x="560" y="25" class="svgtitle">G: GENOMIC PROXIMITY</text>
+<path d="M80 105H155M205 105H280" class="edgePath" marker-end="url(#a1)"/><path d="M80 190H280" class="edgeD" marker-end="url(#a1)"/>
+<path d="M475 105L555 190L650 105" class="edgeG"/>
+<g><circle cx="55" cy="105" r="25" class="sel"/><text x="55" y="105" class="lbl">A</text><circle cx="180" cy="105" r="25" class="sel"/><text x="180" y="105" class="lbl">B</text><circle cx="305" cy="105" r="25" class="sel"/><text x="305" y="105" class="lbl">C</text><circle cx="55" cy="190" r="25" class="node"/><text x="55" y="190" class="lbl">X</text><circle cx="305" cy="190" r="25" class="node"/><text x="305" y="190" class="lbl">Y</text></g>
+<g><circle cx="450" cy="105" r="25" class="sel"/><text x="450" y="105" class="lbl">A</text><circle cx="555" cy="190" r="25" class="sel"/><text x="555" y="190" class="lbl">B</text><circle cx="675" cy="105" r="25" class="sel"/><text x="675" y="105" class="lbl">C</text></g>
+</svg>
+<div class="caption">The vertex identity is shared: reaction A is A on both maps. The edges encode different relations.</div>
+</div>
+<p>Why share vertices? Because the final object must satisfy both views at once. We choose reactions that form a legal one-way metabolic path in <span class="math">D</span>, and those same chosen reactions must form one connected genomic neighborhood in the subgraph induced by them in <span class="math">G</span>.</p>
+</section>
+
+<section class="page section">
+<p class="kicker">2. One objective, two constraints</p><h2>The core challenge</h2>
+<p>A solution is a <strong>simple directed path</strong> <span class="math">P=(v₁,…,vₖ)</span> in <span class="math">D</span>: every consecutive pair is a directed arc and no vertex repeats. The selected vertex set <span class="math">V(P)</span> must induce a <strong>connected</strong> subgraph <span class="math">G[V(P)]</span>. The objective is to maximize <span class="math">|P|</span>, the number of selected vertices. Equal-length optima use the existing deterministic lexicographic winner.</p>
+<div class="grid2">
+<div class="figure"><h3>Long in D, invalid in G</h3>
+<svg viewBox="0 0 340 170" role="img" aria-label="Long directed path A B C D with genomic vertex D disconnected">
+<defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs>
+<path d="M55 55H110M150 55H205M245 55H300" class="edgePath" marker-end="url(#a2)"/><path d="M55 130H130M170 130H245" class="edgeG"/>
+<g><circle cx="35" cy="55" r="20" class="sel"/><text x="35" y="55" class="lbl">A</text><circle cx="130" cy="55" r="20" class="sel"/><text x="130" y="55" class="lbl">B</text><circle cx="225" cy="55" r="20" class="sel"/><text x="225" y="55" class="lbl">C</text><circle cx="320" cy="55" r="20" class="dead"/><text x="320" y="55" class="lbl">D</text><circle cx="35" cy="130" r="20" class="sel"/><text x="35" y="130" class="lbl">A</text><circle cx="150" cy="130" r="20" class="sel"/><text x="150" y="130" class="lbl">B</text><circle cx="265" cy="130" r="20" class="sel"/><text x="265" y="130" class="lbl">C</text><circle cx="320" cy="130" r="20" class="dead"/><text x="320" y="130" class="lbl">D</text></g></svg>
+<p><span class="math">A→B→C→D</span> has length 4, but D is isolated in the induced genomic subgraph. It is not a valid answer.</p></div>
+<div class="figure"><h3>Shorter, valid, and therefore better</h3>
+<svg viewBox="0 0 340 170" role="img" aria-label="Valid directed and genomically connected path A B C">
+<defs><marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs>
+<path d="M55 55H140M180 55H265" class="edgePath" marker-end="url(#a3)"/><path d="M55 130H140M180 130H265" class="edgeG"/>
+<g><circle cx="35" cy="55" r="20" class="sel"/><text x="35" y="55" class="lbl">A</text><circle cx="160" cy="55" r="20" class="sel"/><text x="160" y="55" class="lbl">B</text><circle cx="285" cy="55" r="20" class="sel"/><text x="285" y="55" class="lbl">C</text><circle cx="35" cy="130" r="20" class="sel"/><text x="35" y="130" class="lbl">A</text><circle cx="160" cy="130" r="20" class="sel"/><text x="160" y="130" class="lbl">B</text><circle cx="285" cy="130" r="20" class="sel"/><text x="285" y="130" class="lbl">C</text></g></svg>
+<p><span class="math">A→B→C</span> has length 3 and its induced genomic subgraph is connected. It beats every invalid longer candidate.</p></div>
+</div>
+<div class="callout"><strong>Detective rule:</strong> the longest road itinerary is irrelevant if its selected neighborhoods do not form one connected genomic district.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">3. Family portrait</p><h2>CP1, CP2, CP2+, CP3, CP4 — do not mix them up</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Method</th><th>Problem setting</th><th>What it adds</th><th>Correct mental model</th></tr></thead>
+<tbody>
+<tr><td><strong>CP1</strong></td><td>Simple paths in acyclic directed D</td><td>Basic constraint-programming path model and genomic validation</td><td>The detective explores legal directed paths.</td></tr>
+<tr><td><strong>CP2</strong></td><td>Same problem as CP1</td><td>A safe directed longest-suffix upper bound</td><td>Stop when the remaining road is too short to beat the incumbent.</td></tr>
+<tr><td><strong>CP2+</strong></td><td>Same exact problem and winner as CP2</td><td>Safe forward genomic-feasibility propagation</td><td>Also stop when no reachable future neighborhood can reconnect the selection.</td></tr>
+<tr><td><strong>CP3</strong></td><td>Cyclic directed graphs; maximum-coverage trails</td><td>Eulerian-subgraph style modeling for trails</td><td>A different trip type: edges may form cyclic trail structures.</td></tr>
+<tr><td><strong>CP4</strong></td><td>Same cyclic trail setting as CP3</td><td>Walk-and-cover branching</td><td>CP3 with a search strategy favoring uncovered vertices.</td></tr>
+</tbody></table></div>
+<div class="callout warning"><strong>Boundary worth defending:</strong> CP2+ is an implementation-level integration of CP2’s directed longest-path propagation with safe genomic-feasibility filtering. It does not turn CP2 into CP3 or CP4, is not presented as a new research method, and is not a paper reproduction.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">Detailed difference guide</p><h2>Exactly What CP2+ Offers Beyond CP2 and Other Methods</h2>
+<h3>A. CP2 versus CP2+</h3>
+<div class="table-wrap"><table class="compact-table">
+<thead><tr><th>Topic</th><th>CP2</th><th>CP2+</th></tr></thead>
+<tbody>
+<tr><td>Problem solved</td><td>Longest valid simple path in acyclic D</td><td>Same</td></tr>
+<tr><td>Objective</td><td>Maximize path length</td><td>Same</td></tr>
+<tr><td>Tie-break</td><td>Deterministic lexical winner</td><td>Same</td></tr>
+<tr><td>Directed bound</td><td>Yes</td><td>Yes, unchanged</td></tr>
+<tr><td>Early genomic impossibility check</td><td>No</td><td>Yes</td></tr>
+<tr><td>New pruning question</td><td>“Can the road ahead still be long enough?”</td><td>“Can any usable future vertex still reconnect the genomic neighborhoods?”</td></tr>
+<tr><td>Exactness on completed search</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Universal speed claim</td><td>No</td><td>No</td></tr>
+</tbody></table></div>
+<div class="example"><h3>The bridge example</h3><p>Suppose the current path has selected reactions in two genomic neighborhoods. The directed graph still offers several vertices ahead, so CP2 says, “There may still be enough road ahead.” CP2+ replies, “Fine, but can the neighborhoods ever become one district?” If every possible genomic bridge is behind the current endpoint or otherwise unreachable, the answer is no and CP2+ safely stops.</p><p>If a reachable bridge remains, CP2+ keeps searching. It is an impossibility detector, not an optimism detector wearing a lab coat.</p></div>
+<ul>
+<li>CP2+ does <strong>not</strong> search a different objective.</li>
+<li>CP2+ does <strong>not</strong> alter the winning path rules.</li>
+<li>CP2+ does <strong>not</strong> automatically make every instance faster.</li>
+<li>CP2+ adds a necessary-condition prune only.</li>
+</ul>
+</section>
+
+<section class="page section continuation">
+<p class="kicker">Related genomic reasoning, different machinery</p><h2>CP2+ versus AlgoBB++, CP1, ILP, and Subset DP</h2>
+<h3>B. CP2+ versus AlgoBB++</h3>
+<p>AlgoBB++ is a separate branch-and-bound architecture with its own relaxed genomic reconnection logic. CP2+ does not copy AlgoBB++ as a whole. It applies a one-ended, forward-reachability version of related feasibility thinking inside the CP2 path-search workflow. Think of two detectives consulting related neighborhood maps while investigating with different procedures; neither has stolen the other’s trench coat.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Question</th><th>CP2+</th><th>AlgoBB++</th></tr></thead>
+<tbody>
+<tr><td>Search architecture</td><td>CP2-style one-ended path search</td><td>Branch-and-bound / arc-by-arc style</td></tr>
+<tr><td>Genomic view</td><td>Selected vertices + forward-reachable unused vertices</td><td>Its own relaxed reconnection logic</td></tr>
+<tr><td>Goal in this project</td><td>Educational CP2 enhancement</td><td>Contrasting exact baseline</td></tr>
+<tr><td>Claim</td><td>Integration-level enhancement</td><td>Existing exact method</td></tr>
+</tbody></table></div>
+<h3>C. CP2+ versus CP1</h3>
+<div class="callout truth"><span class="math"><strong>CP1 = explore</strong><br><strong>CP2 = explore less when the road is too short</strong><br><strong>CP2+ = also stop when the future neighborhoods cannot reconnect</strong></span></div>
+<p>CP1 is the basic CP educational model. CP2 adds directed longest-suffix pruning. CP2+ keeps that bound and adds safe genomic-feasibility pruning. The progression changes how early hopeless work is recognized, not what counts as the winning answer.</p>
+<h3>D. CP2+ versus ILP1, ILP2, and Exact Subset DP</h3>
+<p>These methods aim at the same acyclic-path destination using different vehicles:</p>
+<div class="grid3">
+<div class="card"><h4>ILP1</h4><p>A path formulation with connectivity witness variables. It expresses selection and genomic connectivity through an educational integer-programming-style model.</p></div>
+<div class="card"><h4>ILP2</h4><p>A rooted connectivity witness using parent links and levels. Same destination, a more explicit family tree for genomic connection.</p></div>
+<div class="card"><h4>Exact Subset DP</h4><p>State-space dynamic programming over selected subsets and endpoints. It remembers visited combinations instead of pruning a CP2 search tree.</p></div>
+</div>
+<p>CP2+ is a pruning-enhanced search approach, not a replacement for these alternative exact educational formulations. Same destination, different vehicle; nobody needs to flatten the tires.</p>
+</section>
+
+<section class="page section continuation">
+<p class="kicker">Do not merge the problem tracks</p><h2>CP2+ versus CP3 and CP4</h2>
+<div class="pathways">
+<div class="pathway">Acyclic path track:<br>CP1 → CP2 → CP2+</div>
+<div class="pathway">Cyclic trail track:<br>CP3 → CP4</div>
+</div>
+<p class="lead">CP2+ solves simple paths in acyclic <span class="math">D</span>. CP3 and CP4 solve maximum-coverage trails in cyclic <span class="math">D</span>. A trail may revisit vertices but cannot repeat arcs.</p>
+<p>CP3 and CP4 are therefore not “better versions” of CP2+. They answer a different class of question. Calling CP4 an upgrade to CP2+ would be like praising a ferry for being a newer bicycle: both move things, but the route rules have changed.</p>
+<div class="caution">
+<h3>CP2+ Does Not Magically…</h3>
+<ul>
+<li>solve cyclic trail problems; CP3 and CP4 cover that family;</li>
+<li>prove universal speed superiority;</li>
+<li>replace all exact methods;</li>
+<li>guarantee that every genomically connected relaxed graph has a valid directed completion;</li>
+<li>claim to be a new research method;</li>
+<li>reproduce a published benchmark or implementation; or</li>
+<li>make capped or cancelled runs exact—CP2+ is exact only when search completes.</li>
+</ul>
+<p><strong>The useful claim is narrower:</strong> when the optimistic forward genomic graph cannot reconnect the selected vertices, no legal right extension can repair them. That is enough to prune safely, and no cape is required.</p>
+</div>
+</section>
+
+<section class="page section">
+<p class="kicker">4. The original pruning engine</p><h2>CP2 in plain language</h2>
+<p>At a partial path, CP2 computes a safe upper bound from the best possible directed suffix still available. If the current path plus even the most optimistic road ahead cannot improve the incumbent—or cannot win the existing lexical tie rule—the branch can be discarded.</p>
+<div class="figure">
+<svg viewBox="0 0 720 230" role="img" aria-label="DAG showing incumbent path A B C and shorter branch D X">
+<defs><marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs>
+<text x="30" y="25" class="svgtitle">INCUMBENT: LENGTH 3</text><path d="M95 75H230M280 75H415" class="edgePath" marker-end="url(#a4)"/>
+<text x="30" y="145" class="svgtitle">NEW BRANCH: AT MOST LENGTH 2</text><path d="M240 175H440" class="edgeD" marker-end="url(#a4)"/>
+<g><circle cx="70" cy="75" r="25" class="sel"/><text x="70" y="75" class="lbl">A</text><circle cx="255" cy="75" r="25" class="sel"/><text x="255" y="75" class="lbl">B</text><circle cx="440" cy="75" r="25" class="sel"/><text x="440" y="75" class="lbl">C</text><circle cx="215" cy="175" r="25" class="node"/><text x="215" y="175" class="lbl">D</text><circle cx="465" cy="175" r="25" class="node"/><text x="465" y="175" class="lbl">X</text></g>
+<text x="535" y="178" class="lbl" style="text-anchor:start;fill:#9a3b35">road ahead too short</text>
+</svg>
+<div class="caption">The detective does not need to inspect every lamp post on D→X. Even perfect luck cannot produce a path longer than the incumbent.</div>
+</div>
+<p>This is <span class="pill bound">DIRECTED BOUND PRUNE</span>. It concerns directed length, not genomic repair. CP2+ keeps this mechanism unchanged and applies the genomic check only where the directed bound has not already settled the branch.</p>
+</section>
+
+<section class="page section">
+<p class="kicker">5. The additional safe question</p><h2>The CP2+ idea</h2>
+<p>Let <span class="math">P</span> be the current simple directed path, <span class="math">last</span> its endpoint, and <span class="math">U</span> the unused vertices. CP2+ collects the unused vertices reachable by a directed path starting at <span class="math">last</span>:</p>
+<div class="callout truth"><span class="math">F(P,last) = {u ∈ U : u is forward-reachable from last in D without reusing P}</span></div>
+<p>It then builds a deliberately relaxed genomic graph containing the selected vertices and every possible forward-reachable helper:</p>
+<div class="callout truth"><span class="math">H(P,last) = G[V(P) ∪ F(P,last)]</span></div>
+<p>This relaxation is generous. It allows all reachable future helpers at once, even if no single directed completion could necessarily use all of them together. That generosity is the source of safety: failing an optimistic test proves impossibility; passing it merely says “do not prune yet.”</p>
+<div class="theorem">
+<h3>Safe genomic-feasibility pruning theorem</h3>
+<p><strong>Assumptions.</strong> <span class="math">D</span> is directed and acyclic; extensions append unused vertices to the right of <span class="math">P</span>; genomic validity requires <span class="math">G[V(P′)]</span> connected for a completed extension <span class="math">P′</span>.</p>
+<p><strong>Soundness statement.</strong> If the vertices of <span class="math">P</span> are not in one connected component of <span class="math">H(P,last)</span>, no right extension of <span class="math">P</span> can become genomically connected.</p>
+<p><strong>Proof sketch.</strong> Every vertex that any legal right extension can append is forward-reachable from <span class="math">last</span>, so it belongs to <span class="math">F(P,last)</span>. Therefore every completed extension induces a genomic subgraph contained in <span class="math">H(P,last)</span>. If even this larger, optimistic graph cannot connect the already selected vertices, no smaller realizable extension can connect them. Pruning cannot remove a feasible completion.</p>
+</div>
+<div class="callout"><strong>Important asymmetry.</strong> Connected in H means “possibly repairable,” not “guaranteed completable.” Disconnected in H means “provably impossible.” CP2+ uses only the second implication.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">6. Teaching library</p><h2>Eight detailed examples</h2>
+<p>Each card uses the released teaching-library concept. Solid arrows are metabolic direction; dashed links are genomic proximity. Green vertices are selected, gold vertices are reachable future helpers, and red marks an impossible continuation.</p>
+
+<article class="example"><div class="example-head"><h3>1. Unreachable genomic bridge</h3><span class="pill prune">SAFE GENOMIC PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 185" role="img" aria-label="D A to B with C unreachable, G A C B"><defs><marker id="e1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M75 60H180" class="edgePath" marker-end="url(#e1)"/><circle cx="50" cy="60" r="22" class="sel"/><text x="50" y="60" class="lbl">A</text><circle cx="205" cy="60" r="22" class="sel"/><text x="205" y="60" class="lbl">B</text><circle cx="350" cy="60" r="22" class="dead"/><text x="350" y="60" class="lbl">C</text><text x="20" y="115" class="svgtitle">G</text><path d="M75 150H190M235 150H350" class="edgeG"/><circle cx="50" cy="150" r="22" class="sel"/><text x="50" y="150" class="lbl">A</text><circle cx="212" cy="150" r="22" class="dead"/><text x="212" y="150" class="lbl">C</text><circle cx="375" cy="150" r="22" class="sel"/><text x="375" y="150" class="lbl">B</text></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">A→B</dd><dt>Forward set</dt><dd>empty</dd><dt>CP2 sees</dt><dd>A legal directed prefix.</dd><dt>CP2+ adds</dt><dd>The only genomic bridge C cannot be reached after B.</dd><dt>Why?</dt><dd>A bridge painted on a map is useless when no forward road reaches it.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>2. Forward-reachable genomic bridge</h3><span class="pill keep">NO PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 185" role="img" aria-label="D A B C and G A C B"><defs><marker id="e2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M75 60H180" class="edgePath" marker-end="url(#e2)"/><path d="M230 60H335" class="edgeD" marker-end="url(#e2)"/><circle cx="50" cy="60" r="22" class="sel"/><text x="50" y="60" class="lbl">A</text><circle cx="205" cy="60" r="22" class="sel"/><text x="205" y="60" class="lbl">B</text><circle cx="360" cy="60" r="22" class="future"/><text x="360" y="60" class="lbl">C</text><text x="20" y="115" class="svgtitle">G</text><path d="M75 150H190M235 150H350" class="edgeG"/><circle cx="50" cy="150" r="22" class="sel"/><text x="50" y="150" class="lbl">A</text><circle cx="212" cy="150" r="22" class="future"/><text x="212" y="150" class="lbl">C</text><circle cx="375" cy="150" r="22" class="sel"/><text x="375" y="150" class="lbl">B</text></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">A→B</dd><dt>Forward set</dt><dd>{C}</dd><dt>CP2 sees</dt><dd>A legal prefix not yet genomically valid.</dd><dt>CP2+ adds</dt><dd>C reconnects A and B in the relaxed graph.</dd><dt>Why?</dt><dd>Disconnected now does not mean disconnected forever. The detective keeps walking.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>3. Backward-only genomic bridge</h3><span class="pill prune">SAFE GENOMIC PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 185" role="img" aria-label="D C A B where C is behind endpoint B, G A C B"><defs><marker id="e3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M75 60H180M230 60H335" class="edgeD" marker-end="url(#e3)"/><circle cx="50" cy="60" r="22" class="dead"/><text x="50" y="60" class="lbl">C</text><circle cx="205" cy="60" r="22" class="sel"/><text x="205" y="60" class="lbl">A</text><circle cx="360" cy="60" r="22" class="sel"/><text x="360" y="60" class="lbl">B</text><text x="20" y="115" class="svgtitle">G</text><path d="M75 150H190M235 150H350" class="edgeG"/><circle cx="50" cy="150" r="22" class="sel"/><text x="50" y="150" class="lbl">A</text><circle cx="212" cy="150" r="22" class="dead"/><text x="212" y="150" class="lbl">C</text><circle cx="375" cy="150" r="22" class="sel"/><text x="375" y="150" class="lbl">B</text></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">A→B</dd><dt>Forward set</dt><dd>empty</dd><dt>CP2 sees</dt><dd>A legal one-ended prefix.</dd><dt>CP2+ adds</dt><dd>C exists, but only before A; it cannot be appended after B.</dd><dt>Why?</dt><dd>A bridge behind you is not useful when the road only goes forward.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>4. Already-connected prefix</h3><span class="pill keep">NO PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 185" role="img" aria-label="D and G chains A B C D"><defs><marker id="e4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M65 55H135M175 55H245M285 55H355" class="edgePath" marker-end="url(#e4)"/><text x="20" y="115" class="svgtitle">G</text><path d="M65 150H135M175 150H245M285 150H355" class="edgeG"/><g><circle cx="45" cy="55" r="20" class="sel"/><text x="45" y="55" class="lbl">A</text><circle cx="155" cy="55" r="20" class="sel"/><text x="155" y="55" class="lbl">B</text><circle cx="265" cy="55" r="20" class="sel"/><text x="265" y="55" class="lbl">C</text><circle cx="375" cy="55" r="20" class="future"/><text x="375" y="55" class="lbl">D</text><circle cx="45" cy="150" r="20" class="sel"/><text x="45" y="150" class="lbl">A</text><circle cx="155" cy="150" r="20" class="sel"/><text x="155" y="150" class="lbl">B</text><circle cx="265" cy="150" r="20" class="sel"/><text x="265" y="150" class="lbl">C</text><circle cx="375" cy="150" r="20" class="future"/><text x="375" y="150" class="lbl">D</text></g></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">A→B→C</dd><dt>Forward set</dt><dd>{D}</dd><dt>CP2 sees</dt><dd>A length-improvable branch.</dd><dt>CP2+ adds</dt><dd>The selected prefix is already connected.</dd><dt>Why?</dt><dd>The extra check is allowed to say “all clear.” Safe propagation is not compulsory pruning.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>5. Multi-component recovery</h3><span class="pill keep">NO PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 200" role="img" aria-label="A B C selected and future X connects all in G"><defs><marker id="e5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M60 55H115M155 55H210M250 55H305M345 55H390" class="edgeD" marker-end="url(#e5)"/><g><circle cx="40" cy="55" r="20" class="sel"/><text x="40" y="55" class="lbl">A</text><circle cx="135" cy="55" r="20" class="sel"/><text x="135" y="55" class="lbl">B</text><circle cx="230" cy="55" r="20" class="sel"/><text x="230" y="55" class="lbl">C</text><circle cx="325" cy="55" r="20" class="future"/><text x="325" y="55" class="lbl">X</text><circle cx="410" cy="55" r="18" class="future"/><text x="410" y="55" class="lbl">Y</text></g><text x="20" y="105" class="svgtitle">G</text><path d="M60 135L205 165M155 135L205 165M250 135L205 165M225 165H365" class="edgeG"/><g><circle cx="40" cy="135" r="20" class="sel"/><text x="40" y="135" class="lbl">A</text><circle cx="135" cy="135" r="20" class="sel"/><text x="135" y="135" class="lbl">B</text><circle cx="230" cy="135" r="20" class="sel"/><text x="230" y="135" class="lbl">C</text><circle cx="205" cy="175" r="20" class="future"/><text x="205" y="175" class="lbl">X</text><circle cx="385" cy="165" r="20" class="future"/><text x="385" y="165" class="lbl">Y</text></g></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">A→B→C</dd><dt>Forward set</dt><dd>{X,Y}</dd><dt>CP2 sees</dt><dd>Three selected vertices with directed room ahead.</dd><dt>CP2+ adds</dt><dd>X can join all three genomic components.</dd><dt>Why?</dt><dd>The relaxed graph keeps branches that are complicated but still repairable.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>6. Directed dead end</h3><span class="pill bound">DIRECTED BOUND PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 175" role="img" aria-label="Long incumbent A B C and short branch D X"><defs><marker id="e6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><path d="M70 50H170M210 50H310" class="edgePath" marker-end="url(#e6)"/><path d="M145 130H285" class="edgeD" marker-end="url(#e6)"/><g><circle cx="45" cy="50" r="22" class="sel"/><text x="45" y="50" class="lbl">A</text><circle cx="190" cy="50" r="22" class="sel"/><text x="190" y="50" class="lbl">B</text><circle cx="335" cy="50" r="22" class="sel"/><text x="335" y="50" class="lbl">C</text><circle cx="120" cy="130" r="22" class="node"/><text x="120" y="130" class="lbl">D</text><circle cx="310" cy="130" r="22" class="node"/><text x="310" y="130" class="lbl">X</text></g></svg>
+<dl class="facts"><dt>Path</dt><dd class="math">D</dd><dt>Forward set</dt><dd>{X}</dd><dt>CP2 sees</dt><dd>Maximum possible length 2 versus incumbent length 3.</dd><dt>CP2+ adds</dt><dd>Nothing is needed; CP2’s bound acts first.</dd><dt>Why?</dt><dd>Do not perform a neighborhood survey after the road-length inspector has closed the branch.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>7. Dense genomic graph</h3><span class="pill keep">NO PRUNE</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 190" role="img" aria-label="Diamond DAG and complete genomic graph"><defs><marker id="e7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="15" y="20" class="svgtitle">D</text><path d="M65 75L170 45M65 75L170 105M215 45L330 75M215 105L330 75" class="edgeD" marker-end="url(#e7)"/><g><circle cx="45" cy="75" r="20" class="sel"/><text x="45" y="75" class="lbl">A</text><circle cx="190" cy="40" r="20" class="future"/><text x="190" y="40" class="lbl">B</text><circle cx="190" cy="110" r="20" class="future"/><text x="190" y="110" class="lbl">C</text><circle cx="355" cy="75" r="20" class="future"/><text x="355" y="75" class="lbl">D</text></g><text x="15" y="145" class="svgtitle">G COMPLETE</text><path d="M85 165H170M210 165H295M65 155L180 130M65 175L180 200M200 130L315 155M200 200L315 175" class="edgeG"/></svg>
+<dl class="facts"><dt>Path</dt><dd>various prefixes</dd><dt>Forward set</dt><dd>branch-dependent</dd><dt>CP2 sees</dt><dd>Directed alternatives and bounds.</dd><dt>CP2+ adds</dt><dd>Checks usually pass because G is dense.</dd><dt>Why?</dt><dd>More doors between neighborhoods mean fewer impossibility certificates—and the checks still cost work.</dd></dl></div></article>
+
+<article class="example"><div class="example-head"><h3>8. Lexicographic tie</h3><span class="pill tie">TIE-BREAK</span></div>
+<div class="example-grid"><svg viewBox="0 0 430 180" role="img" aria-label="Two equal paths A C and B C"><defs><marker id="e8" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#122a31"/></marker></defs><text x="20" y="20" class="svgtitle">D</text><path d="M80 55L315 90M80 130L315 95" class="edgeD" marker-end="url(#e8)"/><g><circle cx="55" cy="55" r="22" class="sel"/><text x="55" y="55" class="lbl">A</text><circle cx="55" cy="130" r="22" class="node"/><text x="55" y="130" class="lbl">B</text><circle cx="340" cy="92" r="22" class="sel"/><text x="340" y="92" class="lbl">C</text></g><text x="175" y="160" class="lbl">A→C wins canonically</text></svg>
+<dl class="facts"><dt>Candidates</dt><dd class="math">A→C and B→C</dd><dt>Objective</dt><dd>Both length 2</dd><dt>CP2 sees</dt><dd>Equal optimal lengths; apply deterministic lexical rule.</dd><dt>CP2+ adds</dt><dd>No change to ordering or winner.</dd><dt>Why?</dt><dd>A pruning improvement may shorten the investigation, but it may not rewrite the judge’s rulebook.</dd></dl></div></article>
+</section>
+
+<section class="page section">
+<p class="kicker">7. Where intuition often slips</p><h2>The two most important non-obvious cases</h2>
+<div class="grid2">
+<div class="card"><h3>A. Repairable disconnected prefix</h3><p>The selected vertices may currently be disconnected in <span class="math">G[V(P)]</span>. That alone is not a pruning reason. Future selected vertices can connect existing components because induced connectivity is checked on the final selected set.</p><p>For <span class="math">A→B→C</span> with genomic links <span class="math">A—C—B</span>, the prefix <span class="math">A→B</span> is disconnected, yet C is forward-reachable and repairs it. CP2+ sees A and B connected inside <span class="math">H</span>, so it correctly returns <strong>NO PRUNE</strong>.</p></div>
+<div class="card"><h3>B. Backward-only bridge</h3><p>A bridge can exist in the full genomic graph and still be unusable. With <span class="math">C→A→B</span>, C lies behind endpoint B. A one-ended right extension cannot travel backward and insert C before A.</p><p>Therefore C is absent from <span class="math">F(P,last)</span>. If A and B remain disconnected without it, pruning is safe. This is why “reachable somewhere in D” is too weak; the test requires reachable <em>forward from the current endpoint</em>.</p></div>
+</div>
+<div class="callout"><strong>Memory aid:</strong> CP2+ asks neither “is the prefix connected now?” nor “does some bridge exist anywhere?” It asks “can any vertex still usable from here reconnect the selected components?”</div>
+</section>
+
+<section class="page section">
+<p class="kicker">8. Method landscape</p><h2>Comparison with other exact methods</h2>
+<div class="table-wrap"><table class="wide">
+<thead><tr><th>Method</th><th>Problem / graph</th><th>Path or trail</th><th>Main technique</th><th>Genomic connectivity</th><th>Educational role</th><th>Limitations</th></tr></thead>
+<tbody>
+<tr><td>Legacy</td><td>Acyclic D</td><td>Simple path</td><td>Exhaustive enumeration</td><td>Validate induced G on candidates</td><td>Transparent exact baseline</td><td>Combinatorial growth</td></tr>
+<tr><td>CP1</td><td>Acyclic D</td><td>Simple path</td><td>Constraint-style path search</td><td>Candidate feasibility</td><td>Basic CP formulation</td><td>Small educational instances</td></tr>
+<tr><td>CP2</td><td>Acyclic D</td><td>Simple path</td><td>CP1 plus directed upper bound</td><td>Candidate feasibility</td><td>Shows safe directed pruning</td><td>No early genomic impossibility filter</td></tr>
+<tr><td>CP2+</td><td>Acyclic D</td><td>Simple path</td><td>CP2 plus one-ended safe genomic feasibility</td><td>Relaxed graph on selected and forward-reachable vertices</td><td>Demonstrates integrated safe propagation</td><td>Check overhead; exact only on completion</td></tr>
+<tr><td>AlgoBB++</td><td>Small directed graphs in project scope</td><td>Path search</td><td>Branch-and-bound, arc-by-arc growth</td><td>Its own relaxed two-ended genomic reconnection logic</td><td>Contrasting exact search architecture</td><td>Not the same integration as CP2+</td></tr>
+<tr><td>ILP1</td><td>Small DAGs</td><td>Simple path</td><td>Educational binary x/y/z formulation</td><td>Connectivity witness variables</td><td>Shows an ILP-style exact model</td><td>No claim of native MIP or CPLEX execution</td></tr>
+<tr><td>ILP2</td><td>Small DAGs</td><td>Simple path</td><td>Root, parent links, levels</td><td>Rooted genomic connectivity witness</td><td>Alternative educational formulation</td><td>No claim of OR-Tools or production MIP</td></tr>
+<tr><td>Exact Subset DP</td><td>Small DAGs</td><td>Simple path</td><td>Dynamic programming on subset and endpoint</td><td>Exact state/candidate checks</td><td>Educational exact implementation</td><td>Exponential subset space; not a novel method</td></tr>
+<tr><td>CP3</td><td>Cyclic directed graphs</td><td>Trail</td><td>Maximum coverage / Eulerian-subgraph model</td><td>Trail-oriented genomic constraints</td><td>Reference concept for cyclic problems</td><td>Different problem, not a direct CP2+ alternative</td></tr>
+<tr><td>CP4</td><td>Cyclic directed graphs</td><td>Trail</td><td>CP3 plus walk-and-cover branching</td><td>As in cyclic trail model</td><td>Search-strategy reference</td><td>Different problem, not a CP2+ replacement</td></tr>
+</tbody></table></div>
+<div class="callout warning">This project does not claim CPLEX, OR-Tools, native MIP execution, genome-scale production capability, a new research method, or reproduction of a published implementation.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">9. Released deterministic evidence</p><h2>Evidence Benchmark</h2>
+<p>The benchmark contains 16 deterministic educational and bounded-stress cases across fragmented, dense, repairable bridge, small exhaustive, and larger bounded-stress families. Its primary evidence is structural. Wall-clock timing is intentionally secondary because browser and test-machine timing is unstable.</p>
+<div class="grid4">
+<div class="metric"><strong>16</strong><span>total cases</span></div><div class="metric"><strong>105</strong><span>genomic propagation checks</span></div><div class="metric"><strong>35</strong><span>safe genomic prunes</span></div><div class="metric"><strong>0</strong><span>equality mismatches</span></div>
+</div>
+<h3>States explored</h3><div class="bars"><div class="barrow"><strong>CP2</strong><div class="track"><div class="bar" style="width:100%"></div></div><div class="barvalue">417</div></div><div class="barrow"><strong>CP2+</strong><div class="track"><div class="bar plus" style="width:55.64%"></div></div><div class="barvalue">232</div></div></div>
+<p class="small">Structural reduction: 185 explored states. This is not labeled a runtime speedup.</p>
+<h3>Events emitted</h3><div class="bars"><div class="barrow"><strong>CP2</strong><div class="track"><div class="bar" style="width:100%"></div></div><div class="barvalue">2040</div></div><div class="barrow"><strong>CP2+</strong><div class="track"><div class="bar plus" style="width:50.74%"></div></div><div class="barvalue">1035</div></div></div>
+<p class="small">Structural reduction: 1005 trace events. The bars visualize released counts, not fabricated percentages.</p>
+<div class="table-wrap"><table><thead><tr><th>Evidence item</th><th>Released result</th><th>Interpretation</th></tr></thead><tbody>
+<tr><td>Reduced / equal / increased state cases</td><td class="math">3 / 13 / 0</td><td>Reduction is concentrated, not universal.</td></tr>
+<tr><td>Objective mismatches</td><td>0</td><td>Completed benchmark objectives agree.</td></tr>
+<tr><td>Winner mismatches</td><td>0</td><td>Deterministic winning paths agree.</td></tr>
+<tr><td>Proof-status mismatches</td><td>0</td><td>Proof-complete status agrees.</td></tr>
+<tr><td>Validity mismatches</td><td>0</td><td>Path and induced genomic validity agree.</td></tr>
+</tbody></table></div>
+<div class="callout truth"><strong>Generated benchmark conclusion:</strong> Across 16 deterministic educational and bounded-stress cases, CP2+ reduced states in 3, matched CP2 state counts in 13, and explored more states in 0. It emitted 35 safe genomic propagation prunes. Exactness comparison recorded 0 equality mismatches. These structural results are corpus-specific; runtime was not used as a scientific conclusion.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">10. Read the evidence without overselling it</p><h2>Honest interpretation</h2>
+<div class="grid2">
+<div class="card"><h3>Where CP2+ can help</h3><p>Fragmented genomic cases are the natural target. Directed search may offer many continuations, while the genomic map proves that some selected components can never reconnect using anything reachable ahead. Those branches can end early.</p></div>
+<div class="card"><h3>Where it may be neutral</h3><p>When G is dense, selected sets are often connected or easily repairable. CP2+ performs checks but obtains few genomic prunes. CP2’s directed bound may already do most useful pruning.</p></div>
+<div class="card"><h3>Why overhead is real</h3><p>Forward reachability, component inspection, and trace events require work. Fewer search states do not automatically imply lower wall-clock time on every machine or fixture.</p></div>
+<div class="card"><h3>Why exactness comes first</h3><p>A faster wrong answer is not progress. The important property is that the new filter is sound and completed runs preserve objective, canonical winner, validity, and proof status.</p></div>
+</div>
+<p>The released evidence is intentionally modest: a small deterministic corpus can demonstrate behavior, regression safety, and structural differences. It cannot establish genome-scale performance, broad real-world distributions, or universal runtime superiority.</p>
+</section>
+
+<section class="page section">
+<p class="kicker">11. Evidence you can inspect</p><h2>Traceability and proof behavior</h2>
+<div class="grid2">
+<div class="card"><h3>Structural counters</h3><dl class="facts"><dt>States explored</dt><dd>Search states actually visited.</dd><dt>Directed-bound prunes</dt><dd>Branches closed by CP2’s length/lexical bound.</dd><dt>Genomic checks</dt><dd>Relaxed forward-feasibility inspections.</dd><dt>Genomic prunes</dt><dd>Checks that proved reconnection impossible.</dd></dl></div>
+<div class="card"><h3>Trace journal</h3><p>Each event records the evolving path, bound, forward frontier, genomic components, counters, and reason. The journal and current-event card use the same canonical event index.</p><p class="math"><strong>STEP current / total</strong></p><p>This ordinal stays synchronized with Previous, Next, Play, End, Reset, example changes, graph state, and the active trace row.</p></div>
+</div>
+<div class="theorem"><h3>Proof-complete means search completed</h3><p>An exact optimal/no-solution claim requires completed search and a proof-complete event. A cap or cancellation returns an <strong>incomplete</strong> result. An incumbent may be useful, but it is not proof of optimality. CP2+ is exact only when search completes.</p></div>
+<div class="callout warning"><strong>Never promote an interrupted run.</strong> “Best found so far” and “proven optimal” are different scientific statements.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">12. Closing view</p><h2>Final recap — what CP2+ adds</h2>
+<ul class="recap">
+<li><strong>Same exact objective:</strong> longest simple directed path in acyclic D whose selected vertices induce a connected subgraph in undirected G.</li>
+<li><strong>Same deterministic winner:</strong> CP2+ preserves the existing lexical tie-break.</li>
+<li><strong>Extra safe early rejection:</strong> prune only when all forward-reachable unused vertices still cannot reconnect selected genomic components.</li>
+<li><strong>Evidence-backed teaching:</strong> deterministic structural benchmark, trace journal, explicit counters, and cross-method equality checks.</li>
+<li><strong>No universal promise:</strong> dense cases may be neutral, checks have overhead, and corpus-specific reductions are not universal runtime superiority.</li>
+</ul>
+<div class="callout truth"><strong>One-sentence takeaway:</strong> CP2+ is CP2 with an additional optimistic genomic map; when even that generous map cannot connect the selected neighborhoods, the detective can safely stop investigating the branch.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">Appendix A</p><h2>Formal definitions</h2>
+<p><strong>Input.</strong> A finite shared vertex set <span class="math">V</span>; an acyclic directed graph <span class="math">D=(V,A)</span>; and an undirected genomic-proximity graph <span class="math">G=(V,E)</span>.</p>
+<p><strong>Feasible path.</strong> A sequence <span class="math">P=(v₁,…,vₖ)</span> of distinct vertices such that <span class="math">(vᵢ,vᵢ₊₁)∈A</span> for every consecutive pair and <span class="math">G[{v₁,…,vₖ}]</span> is connected.</p>
+<p><strong>Objective.</strong> Maximize <span class="math">k=|P|</span>; break equal-length ties using the project’s deterministic lexicographic comparison.</p>
+<p><strong>Forward frontier.</strong> <span class="math">F(P,last)</span> contains unused vertices reachable from endpoint <span class="math">last</span> by a directed continuation that does not reuse selected vertices.</p>
+<p><strong>Relaxed feasibility graph.</strong> <span class="math">H(P,last)=G[V(P)∪F(P,last)]</span>.</p>
+<p><strong>Pruning rule.</strong> If selected vertices lie in more than one connected component of <span class="math">H(P,last)</span>, reject the branch. Otherwise retain it; passing the test is not a proof that a directed completion exists.</p>
+
+<h3>Notation glossary</h3>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Meaning</th></tr></thead><tbody>
+<tr><td class="math">D</td><td>Acyclic directed metabolic-order graph</td></tr><tr><td class="math">G</td><td>Undirected genomic-proximity graph</td></tr><tr><td class="math">P</td><td>Current selected simple directed path</td></tr><tr><td class="math">last</td><td>Current endpoint of P</td></tr><tr><td class="math">U</td><td>Unused vertices</td></tr><tr><td class="math">F(P,last)</td><td>Forward-reachable unused vertices</td></tr><tr><td class="math">H(P,last)</td><td>Relaxed induced genomic graph on selected plus reachable future vertices</td></tr><tr><td>Incumbent</td><td>Best feasible path found so far; not necessarily proven optimal</td></tr><tr><td>Proof-complete</td><td>Search completed with exact status established</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="page section">
+<p class="kicker">Appendix B</p><h2>Benchmark protocol and limits</h2>
+<h3>Protocol summary</h3>
+<p>The corpus is fixed in source control: no random generation, external data, wall-clock threshold, or machine-dependent input. Primary metrics are states explored, events emitted, directed-bound prunes, genomic propagation checks and prunes, exact-result equality, and proof-complete equality. Small exhaustive cases are checked against the available exact educational solvers; larger bounded cases compare CP2 and CP2+ structural behavior under existing cap semantics.</p>
+<h3>Allowed conclusions</h3>
+<ul><li>State or event counts were lower, equal, or higher on a stated corpus case.</li><li>A family produced safe genomic prunes.</li><li>Completed runs agreed or differed on objective, winner, validity, or proof status.</li><li>Dense cases showed neutrality or check overhead in this corpus.</li></ul>
+<h3>Limits and non-claims</h3>
+<ul><li>CP2+ is not universally faster or universally better.</li><li>The fixtures do not establish broad real-world or genome-scale production performance.</li><li>The work is not claimed as a new research method or paper reproduction.</li><li>The project does not claim CPLEX, OR-Tools, native MIP execution, or production-scale optimization infrastructure.</li><li>CP2+ remains a path solver for acyclic D; CP3/CP4 address cyclic trail settings.</li></ul>
+<div class="callout warning"><strong>Permanent limitation note:</strong> These results are specific to this deterministic educational and bounded-stress corpus. They do not establish universal runtime superiority or reproduce a published benchmark.</div>
+</section>
+
+<section class="page section">
+<p class="kicker">Live demo access</p><h2>Try the Interactive Demo</h2>
+<p class="lead">The interactive page lets readers replay the trace, inspect safe genomic prunes, and compare structural benchmark evidence.</p>
+<div class="qr-grid">
+<div class="qr-card">
+<h3>Public CP2+ route</h3>
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 41 41" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h41v41H0z"/><path stroke="#000000" d="M2 2.5h7m3 0h1m1 0h2m2 0h1m1 0h2m5 0h2m3 0h7M2 3.5h1m5 0h1m1 0h1m3 0h1m1 0h4m1 0h1m4 0h2m2 0h1m1 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h4m1 0h2m4 0h3m6 0h1m1 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m1 0h1m5 0h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m2 0h2m1 0h1m1 0h1m1 0h1m1 0h4m1 0h1m4 0h1m1 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m2 0h1m1 0h1m3 0h2m1 0h1m3 0h1m3 0h1m1 0h1m1 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m3 0h1m1 0h1m5 0h1m4 0h2M2 10.5h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h1m3 0h3m1 0h1m1 0h3m2 0h2m2 0h3M2 11.5h1m1 0h1m1 0h1m2 0h2m1 0h2m2 0h1m5 0h1m2 0h1m1 0h1m1 0h1m1 0h1m1 0h2m1 0h2M4 12.5h2m2 0h2m6 0h1m5 0h2m2 0h1m1 0h2m2 0h1m2 0h4M3 13.5h2m1 0h2m2 0h1m2 0h3m1 0h2m1 0h1m3 0h1m1 0h1m1 0h1m6 0h1m2 0h1M3 14.5h1m1 0h1m2 0h2m1 0h2m2 0h1m2 0h1m2 0h2m2 0h2m3 0h1m1 0h2m1 0h1m2 0h1M2 15.5h1m2 0h2m2 0h1m3 0h1m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m3 0h2m2 0h1m1 0h1m1 0h1M2 16.5h3m3 0h1m2 0h1m1 0h3m1 0h3m7 0h1m1 0h1m2 0h4m1 0h2M2 17.5h2m5 0h1m1 0h1m1 0h1m3 0h1m1 0h2m8 0h1m2 0h2m1 0h4M2 18.5h1m1 0h5m1 0h2m2 0h1m1 0h1m1 0h1m4 0h1m1 0h1m1 0h1m1 0h1m2 0h3m1 0h3M2 19.5h1m1 0h1m2 0h1m4 0h3m1 0h1m3 0h1m1 0h1m2 0h1m3 0h2m2 0h1m3 0h1M4 20.5h2m1 0h4m5 0h2m2 0h1m1 0h1m1 0h2m1 0h5m2 0h1m3 0h1M6 21.5h2m3 0h1m1 0h1m1 0h1m5 0h2m1 0h1m3 0h1m1 0h3m2 0h1m2 0h1M2 22.5h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h4m1 0h6m1 0h2m1 0h3M5 23.5h1m3 0h1m4 0h4m2 0h2m1 0h1m1 0h3m1 0h1m4 0h1m1 0h1M6 24.5h3m2 0h2m2 0h4m1 0h1m1 0h1m1 0h1m2 0h3m1 0h1m1 0h3m1 0h2M2 25.5h3m1 0h1m2 0h2m1 0h1m2 0h2m1 0h1m3 0h2m1 0h2m1 0h4m1 0h3M2 26.5h7m1 0h2m1 0h2m3 0h4m1 0h1m1 0h2m5 0h2m4 0h1M2 27.5h1m4 0h1m3 0h3m4 0h2m5 0h2m2 0h2m2 0h1m1 0h1M2 28.5h1m1 0h1m2 0h2m2 0h3m1 0h2m5 0h3m1 0h1m1 0h4m2 0h1m2 0h2M2 29.5h1m2 0h2m4 0h1m1 0h2m1 0h2m4 0h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h4M2 30.5h1m1 0h1m1 0h1m1 0h4m1 0h2m4 0h1m7 0h12M10 31.5h1m1 0h1m3 0h7m2 0h1m4 0h1m3 0h1m2 0h1M2 32.5h7m2 0h1m1 0h1m1 0h1m1 0h1m3 0h1m1 0h3m2 0h1m1 0h1m1 0h1m1 0h1m3 0h1M2 33.5h1m5 0h1m4 0h1m1 0h2m1 0h3m1 0h1m1 0h3m1 0h3m3 0h1M2 34.5h1m1 0h3m1 0h1m2 0h2m1 0h1m2 0h2m2 0h1m1 0h1m3 0h8m1 0h2M2 35.5h1m1 0h3m1 0h1m2 0h1m1 0h1m2 0h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m2 0h1m2 0h1M2 36.5h1m1 0h3m1 0h1m2 0h2m2 0h4m2 0h1m1 0h2m1 0h1m2 0h2m4 0h1m1 0h2M2 37.5h1m5 0h1m6 0h1m4 0h3m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m3 0h1M2 38.5h7m1 0h2m1 0h1m3 0h2m3 0h1m2 0h2m3 0h1m1 0h2m1 0h1m2 0h1"/></svg>
+
+<p><a href="https://bioinformatics-exact-methods-demo.vercel.app/methods/cp2-plus">bioinformatics-exact-methods-demo.vercel.app/<br>methods/cp2-plus</a></p>
+</div>
+<div class="qr-card">
+<h3>Public Comparison Lab</h3>
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 41 41" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h41v41H0z"/><path stroke="#000000" d="M2 2.5h7m7 0h7m1 0h2m4 0h1m1 0h7M2 3.5h1m5 0h1m3 0h3m1 0h1m1 0h2m3 0h1m2 0h2m1 0h2m1 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h1m1 0h2m4 0h1m2 0h1m1 0h1m6 0h1m1 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m1 0h1m3 0h3m4 0h2m1 0h2m1 0h1m1 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h2m2 0h2m2 0h6m1 0h1m4 0h1m1 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h1m3 0h5m1 0h1m2 0h2m3 0h3m1 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h1m1 0h2m2 0h2m5 0h2m5 0h1M2 10.5h1m1 0h5m5 0h1m2 0h3m1 0h2m1 0h1m1 0h3m3 0h5M2 11.5h1m1 0h1m9 0h1m2 0h1m3 0h5m1 0h2m1 0h2m1 0h1m1 0h1m1 0h1M2 12.5h4m1 0h4m1 0h1m1 0h2m1 0h2m3 0h2m2 0h1m1 0h2m2 0h1m2 0h4M2 13.5h1m3 0h2m2 0h1m3 0h1m2 0h1m2 0h1m2 0h2m1 0h1m1 0h2m8 0h1M2 14.5h2m2 0h1m1 0h2m2 0h1m1 0h1m1 0h2m1 0h1m4 0h1m1 0h3m2 0h2m1 0h5M3 15.5h1m2 0h1m4 0h1m1 0h1m7 0h3m1 0h1m4 0h1m2 0h1m3 0h1M3 16.5h1m4 0h2m1 0h1m1 0h8m6 0h1m1 0h1m2 0h4m1 0h2M5 17.5h1m3 0h1m4 0h1m3 0h1m3 0h3m3 0h1m1 0h1m1 0h3m2 0h2M2 18.5h1m5 0h3m1 0h2m2 0h1m2 0h1m5 0h1m1 0h1m1 0h1m2 0h3m1 0h3M3 19.5h1m2 0h2m2 0h2m5 0h2m1 0h4m1 0h1m4 0h1m2 0h1m1 0h1m1 0h1M3 20.5h1m1 0h1m2 0h2m3 0h1m5 0h2m8 0h1m3 0h1m2 0h3M3 21.5h2m1 0h2m5 0h2m1 0h1m1 0h1m4 0h2m3 0h5m5 0h1M3 22.5h1m1 0h2m1 0h1m2 0h2m1 0h1m4 0h2m1 0h1m1 0h6m1 0h2m1 0h3M2 23.5h2m7 0h1m6 0h5m1 0h5m1 0h1m4 0h1M2 24.5h2m4 0h3m1 0h1m1 0h2m1 0h3m2 0h1m1 0h1m2 0h3m1 0h1m1 0h3m1 0h2M5 25.5h2m3 0h2m2 0h1m2 0h2m3 0h5m1 0h1m1 0h2m1 0h2M4 26.5h5m1 0h1m3 0h1m3 0h2m2 0h1m1 0h1m1 0h3m1 0h3m1 0h1m1 0h3M2 27.5h1m2 0h3m3 0h3m2 0h2m1 0h5m1 0h2m3 0h1m2 0h1M2 28.5h1m2 0h4m1 0h2m2 0h1m1 0h3m3 0h3m1 0h1m1 0h4m2 0h1m2 0h2M2 29.5h1m1 0h1m1 0h2m4 0h1m2 0h1m1 0h1m4 0h2m1 0h2m2 0h3m1 0h2m3 0h1M2 30.5h1m1 0h1m2 0h3m2 0h3m1 0h2m1 0h1m1 0h1m5 0h10m1 0h1M10 31.5h1m2 0h1m2 0h1m1 0h6m1 0h1m3 0h2m3 0h2m1 0h1M2 32.5h7m2 0h3m1 0h1m1 0h3m2 0h1m4 0h1m2 0h1m1 0h1m1 0h1m1 0h3M2 33.5h1m5 0h1m1 0h1m1 0h3m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m3 0h2M2 34.5h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m2 0h2m2 0h1m2 0h8m1 0h2M2 35.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h2m1 0h3m2 0h4m2 0h2m1 0h1m1 0h3M2 36.5h1m1 0h3m1 0h1m1 0h1m5 0h1m5 0h3m1 0h1m2 0h2m4 0h1m1 0h2M2 37.5h1m5 0h1m2 0h1m1 0h4m1 0h1m1 0h5m1 0h1m1 0h4m2 0h2m2 0h1M2 38.5h7m1 0h5m1 0h1m2 0h1m1 0h1m2 0h1m1 0h3m2 0h2m1 0h5"/></svg>
+
+<p><a href="https://bioinformatics-exact-methods-demo.vercel.app/methods/cp2-plus/comparison">bioinformatics-exact-methods-demo.vercel.app/<br>methods/cp2-plus/comparison</a></p>
+</div>
+</div>
+<div class="callout truth"><strong>Offline report, online destination.</strong> Both QR codes are embedded directly in this HTML and its PDF. No QR image service, CDN, font download, or other external report dependency is required.</div>
+</section>
+<div class="footer-note">CP2+ Explained · Bioinformatics Exact Methods Demo · Generated June 25, 2026</div>
+</main>
+</body>
+</html>
