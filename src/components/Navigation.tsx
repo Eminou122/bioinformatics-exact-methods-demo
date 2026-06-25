@@ -46,12 +46,13 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) => {
-  const labels: Record<Language, { start: string; methods: string; cp1: string; cp2: string; subsetDp: string; ilp1: string; ilp2: string; legacy: string }> = {
+  const labels: Record<Language, { start: string; methods: string; cp1: string; cp2: string; cp2Plus: string; subsetDp: string; ilp1: string; ilp2: string; legacy: string }> = {
     fr: {
       start: 'Commencer Ici',
       methods: 'Carte des Méthodes',
       cp1: 'Modèle CP1',
       cp2: 'Modèle CP2',
+      cp2Plus: 'Modèle CP2+',
       subsetDp: 'Subset DP',
       ilp1: 'Modèle ILP1',
       ilp2: 'Modèle ILP2',
@@ -62,6 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       methods: 'Method Map',
       cp1: 'CP1 Model',
       cp2: 'CP2 Model',
+      cp2Plus: 'CP2+ Model',
       subsetDp: 'Subset DP',
       ilp1: 'ILP1 Model',
       ilp2: 'ILP2 Model',
@@ -72,6 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       methods: 'خريطة الطرق',
       cp1: 'نموذج CP1',
       cp2: 'نموذج CP2',
+      cp2Plus: 'نموذج CP2+',
       subsetDp: 'Subset DP',
       ilp1: 'نموذج ILP1',
       ilp2: 'نموذج ILP2',
@@ -86,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
     { path: '/methods', label: t.methods },
     { path: '/methods/cp1', label: t.cp1 },
     { path: '/methods/cp2', label: t.cp2 },
+    { path: '/methods/cp2-plus', label: t.cp2Plus },
     { path: '/methods/subset-dp', label: t.subsetDp },
     { path: '/methods/ilp1', label: t.ilp1 },
     { path: '/methods/ilp2', label: t.ilp2 },
@@ -112,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       }}
     >
       {items.map((item) => {
-        const isActive = currentPath === item.path || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2' && currentPath !== '/methods/subset-dp' && currentPath !== '/methods/ilp1' && currentPath !== '/methods/ilp2');
+        const isActive = currentPath === item.path || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2' && currentPath !== '/methods/cp2-plus' && currentPath !== '/methods/subset-dp' && currentPath !== '/methods/ilp1' && currentPath !== '/methods/ilp2');
         return (
           <Link
             key={item.path}

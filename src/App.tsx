@@ -19,6 +19,7 @@ import { StartHere } from './components/StartHere';
 import { MethodMap } from './components/MethodMap';
 import { CP1Model } from './components/CP1Model';
 import { CP2Model } from './components/CP2Model';
+import { CP2PlusModel } from './components/CP2PlusModel';
 import { ILP1Model } from './components/ILP1Model';
 import { ILP2Model } from './components/ILP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
@@ -159,6 +160,9 @@ function App() {
     }
     if (currentPath === '/methods/cp2') {
       return <CP2Model lang={lang} dict={dict} />;
+    }
+    if (currentPath === '/methods/cp2-plus') {
+      return <CP2PlusModel lang={lang} dict={dict} />;
     }
     if (currentPath === '/methods/ilp1') {
       return <ILP1Model lang={lang} dict={dict} />;

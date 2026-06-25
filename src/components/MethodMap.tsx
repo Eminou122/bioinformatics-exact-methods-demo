@@ -69,6 +69,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           route: '/methods/cp2'
         },
         {
+          id: 'cp2-plus',
+          name: 'CP2+ (propagation génomique sûre)',
+          sourceLabel: 'Intégration éducative exacte',
+          badge: 'exact',
+          desc: 'CP2 avec un élagage précoce sûr lorsque les sommets atteignables vers l’avant ne peuvent plus reconnecter le chemin dans G.',
+          route: '/methods/cp2-plus'
+        },
+        {
           id: 'subset-dp',
           name: 'Exact Subset Dynamic Programming',
           sourceLabel: 'Méthode exacte pédagogique',
@@ -175,6 +183,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           route: '/methods/cp2'
         },
         {
+          id: 'cp2-plus',
+          name: 'CP2+ (Safe Genomic Propagation)',
+          sourceLabel: 'Educational exact integration',
+          badge: 'exact',
+          desc: 'CP2 with a safe early prune when forward-reachable vertices can no longer reconnect the path in G.',
+          route: '/methods/cp2-plus'
+        },
+        {
           id: 'subset-dp',
           name: 'Exact Subset Dynamic Programming',
           sourceLabel: 'Educational exact method',
@@ -279,6 +295,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'تطبيق دقيق لمخططات DAG الصغيرة: CP1 مع حد أعلى آمن لتقليم الفروع دون المثلى.',
           route: '/methods/cp2'
+        },
+        {
+          id: 'cp2-plus',
+          name: 'CP2+ (انتشار جينومي آمن)',
+          sourceLabel: 'دمج تعليمي دقيق',
+          badge: 'exact',
+          desc: 'CP2 مع تقليم مبكر آمن عندما تعجز الرؤوس القابلة للوصول إلى الأمام عن إعادة وصل المسار في G.',
+          route: '/methods/cp2-plus'
         },
         {
           id: 'subset-dp',
