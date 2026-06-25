@@ -35,6 +35,9 @@ const labels = {
     currentEvent: 'Événement courant',
     noEvent: 'Aucun événement actif',
     activeStep: 'ÉTAPE ACTIVE',
+    step: 'ÉTAPE',
+    stepA11y: 'Étape',
+    of: 'sur',
     trace: 'Journal de trace',
     status: 'Preuve et statut',
     exact: 'Exact / preuve complète',
@@ -80,6 +83,9 @@ const labels = {
     currentEvent: 'Current Event',
     noEvent: 'No active event',
     activeStep: 'ACTIVE STEP',
+    step: 'STEP',
+    stepA11y: 'Step',
+    of: 'of',
     trace: 'Trace journal',
     status: 'Proof and status',
     exact: 'Exact / proof complete',
@@ -125,6 +131,9 @@ const labels = {
     currentEvent: 'الحدث الحالي',
     noEvent: 'لا يوجد حدث نشط',
     activeStep: 'الخطوة النشطة',
+    step: 'الخطوة',
+    stepA11y: 'الخطوة',
+    of: 'من',
     trace: 'سجل التتبع',
     status: 'البرهان والحالة',
     exact: 'دقيق / البرهان مكتمل',
@@ -211,6 +220,8 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
   const activeCounters = event?.counters ?? result.counters;
   const activePath = event?.currentPath ?? [];
   const exact = result.status === 'optimal' || result.status === 'no-solution';
+  const currentOrdinal = stepIndex + 1;
+  const ordinalWidth = Math.max(2, String(trace.length).length);
 
   return (
     <div data-testid="cp2-plus-page" style={{ direction: isAr ? 'rtl' : 'ltr', textAlign: isAr ? 'right' : 'left' }}>
@@ -335,8 +346,13 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
               data-testid="cp2-plus-current-event-card"
               style={{ border: '2px solid var(--accent-gold)', borderInlineStart: '8px solid var(--accent-gold)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)', marginBlockEnd: 'var(--space-sm)', background: 'var(--primary-bg)' }}
             >
-              <strong>{t.currentEvent}</strong>
-              {event && <span style={{ float: isAr ? 'left' : 'right', fontWeight: 900 }}>{t.activeStep}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+                <strong>{t.currentEvent}</strong>
+                {event && <span style={{ fontWeight: 900 }}>{t.activeStep}</span>}
+              </div>
+              <div data-testid="cp2-plus-current-event-ordinal" dir="ltr" style={{ unicodeBidi: 'isolate', whiteSpace: 'nowrap', fontWeight: 900, color: 'var(--primary)' }}>
+                {t.step} {currentOrdinal} / {trace.length}
+              </div>
               <div style={{ fontWeight: 900, color: event?.type === 'genomic-propagation-prune' ? 'var(--danger)' : 'var(--primary)' }}>
                 {event ? traceLabel(event.type) : t.noEvent}
               </div>
@@ -354,10 +370,14 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
                     data-trace-event-id={id}
                     data-active-trace={active ? 'true' : 'false'}
                     aria-current={active ? 'step' : undefined}
+                    aria-label={`${t.stepA11y} ${index + 1} ${t.of} ${trace.length}: ${traceLabel(traceEvent.type)}`}
                     onClick={() => setCurrentStepIndex(index)}
                     className={active ? 'method-cockpit__active-row' : undefined}
                     style={{ textAlign: isAr ? 'right' : 'left', padding: 6, border: active ? '2px solid var(--accent-gold)' : '1px solid transparent', background: active ? 'var(--primary-bg)' : 'transparent', borderRadius: 'var(--radius-sm)' }}
                   >
+                    <span dir="ltr" style={{ display: 'block', unicodeBidi: 'isolate', whiteSpace: 'nowrap', fontSize: '0.72rem', fontWeight: 900, color: 'var(--neutral-medium)' }}>
+                      {String(index + 1).padStart(ordinalWidth, '0')} / {trace.length}
+                    </span>
                     <strong style={{ display: 'block', color: traceEvent.type.includes('prune') ? 'var(--danger)' : 'var(--primary)', fontSize: '0.72rem' }}>
                       {traceLabel(traceEvent.type)}
                     </strong>
