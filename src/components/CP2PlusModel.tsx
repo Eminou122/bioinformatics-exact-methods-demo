@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { Language, TranslationDict } from '../i18n/types';
 import { solveCP2Plus, type CP2PlusTraceEvent } from '../domain/cp2PlusSolver';
-import type { ExampleDataset } from '../data/examples';
+import { cp2PlusTeachingExamples, type CP2PlusExpectedBehavior } from '../data/cp2PlusExamples';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
@@ -20,7 +20,13 @@ const labels = {
     honesty: 'CP2+ est une spécialisation à une extrémité intégrée à CP2. Ce n’est ni une nouvelle méthode de recherche ni une reproduction d’article.',
     explanation: 'CP2+ conserve la borne de plus long suffixe dirigé de CP2. Il coupe aussi une branche seulement si même tous les sommets inutilisés atteignables vers l’avant ne peuvent reconnecter les sommets déjà sélectionnés dans G.',
     necessary: 'Ce test est une condition nécessaire seulement : une reconnexion possible dans le graphe relâché ne garantit pas qu’une complétion dirigée existe.',
-    example: 'Exemple pédagogique',
+    examples: 'Exemples pédagogiques',
+    graphSummary: 'Résumé des graphes',
+    expected: 'Comportement attendu',
+    genomicPrune: 'Élagage génomique',
+    noGenomicPrune: 'Aucun élagage génomique',
+    directedBoundPrune: 'Élagage par borne dirigée',
+    tieBreak: 'Départage',
     start: 'Démarrer CP2+',
     previous: 'Précédent',
     next: 'Suivant',
@@ -59,7 +65,13 @@ const labels = {
     honesty: 'CP2+ is a one-ended specialization integrated into CP2. It is not a new research method or a paper reproduction.',
     explanation: 'CP2+ preserves CP2’s directed longest-suffix bound. It also cuts a branch only when even all forward-reachable unused vertices cannot reconnect the already selected vertices in G.',
     necessary: 'This is only a necessary-condition test: reconnection in the relaxed graph does not certify that a directed completion exists.',
-    example: 'Teaching example',
+    examples: 'Teaching Examples',
+    graphSummary: 'D/G graph summary',
+    expected: 'Expected behavior',
+    genomicPrune: 'Genomic prune',
+    noGenomicPrune: 'No genomic prune',
+    directedBoundPrune: 'Directed-bound prune',
+    tieBreak: 'Tie-break',
     start: 'Start CP2+',
     previous: 'Previous',
     next: 'Next',
@@ -98,7 +110,13 @@ const labels = {
     honesty: 'CP2+ تخصيص أحادي الطرف مدمج في CP2. ليس طريقة بحث جديدة ولا إعادة إنتاج لورقة علمية.',
     explanation: 'يحافظ CP2+ على حد CP2 لأطول لاحقة موجهة. ويقطع الفرع فقط إذا كانت كل الرؤوس غير المستخدمة القابلة للوصول إلى الأمام غير قادرة على إعادة وصل الرؤوس المحددة في G.',
     necessary: 'هذا اختبار لشرط ضروري فقط: إمكان الاتصال في المخطط المرخى لا يثبت وجود إكمال موجه.',
-    example: 'مثال تعليمي',
+    examples: 'الأمثلة التعليمية',
+    graphSummary: 'ملخص المخططين D/G',
+    expected: 'السلوك المتوقع',
+    genomicPrune: 'تقليم جينومي',
+    noGenomicPrune: 'لا يوجد تقليم جينومي',
+    directedBoundPrune: 'تقليم بالحد الموجه',
+    tieBreak: 'كسر التعادل',
     start: 'بدء CP2+',
     previous: 'السابق',
     next: 'التالي',
@@ -133,51 +151,6 @@ const labels = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const fixtures: (ExampleDataset & { purpose: Record<Language, string> })[] = [
-  {
-    id: 'cp2-plus-prune',
-    titleFr: 'Élagage génomique sûr',
-    titleEn: 'Safe genomic prune',
-    titleAr: 'تقليم جينومي آمن',
-    descriptionFr: 'C relie A et B dans G, mais C est inaccessible après B dans D.',
-    descriptionEn: 'C bridges A and B in G, but C is unreachable after B in D.',
-    descriptionAr: 'يربط C بين A وB في G، لكنه غير قابل للوصول بعد B في D.',
-    teachingPointFr: 'Le préfixe A → B est coupé car aucun pont génomique atteignable vers l’avant ne subsiste.',
-    teachingPointEn: 'Prefix A → B is pruned because no forward-reachable genomic bridge remains.',
-    teachingPointAr: 'يُقلم المسار A → B لعدم وجود جسر جينومي قابل للوصول إلى الأمام.',
-    purpose: {
-      fr: 'Prouve que l’existence d’un pont dans G ne suffit pas : il doit être atteignable depuis le dernier sommet.',
-      en: 'Shows that a bridge in G is insufficient: it must be reachable from the endpoint.',
-      ar: 'يوضح أن وجود جسر في G لا يكفي؛ يجب أن يكون قابلاً للوصول من نهاية المسار.',
-    },
-    vertices: ['A', 'B', 'C'],
-    edgesD: [{ from: 'A', to: 'B' }],
-    edgesG: [{ u: 'A', v: 'C' }, { u: 'B', v: 'C' }],
-    nodePositions: { A: { x: 100, y: 120 }, B: { x: 350, y: 120 }, C: { x: 225, y: 230 } },
-  },
-  {
-    id: 'cp2-plus-repairable',
-    titleFr: 'Préfixe déconnecté mais réparable',
-    titleEn: 'Disconnected but repairable prefix',
-    titleAr: 'مسار جزئي منفصل لكنه قابل للإصلاح',
-    descriptionFr: 'A → B est déconnecté dans G, puis C reconnecte les deux sommets.',
-    descriptionEn: 'A → B is disconnected in G, then C reconnects both vertices.',
-    descriptionAr: 'يكون A → B منفصلاً في G، ثم يعيد C وصل الرأسين.',
-    teachingPointFr: 'CP2+ conserve le préfixe parce que C est atteignable vers l’avant.',
-    teachingPointEn: 'CP2+ keeps the prefix because C is forward reachable.',
-    teachingPointAr: 'يحتفظ CP2+ بالمسار لأن C قابل للوصول إلى الأمام.',
-    purpose: {
-      fr: 'Prouve qu’un préfixe actuellement déconnecté ne doit pas être élagué lorsqu’un pont futur est atteignable.',
-      en: 'Shows that a currently disconnected prefix must survive when a future bridge is reachable.',
-      ar: 'يوضح ضرورة إبقاء المسار الجزئي المنفصل عندما يكون جسر مستقبلي قابلاً للوصول.',
-    },
-    vertices: ['A', 'B', 'C'],
-    edgesD: [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
-    edgesG: [{ u: 'A', v: 'C' }, { u: 'B', v: 'C' }],
-    nodePositions: { A: { x: 80, y: 150 }, B: { x: 280, y: 150 }, C: { x: 480, y: 150 } },
-  },
-];
-
 function pathText(path: string[] | null | undefined, empty: string): string {
   return path && path.length > 0 ? `\u202A${path.join(' → ')}\u202C` : empty;
 }
@@ -196,13 +169,26 @@ function eventId(exampleId: string, event: CP2PlusTraceEvent, index: number): st
   return `cp2-plus:${exampleId}:${index}:${event.stepCount}:${event.type}`;
 }
 
+function traceLabel(type: CP2PlusTraceEvent['type']): string {
+  if (type === 'genomic-propagation-prune') return 'SAFE GENOMIC PRUNE';
+  if (type === 'bound-pruning') return 'DIRECTED BOUND PRUNE';
+  return type.toUpperCase();
+}
+
+function behaviorLabel(behavior: CP2PlusExpectedBehavior, t: typeof labels.en): string {
+  if (behavior === 'genomic-prune') return t.genomicPrune;
+  if (behavior === 'directed-bound-prune') return t.directedBoundPrune;
+  if (behavior === 'tie-break') return t.tieBreak;
+  return t.noGenomicPrune;
+}
+
 export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
   const t = labels[lang];
   const isAr = lang === 'ar';
-  const [selectedId, setSelectedId] = useState(fixtures[0].id);
+  const [selectedId, setSelectedId] = useState(cp2PlusTeachingExamples[0].id);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const currentExample = fixtures.find((fixture) => fixture.id === selectedId) ?? fixtures[0];
+  const currentExample = cp2PlusTeachingExamples.find((example) => example.id === selectedId) ?? cp2PlusTeachingExamples[0];
   const result = useMemo(
     () => solveCP2Plus(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
     [currentExample]
@@ -239,25 +225,46 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
         <p style={{ marginBlockEnd: 0, color: 'var(--primary)', fontWeight: 700 }}>{t.necessary}</p>
       </section>
 
-      <section className="card">
-        <label style={{ display: 'grid', gap: 'var(--space-xs)', maxWidth: 440 }}>
-          <strong>{t.example}</strong>
-          <select
-            value={selectedId}
-            onChange={(change) => {
-              setSelectedId(change.target.value);
-              setCurrentStepIndex(-1);
-            }}
-            style={{ minHeight: 44, padding: 'var(--space-sm)' }}
-          >
-            {fixtures.map((fixture) => (
-              <option key={fixture.id} value={fixture.id}>
-                {lang === 'fr' ? fixture.titleFr : lang === 'ar' ? fixture.titleAr : fixture.titleEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p style={{ marginBlock: 'var(--space-sm) 0' }}>{currentExample.purpose[lang]}</p>
+      <section className="card" data-testid="cp2-plus-teaching-examples">
+        <h3 style={{ color: 'var(--primary)' }}>{t.examples}</h3>
+        <div className="cp2-plus-example-grid">
+          {cp2PlusTeachingExamples.map((example) => {
+            const selected = example.id === selectedId;
+            const title = lang === 'fr' ? example.titleFr : lang === 'ar' ? example.titleAr : example.titleEn;
+            return (
+              <button
+                key={example.id}
+                type="button"
+                aria-pressed={selected}
+                data-example-id={example.id}
+                onClick={() => {
+                  setSelectedId(example.id);
+                  setCurrentStepIndex(-1);
+                }}
+                style={{
+                  textAlign: isAr ? 'right' : 'left',
+                  padding: 'var(--space-sm)',
+                  border: selected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: selected ? 'var(--primary-bg)' : 'var(--bg-card)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <strong style={{ display: 'block', color: 'var(--primary)' }}>{title}</strong>
+                <span style={{ display: 'block', marginBlock: 4, color: 'var(--neutral-medium)' }}>{example.objective[lang]}</span>
+                <span style={{ display: 'inline-block', padding: '2px 7px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 800 }}>
+                  {behaviorLabel(example.expectedBehavior, t as typeof labels.en)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ marginBlockStart: 'var(--space-md)', padding: 'var(--space-sm)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+          <p style={{ marginBlockEnd: 'var(--space-xs)', fontWeight: 700 }}>{currentExample.objective[lang]}</p>
+          <p dir="ltr" style={{ marginBlockEnd: 'var(--space-xs)' }}><strong>{t.graphSummary}:</strong> <span data-testid="cp2-plus-graph-summary">{currentExample.graphSummary}</span></p>
+          <p style={{ marginBlockEnd: 0 }}><strong>{t.expected}:</strong> {behaviorLabel(currentExample.expectedBehavior, t as typeof labels.en)}</p>
+        </div>
       </section>
 
       <MethodCockpit
@@ -331,7 +338,7 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
               <strong>{t.currentEvent}</strong>
               {event && <span style={{ float: isAr ? 'left' : 'right', fontWeight: 900 }}>{t.activeStep}</span>}
               <div style={{ fontWeight: 900, color: event?.type === 'genomic-propagation-prune' ? 'var(--danger)' : 'var(--primary)' }}>
-                {event?.type === 'genomic-propagation-prune' ? 'SAFE GENOMIC PRUNE' : event?.type.toUpperCase() ?? t.noEvent}
+                {event ? traceLabel(event.type) : t.noEvent}
               </div>
               <p style={{ marginBlockEnd: 0 }}>{event?.message ?? t.noEvent}</p>
             </article>
@@ -352,7 +359,7 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
                     style={{ textAlign: isAr ? 'right' : 'left', padding: 6, border: active ? '2px solid var(--accent-gold)' : '1px solid transparent', background: active ? 'var(--primary-bg)' : 'transparent', borderRadius: 'var(--radius-sm)' }}
                   >
                     <strong style={{ display: 'block', color: traceEvent.type.includes('prune') ? 'var(--danger)' : 'var(--primary)', fontSize: '0.72rem' }}>
-                      {traceEvent.type === 'genomic-propagation-prune' ? 'SAFE GENOMIC PRUNE' : traceEvent.type.toUpperCase()}
+                      {traceLabel(traceEvent.type)}
                     </strong>
                     <span>{traceEvent.message}</span>
                   </button>
@@ -379,8 +386,14 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
       </details>
 
       <style>{`
+        .cp2-plus-example-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--space-sm);
+        }
         @media (max-width: 767px) {
           .cp2-plus-mobile-tabs { display: flex !important; }
+          .cp2-plus-example-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
