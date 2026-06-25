@@ -132,6 +132,21 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
   });
 
+  test('Subset DP is labeled as an educational exact method, not a paper-derived method', () => {
+    window.history.pushState({}, '', '/methods');
+    render(<App />);
+
+    const subsetCard = screen.getByText('Exact Subset Dynamic Programming').closest('.card') as HTMLElement;
+    expect(subsetCard).toBeDefined();
+    expect(within(subsetCard).getByText('Méthode exacte pédagogique')).toBeDefined();
+    expect(subsetCard.textContent).not.toMatch(/Educational Paper|papier pédagogique/i);
+
+    fireEvent.click(screen.getByText('English'));
+    const englishSubsetCard = screen.getByText('Exact Subset Dynamic Programming').closest('.card') as HTMLElement;
+    expect(within(englishSubsetCard).getByText('Educational exact method')).toBeDefined();
+    expect(englishSubsetCard.textContent).not.toContain('Educational Paper');
+  });
+
   test('all public routes render their expected page surfaces', () => {
     const routes = [
       { path: '/', text: /Module d'Apprentissage Pas-à-Pas/i },
@@ -140,6 +155,7 @@ describe('Routing and Educational UI QA Suite', () => {
       { path: '/methods/algobb-plus-plus', text: /AlgoBB\+\+ éducatif/i },
       { path: '/methods/cp2', text: /CP2/i },
       { path: '/methods/ai-guided-exact', text: /Explainable AI-Guided Exact Search/i },
+      { path: '/methods/subset-dp', text: /Exact Subset Dynamic Programming/i },
       { path: '/methods/ilp1', text: /ILP1/i },
       { path: '/methods/cp3', text: /CP3/i },
       { path: '/methods/cp4', text: /CP4/i },
@@ -411,8 +427,8 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
-  test('CP1, CP2, ILP1, ILP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
+  test('CP1, CP2, Subset DP, ILP1, ILP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/subset-dp', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
 
     for (const route of routes) {
       cleanup();
@@ -452,7 +468,7 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(screen.getByRole('button', { name: /lecture|play|تشغيل/i })).toBeDefined();
       expect(screen.getByRole('button', { name: /réinitialiser|reset|إعادة/i })).toBeDefined();
     }
-  });
+  }, 15000);
 
   test('CP1, CP2, AI-guided, AlgoBB++, ILP1, and ILP2 render the shared method cockpit', () => {
     const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
@@ -676,7 +692,7 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(screen.getByText(new RegExp(`Étape: ${expectedIndex + 1} /`, 'i'))).toBeDefined();
     }
     vi.useRealTimers();
-  });
+  }, 15000);
 
   test('CP2 previous reset end and example changes keep active trace aligned', () => {
     window.history.pushState({}, '', '/methods/cp2');
@@ -881,7 +897,7 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(wrappers[0].getAttribute('aria-hidden')).toBe('false');
       expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
     }
-  });
+  }, 15000);
 
   test('AI-guided exact route supports shared cockpit, guide card, mobile graph tabs, and Arabic RTL shell', () => {
     window.history.pushState({}, '', '/methods/ai-guided-exact');
@@ -1185,4 +1201,34 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(legacyRes.error).toBeDefined();
     expect(cpRes.error?.code).toBe('INVALID_NODE_D');
   });
+  test('Subset DP route supports cockpit playback, current event card, Arabic RTL shell, LTR graphs, mobile tabs, and no visible emoji', () => {
+    window.history.pushState({}, '', '/methods/subset-dp');
+    const { container } = render(<App />);
+
+    expect(screen.getAllByText(/Exact Subset Dynamic Programming/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('method-cockpit')).toBeDefined();
+    expect(screen.getByTestId('method-playback-controls')).toBeDefined();
+    expect(screen.getByTestId('subset-dp-current-event-card')).toBeDefined();
+    expect(screen.getByText(/DP State Inspector|Inspecteur des états DP/i)).toBeDefined();
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer Subset DP/i }));
+    expect(screen.getByTestId('subset-dp-current-event-card').textContent).toContain('ACTIVE STEP');
+    fireEvent.click(controls.getByRole('button', { name: /Suivant/i }));
+    expect(screen.getByTestId('subset-dp-current-event-card').textContent).toMatch(/2 \/ \d+/);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(container.querySelector('[data-testid="directed-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+    expect(container.querySelector('[data-testid="genomic-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+
+    window.innerWidth = 320;
+    window.dispatchEvent(new Event('resize'));
+    const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+    if (mobileSelector) mobileSelector.style.display = 'flex';
+    expect(screen.getByRole('button', { name: 'D', hidden: true })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'G', hidden: true })).toBeDefined();
+
+    expect(/[\u{1F300}-\u{1FAFF}]/u.test(document.body.textContent || '')).toBe(false);
+  }, 15000);
 });

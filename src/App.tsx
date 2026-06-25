@@ -23,6 +23,7 @@ import { ILP1Model } from './components/ILP1Model';
 import { ILP2Model } from './components/ILP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
 import { AIGuidedExactModel } from './components/AIGuidedExactModel';
+import { SubsetDpModel } from './components/SubsetDpModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
 
 const LANGUAGE_STORAGE_KEY = 'bioinformatics-demo-language';
@@ -171,6 +172,9 @@ function App() {
     }
     if (currentPath === '/methods/ai-guided-exact') {
       return <AIGuidedExactModel lang={lang} dict={dict} />;
+    }
+    if (currentPath === '/methods/subset-dp') {
+      return <SubsetDpModel lang={lang} dict={dict} />;
     }
     if (currentPath.startsWith('/methods/')) {
       const parts = currentPath.split('/');

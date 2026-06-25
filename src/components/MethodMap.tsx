@@ -23,13 +23,15 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: string;
       runCP2: string;
       runAIGuided: string;
+      runSubsetDp: string;
       runILP1: string;
       runILP2: string;
       runLegacy: string;
     methods: {
       id: string;
       name: string;
-      paper: string;
+      paper?: string;
+      sourceLabel?: string;
       badge: 'exact' | 'simulation' | 'reference';
       desc: string;
       route?: string;
@@ -47,6 +49,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
       runAIGuided: 'Lancer la recherche guidée',
+      runSubsetDp: 'Lancer Subset DP',
       runILP1: 'Lancer l\'application ILP1',
       runILP2: 'Lancer l\'application ILP2',
       runLegacy: 'Lancer la démo énumération',
@@ -74,6 +77,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'Ordonnancement de branches transparent et déterministe; le solveur exact reste seul responsable de la validité et de la preuve.',
           route: '/methods/ai-guided-exact'
+        },
+        {
+          id: 'subset-dp',
+          name: 'Exact Subset Dynamic Programming',
+          sourceLabel: 'Méthode exacte pédagogique',
+          badge: 'exact',
+          desc: 'Programmation dynamique exacte sur subset et dernier sommet; exacte seulement pour petits graphes quand la recherche se termine.',
+          route: '/methods/subset-dp'
         },
         {
           id: 'cp3',
@@ -153,6 +164,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
       runAIGuided: 'Launch AI-guided search',
+      runSubsetDp: 'Launch Subset DP',
       runILP1: 'Launch ILP1 Solver App',
       runILP2: 'Launch ILP2 Solver App',
       runLegacy: 'Launch Legacy Enumeration',
@@ -180,6 +192,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'Transparent deterministic branch ordering; the exact solver remains the sole authority for validity and proof completion.',
           route: '/methods/ai-guided-exact'
+        },
+        {
+          id: 'subset-dp',
+          name: 'Exact Subset Dynamic Programming',
+          sourceLabel: 'Educational exact method',
+          badge: 'exact',
+          desc: 'Exact dynamic programming over subset and endpoint; exact only for small graphs when the search completes.',
+          route: '/methods/subset-dp'
         },
         {
           id: 'cp3',
@@ -259,6 +279,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
       runAIGuided: 'تشغيل البحث الموجه',
+      runSubsetDp: 'تشغيل Subset DP',
       runILP1: 'تشغيل نموذج ILP1',
       runILP2: 'تشغيل نموذج ILP2',
       runLegacy: 'تشغيل محاكاة التعداد القديمة',
@@ -286,6 +307,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'ترتيب فروع حتمي وشفاف؛ يبقى المحلل الدقيق هو المسؤول الوحيد عن الصلاحية واكتمال البرهان.',
           route: '/methods/ai-guided-exact'
+        },
+        {
+          id: 'subset-dp',
+          name: 'Exact Subset Dynamic Programming',
+          sourceLabel: 'طريقة تعليمية دقيقة',
+          badge: 'exact',
+          desc: 'برمجة ديناميكية دقيقة على subset وآخر رأس؛ دقيقة فقط للرسوم الصغيرة عند اكتمال البحث.',
+          route: '/methods/subset-dp'
         },
         {
           id: 'cp3',
@@ -415,7 +444,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                     </span>
                   </span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--neutral-light)', fontWeight: 600 }}>
-                    {method.paper} Paper
+                    {method.sourceLabel ?? `${method.paper} Paper`}
                   </span>
                 </div>
                 
@@ -445,7 +474,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ai-guided-exact' ? t.runAIGuided : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ai-guided-exact' ? t.runAIGuided : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
                   </Link>
                   {method.id === 'enumeration' && (
                     <Link 

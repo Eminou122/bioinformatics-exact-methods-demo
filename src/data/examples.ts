@@ -141,5 +141,31 @@ export const examples: ExampleDataset[] = [
       R4: { x: 500, y: 150 },
     },
   },
+  {
+    id: 'lexical-tie',
+    titleFr: '5. Départage lexicographique',
+    titleEn: '5. Lexical tie-break',
+    titleAr: '٥. كسر التعادل المعجمي',
+    descriptionFr: 'Deux chemins valides ont la même longueur; la séquence lexicographiquement plus petite doit gagner.',
+    descriptionEn: 'Two valid paths have the same length; the lexicographically smaller sequence must win.',
+    descriptionAr: 'يوجد مساران صالحان بالطول نفسه؛ يجب أن يفوز التسلسل الأصغر معجمياً.',
+    teachingPointFr: 'L’objectif choisit d’abord la longueur maximale, puis applique le départage lexicographique.',
+    teachingPointEn: 'The objective first chooses maximum length, then applies the lexical tie-break.',
+    teachingPointAr: 'يختار الهدف أولاً الطول الأقصى، ثم يطبق كسر التعادل المعجمي.',
+    vertices: ['A', 'B', 'C'],
+    edgesD: [
+      { from: 'A', to: 'C' },
+      { from: 'B', to: 'C' },
+    ],
+    edgesG: [
+      { u: 'A', v: 'C' },
+      { u: 'B', v: 'C' },
+    ],
+    nodePositions: {
+      A: { x: 120, y: 90 },
+      B: { x: 120, y: 210 },
+      C: { x: 360, y: 150 },
+    },
+  },
 ];
 
