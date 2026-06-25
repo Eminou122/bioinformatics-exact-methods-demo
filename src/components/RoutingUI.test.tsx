@@ -112,10 +112,6 @@ describe('Routing and Educational UI QA Suite', () => {
     fireEvent.click(cp2Link);
     expect(screen.getByText('CP2 — CP1 avec Bornes Supérieures Sûres')).toBeDefined();
 
-    const aiGuidedLink = screen.getByText('Recherche guidée AI');
-    fireEvent.click(aiGuidedLink);
-    expect(screen.getAllByText('Explainable AI-Guided Exact Search').length).toBeGreaterThan(0);
-
     // Click "Modèle ILP1"
     const ilp1Link = screen.getByText('Modèle ILP1');
     fireEvent.click(ilp1Link);
@@ -154,7 +150,6 @@ describe('Routing and Educational UI QA Suite', () => {
       { path: '/methods/cp1', text: /Modèle Éducatif CP1/i },
       { path: '/methods/algobb-plus-plus', text: /AlgoBB\+\+ éducatif/i },
       { path: '/methods/cp2', text: /CP2/i },
-      { path: '/methods/ai-guided-exact', text: /Explainable AI-Guided Exact Search/i },
       { path: '/methods/subset-dp', text: /Exact Subset Dynamic Programming/i },
       { path: '/methods/ilp1', text: /ILP1/i },
       { path: '/methods/cp3', text: /CP3/i },
@@ -428,7 +423,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('CP1, CP2, Subset DP, ILP1, ILP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/subset-dp', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/subset-dp', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
 
     for (const route of routes) {
       cleanup();
@@ -457,8 +452,8 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(cpVarInspector).toBeDefined();
   });
 
-  test('CP1, CP2, AI-guided, AlgoBB++, ILP1, and ILP2 display compact playback controls', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
+  test('CP1, CP2, AlgoBB++, ILP1, and ILP2 display compact playback controls', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -470,8 +465,8 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   }, 15000);
 
-  test('CP1, CP2, AI-guided, AlgoBB++, ILP1, and ILP2 render the shared method cockpit', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
+  test('CP1, CP2, AlgoBB++, ILP1, and ILP2 render the shared method cockpit', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -515,7 +510,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('each cockpit exposes one current active trace item after start', () => {
-    const routes = ['/methods/cp1', '/methods/cp2', '/methods/ai-guided-exact', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -898,211 +893,6 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
     }
   }, 15000);
-
-  test('AI-guided exact route supports shared cockpit, guide card, mobile graph tabs, and Arabic RTL shell', () => {
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-    const { container } = render(<App />);
-
-    expect(screen.getAllByText('Explainable AI-Guided Exact Search').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Educational transparent AI-guided branch ordering/i).length).toBeGreaterThan(0);
-    expect(screen.getByTestId('method-cockpit')).toBeDefined();
-
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    expect(screen.getByText('AI Guide Decision')).toBeDefined();
-    expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
-
-    window.innerWidth = 320;
-    window.dispatchEvent(new Event('resize'));
-    const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
-    if (mobileSelector) mobileSelector.style.display = 'flex';
-    fireEvent.click(screen.getByRole('button', { name: 'G', hidden: true }));
-    expect(container.querySelectorAll('.mobile-hide-graph').length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getByText('العربية'));
-    expect(document.documentElement.lang).toBe('ar');
-    expect(document.documentElement.dir).toBe('rtl');
-    expect(container.querySelector('[data-testid="directed-graph-container"]')?.getAttribute('dir')).toBe('ltr');
-    expect(screen.getByText(/ترتيب فقط/i)).toBeDefined();
-  });
-
-  test('optional local AI assistant renders without making an automatic request', () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-
-    expect(screen.getByText('Experimental Local AI Assistant')).toBeDefined();
-    expect(screen.getByText('Not connected')).toBeDefined();
-    const button = screen.getByRole('button', { name: 'Ask local AI for branch explanation' }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    fireEvent.click(button);
-    expect(fetchMock).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
-  });
-
-  test('local AI assistant explains when a branch-ranking step is required', () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-
-    expect((screen.getByRole('button', { name: 'Ask local AI for branch explanation' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('Advance the search to a branch-ranking step first.')).toBeDefined();
-    expect(fetchMock).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
-  });
-
-  test('local AI assistant button enables at branch-ranking steps', () => {
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
-
-    expect((screen.getByRole('button', { name: 'Ask local AI for branch explanation' }) as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  test('local AI assistant renders local and cloud advisory status note', () => {
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-
-    expect(screen.getByText('Local Ollama is attempted first when available. Cloud AI advisory fallback is used in production when configured. Both are advisory only; the deterministic exact solver remains the sole source of validity and optimality.')).toBeDefined();
-  });
-
-  test('unavailable Ollama does not break deterministic guide', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
-    expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
-
-    expect(await screen.findByText('Unavailable — deterministic guide remains active')).toBeDefined();
-    expect(screen.getByText(/AI assistant is unavailable/i)).toBeDefined();
-    expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
-    vi.unstubAllGlobals();
-  });
-
-  test('cloud AI response is labeled advisory only after Ollama is unavailable', async () => {
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url === 'http://localhost:11434/api/chat') return Promise.reject(new Error('offline'));
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          provider: 'groq',
-          advisory: '- R2 remains the top ranked branch.\n- R3 has less deterministic support.\n- The exact solver remains authoritative.',
-          errorCode: null,
-        }),
-      });
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
-
-    expect(await screen.findByText('Available from cloud')).toBeDefined();
-    expect(screen.getByText('Cloud AI suggestion — advisory only')).toBeDefined();
-    expect(screen.getByText('The deterministic exact solver remains the only source of validity and optimality.')).toBeDefined();
-    expect(screen.getByText(/R2 remains the top ranked branch/i)).toBeDefined();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/ai-branch-explanation');
-    const cloudRequest = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(cloudRequest.currentPath).toBeDefined();
-    expect(cloudRequest.locale).toBe('fr');
-    expect(cloudRequest.rankedCandidates.length).toBeLessThanOrEqual(3);
-    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('GROQ_API_KEY');
-    vi.unstubAllGlobals();
-  });
-
-  test('cloud AI error preserves deterministic guide without provider details', async () => {
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url === 'http://localhost:11434/api/chat') return Promise.reject(new Error('offline'));
-      return Promise.resolve({
-        ok: false,
-        json: async () => ({ ok: false, provider: 'groq', advisory: '', errorCode: 'MISSING_KEY' }),
-      });
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
-
-    expect(await screen.findByText('Unavailable — deterministic guide remains active')).toBeDefined();
-    expect(screen.getByText(/AI assistant is unavailable/i)).toBeDefined();
-    expect(screen.getByText(/Classement seulement|Ranking only|ترتيب فقط/i)).toBeDefined();
-    expect(document.body.textContent).not.toContain('MISSING_KEY');
-    vi.unstubAllGlobals();
-  });
-
-  test('local AI response is labeled advisory only and sent to localhost Ollama', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        message: {
-          content: '- Prefer R2 by score.\n- R3 has weaker genomic support.\n- Deterministic solver must verify.',
-        },
-      }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next|التالي/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ask local AI for branch explanation' }));
-
-    expect(await screen.findByText('Available locally')).toBeDefined();
-    expect(screen.getByText('Local AI suggestion — advisory only')).toBeDefined();
-    expect(screen.getByText('The deterministic exact solver remains the only source of validity and optimality.')).toBeDefined();
-    expect(screen.getByText(/Prefer R2 by score/i)).toBeDefined();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:11434/api/chat');
-    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(request.model).toBe('llama3.2:1b');
-    expect(request.stream).toBe(false);
-    expect(request.messages[0].content).toContain('current path:');
-    expect(request.messages[0].content).toContain('deterministic guide scores:');
-    expect(request.messages[0].content).toContain('instruction: do not claim proof or validity.');
-    vi.unstubAllGlobals();
-  });
-
-  test('local AI assistant is never called automatically during playback', () => {
-    vi.useFakeTimers();
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.pushState({}, '', '/methods/ai-guided-exact');
-
-    render(<App />);
-    const controls = within(screen.getByTestId('method-playback-controls'));
-    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    fireEvent.click(controls.getByRole('button', { name: /Lecture|Play|تشغيل/i }));
-    act(() => {
-      vi.advanceTimersByTime(3300);
-    });
-
-    expect(fetchMock).not.toHaveBeenCalled();
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-  });
 
   test('ILP1 page supports mobile graph tabs at 320px and 390px', () => {
     window.history.pushState({}, '', '/methods/ilp1');

@@ -22,7 +22,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
     learnMore: string;
       runCP1: string;
       runCP2: string;
-      runAIGuided: string;
       runSubsetDp: string;
       runILP1: string;
       runILP2: string;
@@ -48,7 +47,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'En savoir plus',
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
-      runAIGuided: 'Lancer la recherche guidée',
       runSubsetDp: 'Lancer Subset DP',
       runILP1: 'Lancer l\'application ILP1',
       runILP2: 'Lancer l\'application ILP2',
@@ -69,14 +67,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'Implémentation exacte pour petits DAG : CP1 avec borne supérieure sûre pour élaguer des branches sous-optimales.',
           route: '/methods/cp2'
-        },
-        {
-          id: 'ai-guided-exact',
-          name: 'Explainable AI-Guided Exact Search',
-          paper: 'Educational',
-          badge: 'exact',
-          desc: 'Ordonnancement de branches transparent et déterministe; le solveur exact reste seul responsable de la validité et de la preuve.',
-          route: '/methods/ai-guided-exact'
         },
         {
           id: 'subset-dp',
@@ -163,7 +153,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'Learn More',
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
-      runAIGuided: 'Launch AI-guided search',
       runSubsetDp: 'Launch Subset DP',
       runILP1: 'Launch ILP1 Solver App',
       runILP2: 'Launch ILP2 Solver App',
@@ -184,14 +173,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'Exact small-DAG implementation: CP1 with a safe upper bound for pruning sub-optimal branches.',
           route: '/methods/cp2'
-        },
-        {
-          id: 'ai-guided-exact',
-          name: 'Explainable AI-Guided Exact Search',
-          paper: 'Educational',
-          badge: 'exact',
-          desc: 'Transparent deterministic branch ordering; the exact solver remains the sole authority for validity and proof completion.',
-          route: '/methods/ai-guided-exact'
         },
         {
           id: 'subset-dp',
@@ -278,7 +259,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'اقرأ المزيد',
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
-      runAIGuided: 'تشغيل البحث الموجه',
       runSubsetDp: 'تشغيل Subset DP',
       runILP1: 'تشغيل نموذج ILP1',
       runILP2: 'تشغيل نموذج ILP2',
@@ -299,14 +279,6 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'تطبيق دقيق لمخططات DAG الصغيرة: CP1 مع حد أعلى آمن لتقليم الفروع دون المثلى.',
           route: '/methods/cp2'
-        },
-        {
-          id: 'ai-guided-exact',
-          name: 'Explainable AI-Guided Exact Search',
-          paper: 'Educational',
-          badge: 'exact',
-          desc: 'ترتيب فروع حتمي وشفاف؛ يبقى المحلل الدقيق هو المسؤول الوحيد عن الصلاحية واكتمال البرهان.',
-          route: '/methods/ai-guided-exact'
         },
         {
           id: 'subset-dp',
@@ -474,7 +446,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'ai-guided-exact' ? t.runAIGuided : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
                   </Link>
                   {method.id === 'enumeration' && (
                     <Link 
