@@ -116,7 +116,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       }}
     >
       {items.map((item) => {
-        const isActive = currentPath === item.path || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2' && currentPath !== '/methods/cp2-plus' && currentPath !== '/methods/subset-dp' && currentPath !== '/methods/ilp1' && currentPath !== '/methods/ilp2');
+        const isCP2PlusRoute = currentPath === '/methods/cp2-plus' || currentPath.startsWith('/methods/cp2-plus/');
+        const isActive = currentPath === item.path
+          || (item.path === '/methods/cp2-plus' && isCP2PlusRoute)
+          || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2' && !isCP2PlusRoute && currentPath !== '/methods/subset-dp' && currentPath !== '/methods/ilp1' && currentPath !== '/methods/ilp2');
         return (
           <Link
             key={item.path}

@@ -7,10 +7,12 @@ import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
+import { Link } from './Navigation';
 
 interface CP2PlusModelProps {
   lang: Language;
   dict: TranslationDict;
+  navigate: (path: string) => void;
 }
 
 const labels = {
@@ -61,6 +63,8 @@ const labels = {
     cp2PlusAdditional: 'Borne CP2 + propagation sûre de faisabilité génomique',
     bbAdditional: 'Test relâché de reconnexion génomique à deux extrémités',
     empty: 'Aucun',
+    comparisonLab: 'Voir le laboratoire de comparaison',
+    comparisonLabHint: 'Évalue les preuves du benchmark complet, pas l’exemple pédagogique actuellement sélectionné.',
   },
   en: {
     title: 'CP2+ — Safe Genomic-Feasibility Propagation',
@@ -109,6 +113,8 @@ const labels = {
     cp2PlusAdditional: 'CP2 bound + safe genomic-feasibility propagation',
     bbAdditional: 'Two-ended relaxed genomic reconnection check',
     empty: 'None',
+    comparisonLab: 'View Comparison Lab',
+    comparisonLabHint: 'Evaluates evidence from the full benchmark corpus, not the currently selected teaching example.',
   },
   ar: {
     title: 'CP2+ — الانتشار الآمن لإمكان الاتصال الجينومي',
@@ -157,6 +163,8 @@ const labels = {
     cp2PlusAdditional: 'حد CP2 مع انتشار آمن لإمكان الاتصال الجينومي',
     bbAdditional: 'فحص مرخى ثنائي الطرف لإعادة الاتصال الجينومي',
     empty: 'لا يوجد',
+    comparisonLab: 'عرض مختبر المقارنة',
+    comparisonLabHint: 'يقيّم أدلة متن المعيار الكامل، وليس المثال التعليمي المحدد حالياً.',
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -191,7 +199,7 @@ function behaviorLabel(behavior: CP2PlusExpectedBehavior, t: typeof labels.en): 
   return t.noGenomicPrune;
 }
 
-export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
+export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate }) => {
   const t = labels[lang];
   const isAr = lang === 'ar';
   const [selectedId, setSelectedId] = useState(cp2PlusTeachingExamples[0].id);
@@ -234,6 +242,12 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict }) => {
       <section className="card">
         <p>{t.explanation}</p>
         <p style={{ marginBlockEnd: 0, color: 'var(--primary)', fontWeight: 700 }}>{t.necessary}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-sm)', marginBlockStart: 'var(--space-md)' }}>
+          <Link to="/methods/cp2-plus/comparison" navigate={navigate} className="btn btn-primary" style={{ width: 'auto' }}>
+            {t.comparisonLab}
+          </Link>
+          <span style={{ flex: '1 1 16rem', color: 'var(--neutral-medium)', fontSize: '0.85rem' }}>{t.comparisonLabHint}</span>
+        </div>
       </section>
 
       <section className="card" data-testid="cp2-plus-teaching-examples">

@@ -22,6 +22,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
     learnMore: string;
       runCP1: string;
       runCP2: string;
+      runCP2Comparison: string;
       runSubsetDp: string;
       runILP1: string;
       runILP2: string;
@@ -47,6 +48,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'En savoir plus',
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
+      runCP2Comparison: 'Voir le laboratoire CP2+',
       runSubsetDp: 'Lancer Subset DP',
       runILP1: 'Lancer l\'application ILP1',
       runILP2: 'Lancer l\'application ILP2',
@@ -161,6 +163,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'Learn More',
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
+      runCP2Comparison: 'View CP2+ Comparison Lab',
       runSubsetDp: 'Launch Subset DP',
       runILP1: 'Launch ILP1 Solver App',
       runILP2: 'Launch ILP2 Solver App',
@@ -275,6 +278,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       learnMore: 'اقرأ المزيد',
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
+      runCP2Comparison: 'عرض مختبر مقارنة CP2+',
       runSubsetDp: 'تشغيل Subset DP',
       runILP1: 'تشغيل نموذج ILP1',
       runILP2: 'تشغيل نموذج ILP2',
@@ -457,7 +461,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
               </div>
 
               {method.route && (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
                   <Link 
                     to={method.route} 
                     navigate={navigate}
@@ -472,6 +476,16 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                   >
                     {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
                   </Link>
+                  {method.id === 'cp2-plus' && (
+                    <Link
+                      to="/methods/cp2-plus/comparison"
+                      navigate={navigate}
+                      className="btn btn-secondary"
+                      style={{ minHeight: '38px', fontSize: '0.85rem', width: 'auto', paddingBlock: 4, paddingInline: 'var(--space-md)' }}
+                    >
+                      {t.runCP2Comparison}
+                    </Link>
+                  )}
                   {method.id === 'enumeration' && (
                     <Link 
                       to="/legacy" 
