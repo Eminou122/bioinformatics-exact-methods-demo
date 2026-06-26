@@ -7,8 +7,6 @@ interface MethodCockpitProps {
   state: React.ReactNode;
   constraints: React.ReactNode;
   trace: React.ReactNode;
-  /** When true, removes the fixed viewport-height layout so the cockpit scrolls with the page. */
-  scrollable?: boolean;
 }
 
 export const MethodCockpit: React.FC<MethodCockpitProps> = ({
@@ -18,11 +16,9 @@ export const MethodCockpit: React.FC<MethodCockpitProps> = ({
   state,
   constraints,
   trace,
-  scrollable,
 }) => {
-  const cls = scrollable ? 'method-cockpit method-cockpit--scrollable' : 'method-cockpit';
   return (
-    <section ref={cockpitRef} className={cls} data-testid="method-cockpit" aria-label="Method cockpit">
+    <section ref={cockpitRef} className="method-cockpit" data-testid="method-cockpit" aria-label="Method cockpit">
       <div className="method-cockpit__controls">{controls}</div>
       <div className="method-cockpit__body" data-testid="method-cockpit-grid">
         <div className="method-cockpit__panel method-cockpit__graph" data-testid="method-cockpit-graph">
@@ -120,20 +116,6 @@ export const MethodCockpit: React.FC<MethodCockpitProps> = ({
             height: auto;
             overflow: visible;
           }
-        }
-
-        .method-cockpit--scrollable {
-          height: auto !important;
-          min-height: 0 !important;
-          overflow: visible !important;
-        }
-        .method-cockpit--scrollable .method-cockpit__body {
-          overflow: visible !important;
-        }
-        .method-cockpit--scrollable .method-cockpit__panel > .card,
-        .method-cockpit--scrollable .method-cockpit__graph > .graph-panel-container {
-          height: auto !important;
-          overflow: visible !important;
         }
       `}</style>
     </section>

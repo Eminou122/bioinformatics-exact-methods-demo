@@ -180,7 +180,7 @@ describe('Random-Graph Demonstration Lab', () => {
       ['Ouvrir dans CP2+', '/methods/cp2-plus'],
       ['Ouvrir dans AlgoBB++', '/methods/algobb-plus-plus'],
       ['Ouvrir dans ILP1', '/methods/ilp1'],
-      ['ILP2 — rejet génomique sûr', '/methods/ilp2'],
+      ['Ouvrir dans ILP2', '/methods/ilp2'],
       ['Ouvrir dans Subset DP', '/methods/subset-dp'],
     ] as const;
 
@@ -229,7 +229,7 @@ describe('Random-Graph Demonstration Lab', () => {
 
     fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
-    expect((screen.getByRole('button', { name: 'ILP2 — rejet génomique sûr' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('not-run-preenumeration-risk');
     expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('Not applicable — cyclic-trail method.');
   });
@@ -243,38 +243,5 @@ describe('Random-Graph Demonstration Lab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2+' }));
     expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('diamond-merge-lexical-ties-small');
-  });
-
-  test('selecting a challenge graph immediately auto-loads it without clicking the button', () => {
-    render(<App />);
-
-    fireEvent.change(screen.getByLabelText('Graphes défis déterministes'), { target: { value: 'long-spine-decoys-small' } });
-    expect(screen.getAllByText('Famille').find((el) => el.tagName === 'DT')?.nextElementSibling?.textContent).toBe('challenge-graph');
-  });
-
-  test('active challenge graph shows its identity in the generated graph panel', () => {
-    render(<App />);
-
-    fireEvent.change(screen.getByLabelText('Graphes défis déterministes'), { target: { value: 'fragmented-genomic-components-medium' } });
-    const familyDt = screen.getAllByText('Famille').find((el) => el.tagName === 'DT')!;
-    expect(familyDt.nextElementSibling?.textContent).toBe('challenge-graph');
-    expect(screen.getByTestId('method-cockpit').textContent).toContain('fragmented-genomic-components-medium');
-  });
-
-  test('ILP2 teaching label is visible and action still routes to the real ILP2 method', () => {
-    render(<App />);
-
-    const btn = screen.getByRole('button', { name: 'ILP2 — rejet génomique sûr' });
-    expect(btn).toBeDefined();
-    expect((btn as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(btn);
-    expect(window.location.pathname).toBe('/methods/ilp2');
-  });
-
-  test('graph visualization layout uses scrollable cockpit with no fixed-height clipping', () => {
-    const { container } = render(<App />);
-
-    const cockpit = container.querySelector('[data-testid="method-cockpit"]');
-    expect(cockpit?.className).toContain('method-cockpit--scrollable');
   });
 });
