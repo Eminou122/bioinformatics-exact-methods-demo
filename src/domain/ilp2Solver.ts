@@ -1,5 +1,5 @@
 import { getArcId, hasCycle, validateGraphs } from './graph';
-import { comparePaths, enumeratePaths } from './pathAlgorithms';
+import { comparePaths, enumeratePaths, isInducedGConnected } from './pathAlgorithms';
 
 export type ILP2TraceType =
   | 'initialize'
@@ -70,6 +70,7 @@ export interface ILP2SolverResult {
   proofCompleteEmitted: boolean;
   interruptedByCap: boolean;
   cancelled: boolean;
+  counters: ILP2Counters;
   error?: {
     code: 'CYCLE_DETECTED' | 'INVALID_NODE_D' | 'INVALID_NODE_G' | 'DUPLICATE_EDGE_D' | 'DUPLICATE_EDGE_G';
     node?: string;
@@ -80,6 +81,16 @@ export interface ILP2SolverResult {
 export interface ILP2SolverOptions {
   maxEvents?: number;
   shouldCancel?: () => boolean;
+}
+
+export interface ILP2Counters {
+  enumeratedCandidates: number;
+  rejectedDisconnectedGenomicCandidates: number;
+  rejectedWitnessCandidates: number;
+  acceptedFeasibleCandidates: number;
+  candidateEvaluationEvents: number;
+  witnessParentLinksAssigned: number;
+  witnessLevelsAssigned: number;
 }
 
 function parentId(parent: string, child: string): string {
@@ -381,6 +392,7 @@ export function solveILP2(
   let proofCompleteEmitted = false;
   let interruptedByCap = false;
   let cancelled = false;
+  const counters: ILP2Counters = { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 };
 
   function addTrace(event: Omit<ILP2TraceEvent, 'bestPath' | 'exploredCandidates' | 'rejectedCandidates' | 'stepCount'>): boolean {
     if (trace.length >= maxEvents) {
@@ -438,6 +450,7 @@ export function solveILP2(
       proofCompleteEmitted: false,
       interruptedByCap: false,
       cancelled: false,
+      counters: { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 },
       error: {
         code: validation.errorCode!,
         node: validation.invalidNode,
@@ -472,6 +485,7 @@ export function solveILP2(
       proofCompleteEmitted: false,
       interruptedByCap: false,
       cancelled: false,
+      counters: { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 },
       error: { code: 'CYCLE_DETECTED' },
     };
   }
@@ -503,7 +517,28 @@ export function solveILP2(
   for (const path of paths) {
     if (shouldStop()) break;
     exploredCandidates++;
+    counters.enumeratedCandidates++;
+
+    if (!isInducedGConnected(path, edgesG)) {
+      counters.rejectedDisconnectedGenomicCandidates++;
+      rejectedCandidates++;
+      if (!addTrace({
+        type: 'constraint-rejection',
+        message: `Path ${path.join(' -> ')} rejected: selected induced G is disconnected.`,
+        currentPath: path,
+        decisions: null,
+        root: null,
+        parentLinks: [],
+        levels: {},
+        reason: 'induced-G-disconnected',
+      })) break;
+      counters.candidateEvaluationEvents++;
+      continue;
+    }
+
     const candidate = deriveILP2Candidate(path, vertices, edgesD, edgesG);
+    counters.witnessParentLinksAssigned += candidate.parentLinks.length;
+    counters.witnessLevelsAssigned += Object.keys(candidate.levels).length;
 
     if (!addTrace({
       type: 'candidate-path',
@@ -515,6 +550,7 @@ export function solveILP2(
       levels: candidate.levels,
       reason: 'candidate-path',
     })) break;
+    counters.candidateEvaluationEvents++;
 
     for (const vertex of path) {
       if (!addTrace({
@@ -602,6 +638,7 @@ export function solveILP2(
 
     if (!candidate.report.feasible) {
       rejectedCandidates++;
+      counters.rejectedWitnessCandidates++;
       if (!addTrace({
         type: 'constraint-rejection',
         message: 'Candidate rejected by ILP2 root/parent/level constraints.',
@@ -612,19 +649,22 @@ export function solveILP2(
         levels: candidate.levels,
         reason: candidate.report.reasons.join(','),
       })) break;
-    } else if (bestPath === null || comparePaths(path, bestPath) < 0) {
-      bestPath = [...path];
-      bestCandidate = candidate;
-      if (!addTrace({
-        type: 'incumbent-update',
-        message: `New ILP2 incumbent ${path.join(' -> ')}.`,
-        currentPath: path,
-        decisions: candidate.decisions,
-        root: candidate.root,
-        parentLinks: candidate.parentLinks,
-        levels: candidate.levels,
-        reason: 'objective-and-lexical-improvement',
-      })) break;
+    } else {
+      counters.acceptedFeasibleCandidates++;
+      if (bestPath === null || comparePaths(path, bestPath) < 0) {
+        bestPath = [...path];
+        bestCandidate = candidate;
+        if (!addTrace({
+          type: 'incumbent-update',
+          message: `New ILP2 incumbent ${path.join(' -> ')}.`,
+          currentPath: path,
+          decisions: candidate.decisions,
+          root: candidate.root,
+          parentLinks: candidate.parentLinks,
+          levels: candidate.levels,
+          reason: 'objective-and-lexical-improvement',
+        })) break;
+      }
     }
 
     if (!addTrace({
@@ -671,6 +711,7 @@ export function solveILP2(
       proofCompleteEmitted,
       interruptedByCap,
       cancelled,
+      counters,
     };
   }
 
@@ -686,5 +727,6 @@ export function solveILP2(
     proofCompleteEmitted,
     interruptedByCap,
     cancelled,
+    counters,
   };
 }

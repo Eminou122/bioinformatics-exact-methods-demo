@@ -41,6 +41,12 @@ describe('ILP2 random graph benchmark', () => {
       expect(r.exactness.cp2ValidityEquality).toBe(true);
       expect(r.exactness.cp2PlusValidityEquality).toBe(true);
       expect(r.exactness.proofCompleteEquality).toBe(true);
+      // new counters map correctly from solver result
+      expect(r.ilp2.enumeratedCandidates).toBe(r.ilp2.exploredCandidates);
+      expect(r.ilp2.candidateEvaluationEvents).toBe(r.ilp2.enumeratedCandidates);
+      expect(r.ilp2.enumeratedCandidates).toBeGreaterThan(0);
+      expect(r.ilp2.acceptedFeasibleCandidates + r.ilp2.rejectedCandidates).toBe(r.ilp2.exploredCandidates);
+      expect(r.ilp2.rejectedDisconnectedGenomicCandidates + r.ilp2.rejectedWitnessCandidates).toBe(r.ilp2.rejectedCandidates);
     }
   });
 
@@ -83,6 +89,14 @@ describe('ILP2 random graph benchmark', () => {
       expect(r.exactness.cp2ValidityEquality).toBeNull();
       expect(r.exactness.cp2PlusValidityEquality).toBeNull();
       expect(r.exactness.proofCompleteEquality).toBeNull();
+      // not-run: all counters must be zero
+      expect(r.ilp2.enumeratedCandidates).toBe(0);
+      expect(r.ilp2.rejectedDisconnectedGenomicCandidates).toBe(0);
+      expect(r.ilp2.rejectedWitnessCandidates).toBe(0);
+      expect(r.ilp2.acceptedFeasibleCandidates).toBe(0);
+      expect(r.ilp2.candidateEvaluationEvents).toBe(0);
+      expect(r.ilp2.witnessParentLinksAssigned).toBe(0);
+      expect(r.ilp2.witnessLevelsAssigned).toBe(0);
     }
   });
 
@@ -124,6 +138,9 @@ describe('ILP2 random graph benchmark', () => {
         status: 'optimal', path: ['R1', 'R2'], objective: 2, proofComplete: true,
         searchComplete: true, interruptedByCap: false, cancelled: false,
         exploredCandidates: 5, rejectedCandidates: 1,
+        enumeratedCandidates: 5, rejectedDisconnectedGenomicCandidates: 0,
+        rejectedWitnessCandidates: 1, acceptedFeasibleCandidates: 4,
+        candidateEvaluationEvents: 5, witnessParentLinksAssigned: 3, witnessLevelsAssigned: 4,
         witnessRoot: 'R1', witnessParentLinkCount: 1, witnessLevelCount: 2,
       },
       pathValid: true,
@@ -140,7 +157,7 @@ describe('ILP2 random graph benchmark', () => {
       }),
       makeResult({
         caseId: 'c', tier: 'L', classification: 'not-run-preenumeration-risk',
-        ilp2: { status: 'not-run', path: null, objective: 0, proofComplete: false, searchComplete: false, interruptedByCap: false, cancelled: false, exploredCandidates: 0, rejectedCandidates: 0, witnessRoot: null, witnessParentLinkCount: null, witnessLevelCount: null },
+        ilp2: { status: 'not-run', path: null, objective: 0, proofComplete: false, searchComplete: false, interruptedByCap: false, cancelled: false, exploredCandidates: 0, rejectedCandidates: 0, enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0, witnessRoot: null, witnessParentLinkCount: null, witnessLevelCount: null },
         exactness: { cp2ObjectiveEquality: null, cp2WinnerEquality: null, cp2ValidityEquality: null, cp2PlusObjectiveEquality: null, cp2PlusWinnerEquality: null, cp2PlusValidityEquality: null, proofCompleteEquality: null },
       }),
     ];

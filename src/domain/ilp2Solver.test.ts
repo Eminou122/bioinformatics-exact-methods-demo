@@ -160,8 +160,57 @@ describe('ILP2 educational rooted-level formulation solver', () => {
     };
     const result = solveILP2(input.vertices, input.edgesD, input.edgesG);
     expect(result.bestPath).toEqual(['A', 'B', 'C']);
-    expect(result.trace.some((event) => event.type === 'constraint-rejection' && event.reason?.includes('non-empty-solution-must-have-exactly-one-root'))).toBe(true);
+    // disconnected path now caught by early induced-G check before witness construction
+    const earlyReject = result.trace.find((e) => e.reason === 'induced-G-disconnected');
+    expect(earlyReject).toBeDefined();
+    expect(earlyReject?.type).toBe('constraint-rejection');
+    expect(earlyReject?.root).toBeNull();
+    expect(earlyReject?.decisions).toBeNull();
+    expect(earlyReject?.parentLinks).toHaveLength(0);
+    expect(earlyReject?.levels).toEqual({});
+    // counter invariants
+    expect(result.counters.enumeratedCandidates).toBe(10);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates).toBe(3);
+    expect(result.counters.candidateEvaluationEvents).toBe(10);
+    expect(result.counters.enumeratedCandidates).toBe(result.exploredCandidates);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates).toBeGreaterThan(0);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates + result.counters.rejectedWitnessCandidates).toBe(result.rejectedCandidates);
+    expect(result.counters.acceptedFeasibleCandidates + result.rejectedCandidates).toBe(result.exploredCandidates);
     expectMatchesAll(input);
+  });
+
+  test('counters track accepted and witness aggregates for connected feasible paths', () => {
+    const result = solveILP2(
+      ['A', 'B', 'C'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 200000 }
+    );
+    expect(result.status).toBe('optimal');
+    expect(result.counters.rejectedDisconnectedGenomicCandidates).toBe(0);
+    expect(result.counters.acceptedFeasibleCandidates).toBeGreaterThan(0);
+    expect(result.counters.witnessLevelsAssigned).toBeGreaterThan(0);
+    // invariants
+    expect(result.counters.enumeratedCandidates).toBe(result.exploredCandidates);
+    expect(result.counters.candidateEvaluationEvents).toBe(result.counters.enumeratedCandidates);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates + result.counters.rejectedWitnessCandidates).toBe(result.rejectedCandidates);
+    expect(result.counters.acceptedFeasibleCandidates + result.rejectedCandidates).toBe(result.exploredCandidates);
+  });
+
+  test('complete-run counter invariants hold on a mixed-connectivity graph', () => {
+    const result = solveILP2(
+      ['A', 'B', 'C', 'D'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }, { from: 'C', to: 'D' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 200000 }
+    );
+    expect(result.proofCompleteEmitted).toBe(true);
+    expect(result.counters.enumeratedCandidates).toBe(result.exploredCandidates);
+    expect(result.counters.candidateEvaluationEvents).toBe(result.counters.enumeratedCandidates);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates + result.counters.rejectedWitnessCandidates).toBe(result.rejectedCandidates);
+    expect(result.counters.acceptedFeasibleCandidates + result.rejectedCandidates).toBe(result.exploredCandidates);
+    expect(result.counters.rejectedDisconnectedGenomicCandidates).toBeGreaterThan(0);
+    expect(result.counters.rejectedWitnessCandidates).toBe(0);
   });
 
   test('root is selected and exactly one root is used', () => {
@@ -278,6 +327,11 @@ describe('ILP2 educational rooted-level formulation solver', () => {
     expect(capped.status).toBe('incomplete');
     expect(capped.proofCompleteEmitted).toBe(false);
     expect(capped.interruptedByCap).toBe(true);
+
+    const cappedBeforeCandidateEvent = solveILP2(['A', 'B'], [{ from: 'A', to: 'B' }], [{ u: 'A', v: 'B' }], { maxEvents: 6 });
+    expect(cappedBeforeCandidateEvent.status).toBe('incomplete');
+    expect(cappedBeforeCandidateEvent.counters.enumeratedCandidates).toBe(1);
+    expect(cappedBeforeCandidateEvent.counters.candidateEvaluationEvents).toBe(0);
 
     const cancelled = solveILP2(['A', 'B'], [{ from: 'A', to: 'B' }], [{ u: 'A', v: 'B' }], { shouldCancel: () => true });
     expect(cancelled.status).toBe('incomplete');
