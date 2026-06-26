@@ -3,6 +3,8 @@ import { hasCycle } from './graph';
 import {
   generateAcyclicErdosRenyiGraph,
   generateAcyclicScaleFreeGraph,
+  generateIndependentAcyclicErdosRenyiGraph,
+  generateIndependentAcyclicScaleFreeGraph,
 } from './randomGraphGenerators';
 
 describe('Deterministic Educational Graph Generators', () => {
@@ -11,6 +13,70 @@ describe('Deterministic Educational Graph Generators', () => {
       const a = generateAcyclicErdosRenyiGraph({ n: 6, pD: 0.5, pG: 0.4, seed: 42 });
       const b = generateAcyclicErdosRenyiGraph({ n: 6, pD: 0.5, pG: 0.4, seed: 42 });
       expect(a).toEqual(b);
+    });
+
+    test('legacy single-seed output stays pinned', () => {
+      expect(generateAcyclicErdosRenyiGraph({ n: 4, pD: 0.45, pG: 0.45, seed: 101 })).toMatchInlineSnapshot(`
+        {
+          "edgesD": [
+            {
+              "from": "R1",
+              "to": "R2",
+            },
+            {
+              "from": "R1",
+              "to": "R3",
+            },
+            {
+              "from": "R3",
+              "to": "R2",
+            },
+          ],
+          "edgesG": [
+            {
+              "u": "R1",
+              "v": "R2",
+            },
+            {
+              "u": "R2",
+              "v": "R3",
+            },
+            {
+              "u": "R2",
+              "v": "R4",
+            },
+            {
+              "u": "R3",
+              "v": "R4",
+            },
+          ],
+          "family": "acyclic-erdos-renyi",
+          "parameters": {
+            "n": 4,
+            "pD": 0.45,
+            "pG": 0.45,
+            "seed": 101,
+          },
+          "seed": 101,
+          "statistics": {
+            "directedEdgeCount": 3,
+            "genomicEdgeCount": 4,
+            "vertexCount": 4,
+          },
+          "topologicalOrder": [
+            "R1",
+            "R3",
+            "R4",
+            "R2",
+          ],
+          "vertices": [
+            "R1",
+            "R2",
+            "R3",
+            "R4",
+          ],
+        }
+      `);
     });
 
     test('different seeds produce at least one structural difference (determinism)', () => {
@@ -113,6 +179,75 @@ describe('Deterministic Educational Graph Generators', () => {
       expect(a).toEqual(b);
     });
 
+    test('legacy single-seed scale-free output stays pinned', () => {
+      expect(generateAcyclicScaleFreeGraph({ n: 5, m: 1, seed: 201 })).toMatchInlineSnapshot(`
+        {
+          "edgesD": [
+            {
+              "from": "S1",
+              "to": "S5",
+            },
+            {
+              "from": "S3",
+              "to": "S2",
+            },
+            {
+              "from": "S4",
+              "to": "S1",
+            },
+            {
+              "from": "S5",
+              "to": "S3",
+            },
+          ],
+          "edgesG": [
+            {
+              "u": "S1",
+              "v": "S2",
+            },
+            {
+              "u": "S1",
+              "v": "S4",
+            },
+            {
+              "u": "S1",
+              "v": "S5",
+            },
+            {
+              "u": "S3",
+              "v": "S4",
+            },
+          ],
+          "family": "acyclic-scale-free",
+          "parameters": {
+            "m": 1,
+            "n": 5,
+            "seed": 201,
+          },
+          "seed": 201,
+          "statistics": {
+            "directedEdgeCount": 4,
+            "genomicEdgeCount": 4,
+            "vertexCount": 5,
+          },
+          "topologicalOrder": [
+            "S4",
+            "S1",
+            "S5",
+            "S3",
+            "S2",
+          ],
+          "vertices": [
+            "S1",
+            "S2",
+            "S3",
+            "S4",
+            "S5",
+          ],
+        }
+      `);
+    });
+
     test('different seeds produce at least one structural difference (determinism)', () => {
       const a = generateAcyclicScaleFreeGraph({ n: 10, m: 3, seed: 100 });
       const b = generateAcyclicScaleFreeGraph({ n: 10, m: 3, seed: 200 });
@@ -200,6 +335,37 @@ describe('Deterministic Educational Graph Generators', () => {
       expect(() => generateAcyclicScaleFreeGraph({ n: 5, m: 1.5, seed: 1 })).toThrow();
       expect(() => generateAcyclicScaleFreeGraph({ n: 5, m: 2, seed: 1.5 })).toThrow();
       expect(() => generateAcyclicScaleFreeGraph({ n: 5, m: 2, seed: NaN })).toThrow();
+    });
+  });
+
+  describe('Independent D/G generators', () => {
+    test('same independent Erdős-Rényi seeds reproduce the scenario exactly', () => {
+      const params = { n: 7, pD: 0.5, pG: 0.4, seedOrder: 11, seedD: 22, seedG: 33 };
+      expect(generateIndependentAcyclicErdosRenyiGraph(params)).toEqual(generateIndependentAcyclicErdosRenyiGraph(params));
+    });
+
+    test('changing only seedD can change D while preserving order and G', () => {
+      const a = generateIndependentAcyclicErdosRenyiGraph({ n: 8, pD: 0.5, pG: 0.5, seedOrder: 1, seedD: 2, seedG: 3 });
+      const b = generateIndependentAcyclicErdosRenyiGraph({ n: 8, pD: 0.5, pG: 0.5, seedOrder: 1, seedD: 4, seedG: 3 });
+      expect(b.topologicalOrder).toEqual(a.topologicalOrder);
+      expect(b.edgesG).toEqual(a.edgesG);
+      expect(b.edgesD).not.toEqual(a.edgesD);
+      expect(hasCycle(b.vertices, b.edgesD)).toBe(false);
+    });
+
+    test('changing only seedG can change G while preserving order and D', () => {
+      const a = generateIndependentAcyclicErdosRenyiGraph({ n: 8, pD: 0.5, pG: 0.5, seedOrder: 1, seedD: 2, seedG: 3 });
+      const b = generateIndependentAcyclicErdosRenyiGraph({ n: 8, pD: 0.5, pG: 0.5, seedOrder: 1, seedD: 2, seedG: 4 });
+      expect(b.topologicalOrder).toEqual(a.topologicalOrder);
+      expect(b.edgesD).toEqual(a.edgesD);
+      expect(b.edgesG).not.toEqual(a.edgesG);
+    });
+
+    test('scale-free independent streams are deterministic and keep D acyclic', () => {
+      const params = { n: 7, m: 2, seedOrder: 11, seedD: 22, seedG: 33 };
+      const graph = generateIndependentAcyclicScaleFreeGraph(params);
+      expect(graph).toEqual(generateIndependentAcyclicScaleFreeGraph(params));
+      expect(hasCycle(graph.vertices, graph.edgesD)).toBe(false);
     });
   });
 });

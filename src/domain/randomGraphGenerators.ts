@@ -71,10 +71,28 @@ export interface ScaleFreeParams {
   seed: number;
 }
 
+export interface IndependentErdosRenyiParams {
+  n: number;
+  pD: number;
+  pG: number;
+  seedOrder: number;
+  seedD: number;
+  seedG: number;
+}
+
+export interface IndependentScaleFreeParams {
+  n: number;
+  m: number;
+  seedOrder: number;
+  seedD: number;
+  seedG: number;
+}
+
 export interface AcyclicErdosRenyiGraph {
   family: 'acyclic-erdos-renyi';
   seed: number;
-  parameters: ErdosRenyiParams;
+  seeds?: { seedOrder: number; seedD: number; seedG: number };
+  parameters: ErdosRenyiParams | IndependentErdosRenyiParams;
   vertices: string[];
   topologicalOrder: string[];
   edgesD: { from: string; to: string }[];
@@ -85,12 +103,19 @@ export interface AcyclicErdosRenyiGraph {
 export interface AcyclicScaleFreeGraph {
   family: 'acyclic-scale-free';
   seed: number;
-  parameters: ScaleFreeParams;
+  seeds?: { seedOrder: number; seedD: number; seedG: number };
+  parameters: ScaleFreeParams | IndependentScaleFreeParams;
   vertices: string[];
   topologicalOrder: string[];
   edgesD: { from: string; to: string }[];
   edgesG: { u: string; v: string }[];
   statistics: GraphStatistics;
+}
+
+function assertIndependentSeeds(seedOrder: number, seedD: number, seedG: number): void {
+  assertFiniteInt(seedOrder, 'seedOrder');
+  assertFiniteInt(seedD, 'seedD');
+  assertFiniteInt(seedG, 'seedG');
 }
 
 /**
@@ -135,6 +160,51 @@ export function generateAcyclicErdosRenyiGraph(params: ErdosRenyiParams): Acycli
   return {
     family: 'acyclic-erdos-renyi',
     seed,
+    parameters: params,
+    vertices,
+    topologicalOrder,
+    edgesD,
+    edgesG,
+    statistics: { vertexCount: n, directedEdgeCount: edgesD.length, genomicEdgeCount: edgesG.length },
+  };
+}
+
+export function generateIndependentAcyclicErdosRenyiGraph(params: IndependentErdosRenyiParams): AcyclicErdosRenyiGraph {
+  const { n, pD, pG, seedOrder, seedD, seedG } = params;
+  assertPositiveInt(n, 'n');
+  assertProb(pD, 'pD');
+  assertProb(pG, 'pG');
+  assertIndependentSeeds(seedOrder, seedD, seedG);
+
+  const vertices = Array.from({ length: n }, (_, i) => `R${i + 1}`);
+  const topologicalOrder = shuffle(vertices, makeLcg(seedOrder));
+  const rngD = makeLcg(seedD);
+  const rngG = makeLcg(seedG);
+
+  const edgesD: { from: string; to: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (rngD() < pD) edgesD.push({ from: topologicalOrder[i], to: topologicalOrder[j] });
+    }
+  }
+
+  const edgesG: { u: string; v: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (rngG() < pG) {
+        const [u, v] = [vertices[i], vertices[j]].sort();
+        edgesG.push({ u, v });
+      }
+    }
+  }
+
+  edgesD.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+  edgesG.sort((a, b) => a.u.localeCompare(b.u) || a.v.localeCompare(b.v));
+
+  return {
+    family: 'acyclic-erdos-renyi',
+    seed: seedOrder,
+    seeds: { seedOrder, seedD, seedG },
     parameters: params,
     vertices,
     topologicalOrder,
@@ -201,6 +271,56 @@ export function generateAcyclicScaleFreeGraph(params: ScaleFreeParams): AcyclicS
   return {
     family: 'acyclic-scale-free',
     seed,
+    parameters: params,
+    vertices,
+    topologicalOrder,
+    edgesD,
+    edgesG,
+    statistics: { vertexCount: n, directedEdgeCount: edgesD.length, genomicEdgeCount: edgesG.length },
+  };
+}
+
+export function generateIndependentAcyclicScaleFreeGraph(params: IndependentScaleFreeParams): AcyclicScaleFreeGraph {
+  const { n, m, seedOrder, seedD, seedG } = params;
+  assertPositiveInt(n, 'n');
+  assertNonNegInt(m, 'm');
+  assertIndependentSeeds(seedOrder, seedD, seedG);
+
+  const vertices = Array.from({ length: n }, (_, i) => `S${i + 1}`);
+  const topologicalOrder = shuffle(vertices, makeLcg(seedOrder));
+  const rngD = makeLcg(seedD);
+  const rngG = makeLcg(seedG);
+  const degD: Record<string, number> = {};
+  const degG: Record<string, number> = {};
+  for (const v of vertices) { degD[v] = 0; degG[v] = 0; }
+
+  const edgesD: { from: string; to: string }[] = [];
+  const edgesG: { u: string; v: string }[] = [];
+  const earlier: string[] = [];
+  for (let j = 1; j < n; j++) {
+    earlier.push(topologicalOrder[j - 1]);
+    const newV = topologicalOrder[j];
+    const count = Math.min(m, j);
+    for (const from of weightedSampleWithoutReplacement(earlier, earlier.map(v => degD[v] + 1), count, rngD)) {
+      edgesD.push({ from, to: newV });
+      degD[from]++;
+      degD[newV]++;
+    }
+    for (const other of weightedSampleWithoutReplacement(earlier, earlier.map(v => degG[v] + 1), count, rngG)) {
+      const [u, v] = [newV, other].sort();
+      edgesG.push({ u, v });
+      degG[newV]++;
+      degG[other]++;
+    }
+  }
+
+  edgesD.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+  edgesG.sort((a, b) => a.u.localeCompare(b.u) || a.v.localeCompare(b.v));
+
+  return {
+    family: 'acyclic-scale-free',
+    seed: seedOrder,
+    seeds: { seedOrder, seedD, seedG },
     parameters: params,
     vertices,
     topologicalOrder,

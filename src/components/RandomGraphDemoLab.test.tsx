@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import App from '../App';
 
@@ -17,10 +17,11 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByTestId('random-graph-demo-lab')).toBeDefined();
     expect(screen.getByRole('link', { name: 'Graphes aléatoires' }).style.fontWeight).toBe('700');
     expect(screen.getByText('Erdős–Rényi acyclique')).toBeDefined();
-    expect(screen.getByText(/Les mêmes paramètres/)).toBeDefined();
-    expect(screen.getByText('CP2')).toBeDefined();
-    expect(screen.getByText('CP2+')).toBeDefined();
-    expect(screen.getByText('ILP2')).toBeDefined();
+    expect(screen.getByText(/Les graines affichées/)).toBeDefined();
+    expect(screen.getAllByText('CP2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('CP2+').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('ILP2').length).toBeGreaterThan(0);
+    expect(screen.getByText('Tous les solveurs exacts applicables')).toBeDefined();
     expect(screen.getByRole('button', { name: 'D', hidden: true })).toBeDefined();
     expect(screen.getByRole('button', { name: 'G', hidden: true })).toBeDefined();
 
@@ -36,6 +37,9 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByText('pG')).toBeDefined();
     fireEvent.change(screen.getByLabelText('Famille'), { target: { value: 'acyclic-scale-free' } });
     expect(screen.getByText('m')).toBeDefined();
+    const preset = screen.getByLabelText('Préréglage déterministe') as HTMLSelectElement;
+    expect([...preset.options].some((option) => option.textContent?.includes('er-'))).toBe(false);
+    expect([...preset.options].some((option) => option.textContent?.includes('sf-'))).toBe(true);
 
     fireEvent.change(screen.getByLabelText('n'), { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
@@ -48,7 +52,9 @@ describe('Random-Graph Demonstration Lab', () => {
     fireEvent.change(screen.getByLabelText('n'), { target: { value: '6' } });
     fireEvent.change(screen.getByLabelText('pD'), { target: { value: '0.5' } });
     fireEvent.change(screen.getByLabelText('pG'), { target: { value: '0.4' } });
-    fireEvent.change(screen.getByLabelText('graine'), { target: { value: '42' } });
+    fireEvent.change(screen.getByLabelText('seedOrder'), { target: { value: '42' } });
+    fireEvent.change(screen.getByLabelText('seedD'), { target: { value: '43' } });
+    fireEvent.change(screen.getByLabelText('seedG'), { target: { value: '44' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     const first = screen.getByText('Ordre topologique').nextElementSibling?.textContent;
 
@@ -56,10 +62,75 @@ describe('Random-Graph Demonstration Lab', () => {
     fireEvent.change(screen.getByLabelText('n'), { target: { value: '6' } });
     fireEvent.change(screen.getByLabelText('pD'), { target: { value: '0.5' } });
     fireEvent.change(screen.getByLabelText('pG'), { target: { value: '0.4' } });
-    fireEvent.change(screen.getByLabelText('graine'), { target: { value: '42' } });
+    fireEvent.change(screen.getByLabelText('seedOrder'), { target: { value: '42' } });
+    fireEvent.change(screen.getByLabelText('seedD'), { target: { value: '43' } });
+    fireEvent.change(screen.getByLabelText('seedG'), { target: { value: '44' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
 
     expect(screen.getByText('Ordre topologique').nextElementSibling?.textContent).toBe(first);
+  });
+
+  test('selecting a preset synchronizes family and visible parameters', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-2' } });
+    expect((screen.getByLabelText('Famille') as HTMLSelectElement).value).toBe('acyclic-erdos-renyi');
+    expect((screen.getByLabelText('n') as HTMLInputElement).value).toBe('9');
+    expect((screen.getByLabelText('pD') as HTMLInputElement).value).toBe('0.55');
+
+    fireEvent.change(screen.getByLabelText('Famille'), { target: { value: 'acyclic-scale-free' } });
+    expect((screen.getByLabelText('Préréglage déterministe') as HTMLSelectElement).value).toMatch(/^sf-/);
+  });
+
+  test('new random scenario displays replayable values', () => {
+    const values = [0, 5, 10, 20, 30, 40, 50, 60];
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((array: ArrayBufferView<ArrayBuffer>) => {
+      new Uint32Array(array.buffer, array.byteOffset, 1)[0] = values.shift() ?? 1;
+      return array;
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau scénario aléatoire' }));
+    const snapshot = {
+      n: (screen.getByLabelText('n') as HTMLInputElement).value,
+      pD: (screen.getByLabelText('pD') as HTMLInputElement).value,
+      pG: (screen.getByLabelText('pG') as HTMLInputElement).value,
+      seedOrder: (screen.getByLabelText('seedOrder') as HTMLInputElement).value,
+      seedD: (screen.getByLabelText('seedD') as HTMLInputElement).value,
+      seedG: (screen.getByLabelText('seedG') as HTMLInputElement).value,
+      order: screen.getByText('Ordre topologique').nextElementSibling?.textContent,
+    };
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    expect((screen.getByLabelText('n') as HTMLInputElement).value).toBe(snapshot.n);
+    expect((screen.getByLabelText('pD') as HTMLInputElement).value).toBe(snapshot.pD);
+    expect((screen.getByLabelText('pG') as HTMLInputElement).value).toBe(snapshot.pG);
+    expect((screen.getByLabelText('seedOrder') as HTMLInputElement).value).toBe(snapshot.seedOrder);
+    expect((screen.getByLabelText('seedD') as HTMLInputElement).value).toBe(snapshot.seedD);
+    expect((screen.getByLabelText('seedG') as HTMLInputElement).value).toBe(snapshot.seedG);
+    expect(screen.getByText('Ordre topologique').nextElementSibling?.textContent).toBe(snapshot.order);
+  });
+
+  test('small tier renders all applicable exact solver rows and CP3/CP4 boundary', () => {
+    render(<App />);
+
+    for (const name of ['Legacy', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'Subset DP']) {
+      expect(screen.getByTestId(`solver-row-${name}`).textContent).toContain('complete-comparable');
+    }
+    expect(screen.getByTestId('solver-row-CP3').textContent).toContain('not-applicable-cyclic-trail-method');
+    expect(screen.getByTestId('solver-row-CP4').textContent).toContain('Not applicable — cyclic-trail method.');
+  });
+
+  test('medium tier applies educational safety limits without hiding CP2, CP2+, and ILP2', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+
+    expect(screen.getByTestId('solver-row-CP2').textContent).toContain('complete-comparable');
+    expect(screen.getByTestId('solver-row-CP2+').textContent).toContain('complete-comparable');
+    expect(screen.getByTestId('solver-row-ILP2').textContent).not.toContain('not-run-preenumeration-risk');
+    expect(screen.getByTestId('solver-row-Legacy').textContent).toContain('not-run-educational-safety-limit');
+    expect(screen.getByTestId('solver-row-Subset DP').textContent).toContain('Not run — exceeds this solver’s educational safety limit.');
   });
 
   test('Tier L preset keeps ILP2 as not-run-preenumeration-risk, not capped or complete', () => {
@@ -68,14 +139,22 @@ describe('Random-Graph Demonstration Lab', () => {
     fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
 
-    const ilp2Card = screen.getByText('ILP2').closest('.card') as HTMLElement;
+    const ilp2Card = screen.getByTestId('solver-row-ILP2');
     expect(ilp2Card).toBeDefined();
     expect(ilp2Card.textContent).toContain('not-run-preenumeration-risk');
     expect(ilp2Card.textContent).toContain('false');
-    expect(ilp2Card.textContent).toContain('0');
     expect(screen.getByTestId('ilp2-not-run-note').textContent).toContain('pré-énumération');
     expect(within(ilp2Card).queryByText('capped')).toBeNull();
     expect(within(ilp2Card).queryByText('completed')).toBeNull();
+  });
+
+  test('exactness comparison appears only for complete comparable runs', () => {
+    render(<App />);
+    expect(screen.getByTestId('random-graph-equality').textContent).toContain('complete-comparable');
+
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    expect(screen.getByTestId('random-graph-equality').textContent).toContain('Disponible seulement');
   });
 
   test('supports English and Arabic while keeping graph workspace LTR and visible text emoji-free', () => {

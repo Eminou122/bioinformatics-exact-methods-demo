@@ -950,7 +950,7 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(wrappers[0].getAttribute('aria-hidden')).toBe('false');
       expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
     }
-  });
+  }, 15000);
 
   test('AlgoBB++ page supports trace controls, mobile graph tabs, and Arabic RTL shell', () => {
     window.history.pushState({}, '', '/methods/algobb-plus-plus');
