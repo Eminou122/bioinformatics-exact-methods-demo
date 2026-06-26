@@ -8,6 +8,8 @@ import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { Link } from './Navigation';
+import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
+import { useScenarioHandoffExample } from './useScenarioHandoffExample';
 
 interface CP2PlusModelProps {
   lang: Language;
@@ -205,7 +207,22 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate
   const [selectedId, setSelectedId] = useState(cp2PlusTeachingExamples[0].id);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const currentExample = cp2PlusTeachingExamples.find((example) => example.id === selectedId) ?? cp2PlusTeachingExamples[0];
+  const suppliedScenario = useScenarioHandoffExample();
+  const currentExample = useMemo(() => {
+    if (!suppliedScenario.example) {
+      return cp2PlusTeachingExamples.find((example) => example.id === selectedId) ?? cp2PlusTeachingExamples[0];
+    }
+    return {
+      ...suppliedScenario.example,
+      objective: {
+        fr: 'Inspecter le scénario personnalisé avec la vraie trace CP2+.',
+        en: 'Inspect the custom scenario with the real CP2+ trace.',
+        ar: 'فحص السيناريو المخصص باستخدام أثر CP2+ الحقيقي.',
+      },
+      graphSummary: `${suppliedScenario.example.vertices.length} vertices, ${suppliedScenario.example.edgesD.length} D arcs, ${suppliedScenario.example.edgesG.length} G edges`,
+      expectedBehavior: 'no-genomic-prune' as CP2PlusExpectedBehavior,
+    };
+  }, [selectedId, suppliedScenario.example]);
   const result = useMemo(
     () => solveCP2Plus(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
     [currentExample]
@@ -233,6 +250,7 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate
 
   return (
     <div data-testid="cp2-plus-page" style={{ direction: isAr ? 'rtl' : 'ltr', textAlign: isAr ? 'right' : 'left' }}>
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <h2 style={{ color: 'var(--primary)', border: 0 }}>{t.title}</h2>
         <p style={{ fontWeight: 700 }}>{t.description}</p>

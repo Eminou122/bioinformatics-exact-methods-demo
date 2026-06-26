@@ -17,6 +17,8 @@ import {
   type AcyclicErdosRenyiGraph,
   type AcyclicScaleFreeGraph,
 } from '../domain/randomGraphGenerators';
+import { CHALLENGE_GRAPHS, challengeToScenario, type ChallengeGraph } from '../domain/challengeGraphLibrary';
+import { createScenarioHandoffLink, makeScenarioId, type MethodScenarioHandoff } from '../domain/methodScenarioHandoff';
 import { isInducedGConnected } from '../domain/pathAlgorithms';
 import type { Language, TranslationDict } from '../i18n/types';
 import { GraphPanel } from './GraphPanel';
@@ -24,7 +26,18 @@ import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
 
 type Family = 'acyclic-erdos-renyi' | 'acyclic-scale-free';
-type GeneratedGraph = AcyclicErdosRenyiGraph | AcyclicScaleFreeGraph;
+type ChallengeGeneratedGraph = {
+  family: 'challenge-graph';
+  vertices: string[];
+  topologicalOrder: string[];
+  edgesD: { from: string; to: string }[];
+  edgesG: { u: string; v: string }[];
+  statistics: { vertexCount: number; directedEdgeCount: number; genomicEdgeCount: number };
+  seeds: { seedOrder: number; seedD: number; seedG: number };
+  parameters: Record<string, string | number | boolean>;
+  challengeGraphId: string;
+};
+type GeneratedGraph = AcyclicErdosRenyiGraph | AcyclicScaleFreeGraph | ChallengeGeneratedGraph;
 type SolverState =
   | 'complete-comparable'
   | 'incomplete-capped'
@@ -115,6 +128,20 @@ const labels = {
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'Générateur éducatif déterministe seulement: pas de MILP natif, pas de reproduction papier, pas de conclusion de supériorité en temps.',
+    challenges: 'Graphes défis déterministes',
+    challengePurpose: 'Objectif pédagogique',
+    loadChallenge: 'Charger le graphe défi',
+    testMethods: 'Tester dans les méthodes',
+    openLegacy: 'Ouvrir dans Legacy',
+    openCP1: 'Ouvrir dans CP1',
+    openCP2: 'Ouvrir dans CP2',
+    openCP2Plus: 'Ouvrir dans CP2+',
+    openAlgo: 'Ouvrir dans AlgoBB++',
+    openILP1: 'Ouvrir dans ILP1',
+    openILP2: 'Ouvrir dans ILP2',
+    openSubset: 'Ouvrir dans Subset DP',
+    blocked: 'Indisponible pour ce palier de sécurité.',
+    scenarioId: 'ID du scénario',
   },
   en: {
     title: 'Random-Graph Demonstration Lab',
@@ -158,6 +185,20 @@ const labels = {
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'Deterministic educational generator only: no native MILP, no paper reproduction, no runtime-superiority conclusion.',
+    challenges: 'Deterministic challenge graphs',
+    challengePurpose: 'Teaching purpose',
+    loadChallenge: 'Load challenge graph',
+    testMethods: 'Test in Methods',
+    openLegacy: 'Open in Legacy',
+    openCP1: 'Open in CP1',
+    openCP2: 'Open in CP2',
+    openCP2Plus: 'Open in CP2+',
+    openAlgo: 'Open in AlgoBB++',
+    openILP1: 'Open in ILP1',
+    openILP2: 'Open in ILP2',
+    openSubset: 'Open in Subset DP',
+    blocked: 'Unavailable for this safety tier.',
+    scenarioId: 'Scenario ID',
   },
   ar: {
     title: 'مختبر عرض المخططات العشوائية',
@@ -201,6 +242,20 @@ const labels = {
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'مولد تعليمي حتمي فقط: لا MILP أصلي، لا إعادة إنتاج لورقة، ولا استنتاج تفوق زمني.',
+    challenges: 'مخططات تحدي حتمية',
+    challengePurpose: 'الغرض التعليمي',
+    loadChallenge: 'تحميل مخطط التحدي',
+    testMethods: 'اختبار في صفحات الطرق',
+    openLegacy: 'فتح في Legacy',
+    openCP1: 'فتح في CP1',
+    openCP2: 'فتح في CP2',
+    openCP2Plus: 'فتح في CP2+',
+    openAlgo: 'فتح في AlgoBB++',
+    openILP1: 'فتح في ILP1',
+    openILP2: 'فتح في ILP2',
+    openSubset: 'فتح في Subset DP',
+    blocked: 'غير متاح لهذا مستوى الأمان.',
+    scenarioId: 'معرف السيناريو',
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -379,6 +434,82 @@ function makeGraph(family: Family, form: FormState): GeneratedGraph {
     : generateIndependentAcyclicScaleFreeGraph({ n, m: Number(form.m), seedOrder, seedD, seedG });
 }
 
+function challengeAsGraph(challenge: ChallengeGraph): ChallengeGeneratedGraph {
+  return {
+    family: 'challenge-graph',
+    vertices: challenge.vertices,
+    topologicalOrder: challenge.vertices,
+    edgesD: challenge.edgesD,
+    edgesG: challenge.edgesG,
+    statistics: {
+      vertexCount: challenge.vertices.length,
+      directedEdgeCount: challenge.edgesD.length,
+      genomicEdgeCount: challenge.edgesG.length,
+    },
+    seeds: { seedOrder: 0, seedD: 0, seedG: 0 },
+    parameters: { challengeGraphId: challenge.id, variant: challenge.variant },
+    challengeGraphId: challenge.id,
+  };
+}
+
+function graphToScenario(graph: GeneratedGraph): MethodScenarioHandoff {
+  const scenarioId = makeScenarioId(graph.family === 'challenge-graph' ? 'challenge-graph' : 'random-graph-lab');
+  if (graph.family === 'challenge-graph') {
+    const challenge = CHALLENGE_GRAPHS.find((candidate) => candidate.id === graph.challengeGraphId);
+    return challenge ? challengeToScenario(challenge, scenarioId) : {
+      scenarioId,
+      source: 'challenge-graph',
+      vertices: graph.vertices,
+      edgesD: graph.edgesD,
+      edgesG: graph.edgesG,
+      maxEvents: MAX_EVENTS,
+      family: graph.family,
+      parameters: graph.parameters,
+      seedOrder: 0,
+      seedD: 0,
+      seedG: 0,
+      challengeGraphId: graph.challengeGraphId,
+    };
+  }
+  return {
+    scenarioId,
+    source: 'random-graph-lab',
+    vertices: graph.vertices,
+    edgesD: graph.edgesD,
+    edgesG: graph.edgesG,
+    maxEvents: MAX_EVENTS,
+    family: graph.family,
+    parameters: { ...graph.parameters },
+    seedOrder: graph.seeds?.seedOrder ?? 0,
+    seedD: graph.seeds?.seedD ?? 0,
+    seedG: graph.seeds?.seedG ?? 0,
+  };
+}
+
+function openRoute(route: string, graph: GeneratedGraph) {
+  const link = createScenarioHandoffLink(route, graphToScenario(graph));
+  window.history.pushState({}, '', link.url);
+  window.dispatchEvent(new Event('popstate'));
+  window.scrollTo(0, 0);
+}
+
+function methodActions(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCaseSpec | null, t: typeof labels.en) {
+  const n = graph.vertices.length;
+  const small = n <= SMALL_MAX_N;
+  const stress = n > CUSTOM_ILP2_MAX_N;
+  const ilp2Allowed = canRunILP2(graph, selectedPreset);
+  return [
+    { label: t.openLegacy, route: '/legacy', allowed: small, reason: t.safetySkip },
+    { label: t.openCP1, route: '/methods/cp1', allowed: small, reason: t.safetySkip },
+    { label: t.openCP2, route: '/methods/cp2', allowed: true, reason: '' },
+    { label: t.openCP2Plus, route: '/methods/cp2-plus', allowed: true, reason: '' },
+    { label: t.openAlgo, route: '/methods/algobb-plus-plus', allowed: small, reason: t.safetySkip },
+    { label: t.openILP1, route: '/methods/ilp1', allowed: small, reason: t.safetySkip },
+    { label: t.openILP2, route: '/methods/ilp2', allowed: ilp2Allowed, reason: stress ? 'not-run-preenumeration-risk' : t.safetySkip },
+    { label: t.openSubset, route: '/methods/subset-dp', allowed: small, reason: t.safetySkip },
+  ];
+}
+
 function SolverCard({ row, t, testId }: { row: SolverRow; t: typeof labels.en; testId?: string }) {
   return (
     <article className="card random-lab-solver-card" data-testid={testId}>
@@ -406,6 +537,7 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
   const [graph, setGraph] = useState<GeneratedGraph>(() => makeGraph('acyclic-erdos-renyi', formFromPreset(firstPreset)));
   const [runPreset, setRunPreset] = useState<CP2RandomBenchmarkCaseSpec | null>(firstPreset);
+  const [selectedChallengeId, setSelectedChallengeId] = useState(CHALLENGE_GRAPHS[0].id);
   const familyPresets = presets.filter((p) => p.graphFamily === family);
   const results = useMemo(() => solveGraph(graph, runPreset, t), [graph, runPreset, t]);
   const bestPath = results.cp2.bestPath ?? results.cp2Plus.bestPath ?? results.ilp2?.bestPath ?? [];
@@ -415,6 +547,8 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
     row.state === 'complete-comparable' || row.state === 'not-applicable-cyclic-trail-method'
   ));
   const equality = showEquality && comparableRows.every((row) => pathText(row.comparablePath) === pathText(comparableRows[0].comparablePath));
+  const selectedChallenge = CHALLENGE_GRAPHS.find((challenge) => challenge.id === selectedChallengeId) ?? CHALLENGE_GRAPHS[0];
+  const actions = methodActions(graph, runPreset, t);
 
   const fillPreset = (spec: CP2RandomBenchmarkCaseSpec) => {
     setFamily(spec.graphFamily);
@@ -472,6 +606,13 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
       query.set('m', form.m);
     }
     window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`);
+  };
+
+  const loadChallenge = () => {
+    setGraph(challengeAsGraph(selectedChallenge));
+    setRunPreset(null);
+    setPresetId(CUSTOM_ID);
+    setError('');
   };
 
   const reset = () => {
@@ -547,6 +688,20 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               <button type="button" className="btn btn-secondary" onClick={newRandomScenario} style={{ width: 'auto' }}>{t.newRandom}</button>
             </div>
             {error && <p role="alert" style={{ color: 'var(--danger)', fontWeight: 800, marginBlockEnd: 0 }}>{error}</p>}
+            <div style={{ marginBlockStart: 'var(--space-md)', borderBlockStart: '1px solid var(--border-color)', paddingBlockStart: 'var(--space-sm)' }}>
+              <h4 style={{ color: 'var(--primary)' }}>{t.challenges}</h4>
+              <div className="random-lab-controls">
+                <label>{t.challenges}
+                  <select value={selectedChallengeId} onChange={(e) => setSelectedChallengeId(e.target.value)}>
+                    {CHALLENGE_GRAPHS.map((challenge) => (
+                      <option key={challenge.id} value={challenge.id}>{challenge.title[lang]}</option>
+                    ))}
+                  </select>
+                </label>
+                <p style={{ margin: 0, alignSelf: 'end' }}><strong>{t.challengePurpose}:</strong> {selectedChallenge.purpose[lang]}</p>
+                <button type="button" className="btn btn-secondary" onClick={loadChallenge} style={{ width: 'auto' }}>{t.loadChallenge}</button>
+              </div>
+            </div>
           </section>
         )}
         graph={(
@@ -610,6 +765,27 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
         )}
       />
 
+      <section className="card" data-testid="random-graph-method-handoff" style={{ marginBlockStart: 'var(--space-md)' }}>
+        <h3><span className="icon-label"><Icon name="route" /> {t.testMethods}</span></h3>
+        <div className="random-lab-method-actions">
+          {actions.map((action) => (
+            <div key={action.route} className="random-lab-method-action">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={!action.allowed}
+                onClick={() => openRoute(action.route, graph)}
+                style={{ width: '100%' }}
+              >
+                {action.label}
+              </button>
+              {!action.allowed && <small dir="ltr">{action.reason}</small>}
+            </div>
+          ))}
+        </div>
+        <p style={{ marginBlockEnd: 0 }} dir="ltr">CP3 / CP4: {t.cyclicSkip}</p>
+      </section>
+
       <style>{`
         .random-lab-controls {
           display: grid;
@@ -655,10 +831,26 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
           unicode-bidi: isolate;
           overflow-wrap: anywhere;
         }
+        .random-lab-method-actions {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: var(--space-sm);
+        }
+        .random-lab-method-action {
+          display: grid;
+          gap: 4px;
+          min-width: 0;
+        }
+        .random-lab-method-action small {
+          color: var(--danger);
+          font-weight: 800;
+          overflow-wrap: anywhere;
+        }
         @media (max-width: 900px) {
           .random-lab-controls,
           .random-lab-results,
           .random-lab-results.all-solvers,
+          .random-lab-method-actions,
           .random-lab-dl,
           .random-lab-solver-card dl {
             grid-template-columns: 1fr;

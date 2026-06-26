@@ -27,6 +27,8 @@ import { ILP2Model } from './components/ILP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
 import { SubsetDpModel } from './components/SubsetDpModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
+import { readScenarioHandoff, scenarioToExample } from './domain/methodScenarioHandoff';
+import { ScenarioHandoffBanner } from './components/ScenarioHandoffBanner';
 
 const LANGUAGE_STORAGE_KEY = 'bioinformatics-demo-language';
 const supportedLanguages: Language[] = ['fr', 'en', 'ar'];
@@ -67,9 +69,27 @@ function App() {
   }, [lang, dict]);
 
   // Derive legacy solver variables
+  const suppliedScenario = useMemo(() => {
+    const handoff = readScenarioHandoff();
+    if (handoff.scenario && handoff.scenario.vertices.length > 6) {
+      return {
+        scenario: handoff.scenario,
+        error: 'Not run — exceeds this solver’s educational safety limit.',
+        example: null,
+      };
+    }
+    return {
+      scenario: handoff.scenario,
+      error: handoff.error,
+      example: handoff.scenario ? scenarioToExample(handoff.scenario) : null,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPath]);
+
   const currentExample = useMemo(() => {
+    if (currentPath === '/legacy' && suppliedScenario.example) return suppliedScenario.example;
     return examples.find((ex) => ex.id === selectedExampleId) || examples[0];
-  }, [selectedExampleId]);
+  }, [currentPath, selectedExampleId, suppliedScenario.example]);
 
   const solverResult = useMemo(() => {
     return solveConsistentPath(
@@ -193,6 +213,7 @@ function App() {
       // Return 100% exact copy of the legacy exhaustive-enumeration demo
       return (
         <>
+          <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
           {/* Exact exhaustive-enumeration baseline notice */}
           <div style={{
             padding: 'var(--space-sm) var(--space-md)',

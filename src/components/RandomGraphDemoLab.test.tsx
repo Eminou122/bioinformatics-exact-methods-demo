@@ -171,4 +171,77 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(container.querySelector('[data-testid="directed-graph-container"]')?.getAttribute('dir')).toBe('ltr');
     expect(container.textContent).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });
+
+  test('small generated scenario opens in every applicable Method page with a handoff banner', () => {
+    const routes = [
+      ['Ouvrir dans Legacy', '/legacy'],
+      ['Ouvrir dans CP1', '/methods/cp1'],
+      ['Ouvrir dans CP2', '/methods/cp2'],
+      ['Ouvrir dans CP2+', '/methods/cp2-plus'],
+      ['Ouvrir dans AlgoBB++', '/methods/algobb-plus-plus'],
+      ['Ouvrir dans ILP1', '/methods/ilp1'],
+      ['Ouvrir dans ILP2', '/methods/ilp2'],
+      ['Ouvrir dans Subset DP', '/methods/subset-dp'],
+    ] as const;
+
+    for (const [button, route] of routes) {
+      cleanup();
+      window.history.pushState({}, '', '/methods/random-graph-lab');
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: button }));
+      expect(window.location.pathname).toBe(route);
+      expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('random-graph-lab');
+      expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('seedOrder');
+    }
+  });
+
+  test('malformed handoff safely falls back to the built-in example', () => {
+    window.history.pushState({}, '', '/methods/cp2?scenario=bad');
+    render(<App />);
+
+    expect(screen.getByTestId('scenario-handoff-fallback').textContent).toContain('indisponible ou invalide');
+    expect(screen.getByText('CP2 — CP1 avec Bornes Supérieures Sûres')).toBeDefined();
+  });
+
+  test('oversized scenario uses sessionStorage with a visible scenario ID', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('n'), { target: { value: '13' } });
+    fireEvent.change(screen.getByLabelText('pD'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('pG'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2' }));
+
+    const id = new URLSearchParams(window.location.search).get('scenarioId');
+    expect(id).toBeTruthy();
+    expect(window.sessionStorage.getItem(`method-scenario-handoff:${id}`)).toBeTruthy();
+    expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain(id!);
+  });
+
+  test('medium and stress method actions keep safety limits truthful', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    expect((screen.getByRole('button', { name: 'Ouvrir dans CP2' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Ouvrir dans CP2+' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Ouvrir dans Legacy' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('not-run-preenumeration-risk');
+    expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('Not applicable — cyclic-trail method.');
+  });
+
+  test('challenge graph selection loads a deterministic handoff scenario', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Graphes défis déterministes'), { target: { value: 'diamond-merge-lexical-ties-small' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Charger le graphe défi' }));
+    expect(screen.getAllByText('Famille').find((el) => el.tagName === 'DT')?.nextElementSibling?.textContent).toBe('challenge-graph');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2+' }));
+    expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('diamond-merge-lexical-ties-small');
+  });
 });

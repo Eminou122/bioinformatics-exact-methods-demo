@@ -7,6 +7,8 @@ import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
+import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
+import { useScenarioHandoffExample } from './useScenarioHandoffExample';
 
 interface SubsetDpModelProps {
   lang: Language;
@@ -200,10 +202,11 @@ export const SubsetDpModel: React.FC<SubsetDpModelProps> = ({ lang, dict }) => {
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
+  const suppliedScenario = useScenarioHandoffExample(6);
 
   const currentExample = useMemo(
-    () => examples.find((example) => example.id === selectedExampleId) || examples[0],
-    [selectedExampleId]
+    () => suppliedScenario.example || examples.find((example) => example.id === selectedExampleId) || examples[0],
+    [selectedExampleId, suppliedScenario.example]
   );
   const result = useMemo(
     () => solveSubsetDP(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
@@ -243,6 +246,7 @@ export const SubsetDpModel: React.FC<SubsetDpModelProps> = ({ lang, dict }) => {
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <h2 style={{ fontSize: '1.6rem', color: 'var(--primary)', border: 'none', marginBlockEnd: 'var(--space-sm)', padding: 0 }}>
           {t.title}

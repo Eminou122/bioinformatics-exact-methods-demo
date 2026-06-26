@@ -10,6 +10,8 @@ import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { cp1InspectorKeys, getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
+import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
+import { useScenarioHandoffExample } from './useScenarioHandoffExample';
 
 interface CP1ModelProps {
   lang: Language;
@@ -23,10 +25,12 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
   const [selectedExampleId, setSelectedExampleId] = useState<string>('simple-valide');
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1); // -1: not started
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D'); // Mobile layout tab
+  const suppliedScenario = useScenarioHandoffExample(6);
 
   const currentExample = useMemo(() => {
+    if (suppliedScenario.example) return suppliedScenario.example;
     return examples.find((ex) => ex.id === selectedExampleId) || examples[0];
-  }, [selectedExampleId]);
+  }, [selectedExampleId, suppliedScenario.example]);
 
   // Run CP1 solver
   const cpResult = useMemo(() => {
@@ -213,6 +217,7 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
       
       {/* Screen Reader Announcements */}
       <div className="sr-only" aria-live="assertive">{ariaLiveMsg}</div>

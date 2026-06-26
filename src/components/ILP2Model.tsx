@@ -9,6 +9,8 @@ import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
 import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
+import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
+import { useScenarioHandoffExample } from './useScenarioHandoffExample';
 
 interface ILP2ModelProps {
   lang: Language;
@@ -161,10 +163,11 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
+  const suppliedScenario = useScenarioHandoffExample(10, 'not-run-preenumeration-risk');
 
   const currentExample = useMemo(
-    () => examples.find((ex) => ex.id === selectedExampleId) || examples[0],
-    [selectedExampleId]
+    () => suppliedScenario.example || examples.find((ex) => ex.id === selectedExampleId) || examples[0],
+    [selectedExampleId, suppliedScenario.example]
   );
   const ilp2Result = useMemo(
     () => solveILP2(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
@@ -209,6 +212,7 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
       <div className="sr-only" aria-live="assertive">{currentEvent?.message || ''}</div>
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
