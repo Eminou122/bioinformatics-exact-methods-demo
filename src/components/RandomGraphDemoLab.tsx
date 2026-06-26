@@ -138,10 +138,11 @@ const labels = {
     openCP2Plus: 'Ouvrir dans CP2+',
     openAlgo: 'Ouvrir dans AlgoBB++',
     openILP1: 'Ouvrir dans ILP1',
-    openILP2: 'Ouvrir dans ILP2',
+    openILP2: 'ILP2 — rejet génomique sûr',
     openSubset: 'Ouvrir dans Subset DP',
     blocked: 'Indisponible pour ce palier de sécurité.',
     scenarioId: 'ID du scénario',
+    challengeId: 'Graphe défi',
   },
   en: {
     title: 'Random-Graph Demonstration Lab',
@@ -195,10 +196,11 @@ const labels = {
     openCP2Plus: 'Open in CP2+',
     openAlgo: 'Open in AlgoBB++',
     openILP1: 'Open in ILP1',
-    openILP2: 'Open in ILP2',
+    openILP2: 'ILP2 — enhanced safe rejection',
     openSubset: 'Open in Subset DP',
     blocked: 'Unavailable for this safety tier.',
     scenarioId: 'Scenario ID',
+    challengeId: 'Challenge graph',
   },
   ar: {
     title: 'مختبر عرض المخططات العشوائية',
@@ -252,10 +254,11 @@ const labels = {
     openCP2Plus: 'فتح في CP2+',
     openAlgo: 'فتح في AlgoBB++',
     openILP1: 'فتح في ILP1',
-    openILP2: 'فتح في ILP2',
+    openILP2: 'ILP2 — رفض جينومي آمن',
     openSubset: 'فتح في Subset DP',
     blocked: 'غير متاح لهذا مستوى الأمان.',
     scenarioId: 'معرف السيناريو',
+    challengeId: 'مخطط التحدي',
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -651,6 +654,7 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
       </header>
 
       <MethodCockpit
+        scrollable
         controls={(
           <section className="card" aria-labelledby="random-graph-controls-title" style={{ marginBlockEnd: 'var(--space-sm)' }}>
             <h3 id="random-graph-controls-title"><span className="icon-label"><Icon name="network" /> {t.custom}</span></h3>
@@ -692,7 +696,15 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               <h4 style={{ color: 'var(--primary)' }}>{t.challenges}</h4>
               <div className="random-lab-controls">
                 <label>{t.challenges}
-                  <select value={selectedChallengeId} onChange={(e) => setSelectedChallengeId(e.target.value)}>
+                  <select value={selectedChallengeId} onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedChallengeId(id);
+                    const challenge = CHALLENGE_GRAPHS.find((c) => c.id === id) ?? CHALLENGE_GRAPHS[0];
+                    setGraph(challengeAsGraph(challenge));
+                    setRunPreset(null);
+                    setPresetId(CUSTOM_ID);
+                    setError('');
+                  }}>
                     {CHALLENGE_GRAPHS.map((challenge) => (
                       <option key={challenge.id} value={challenge.id}>{challenge.title[lang]}</option>
                     ))}
@@ -732,6 +744,7 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
             <h3><span className="icon-label"><Icon name="clipboard" /> {t.graph}</span></h3>
             <dl className="random-lab-dl">
               <dt>{t.family}</dt><dd dir="ltr">{graph.family}</dd>
+              {graph.family === 'challenge-graph' && <><dt>{t.challengeId}</dt><dd dir="ltr">{graph.challengeGraphId}</dd></>}
               <dt>{t.stats}</dt><dd dir="ltr">{`${graph.statistics.vertexCount} / ${graph.statistics.directedEdgeCount} / ${graph.statistics.genomicEdgeCount}`}</dd>
               <dt>{t.seedOrder}</dt><dd dir="ltr">{graph.seeds?.seedOrder}</dd>
               <dt>{t.seedD}</dt><dd dir="ltr">{graph.seeds?.seedD}</dd>
