@@ -21,6 +21,7 @@ import { CP1Model } from './components/CP1Model';
 import { CP2Model } from './components/CP2Model';
 import { CP2PlusModel } from './components/CP2PlusModel';
 import { CP2PlusComparisonLab } from './components/CP2PlusComparisonLab';
+import { RandomGraphDemoLab } from './components/RandomGraphDemoLab';
 import { ILP1Model } from './components/ILP1Model';
 import { ILP2Model } from './components/ILP2Model';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
@@ -167,6 +168,9 @@ function App() {
     }
     if (currentPath === '/methods/cp2-plus/comparison') {
       return <CP2PlusComparisonLab lang={lang} navigate={navigate} />;
+    }
+    if (currentPath === '/methods/random-graph-lab') {
+      return <RandomGraphDemoLab lang={lang} dict={dict} />;
     }
     if (currentPath === '/methods/ilp1') {
       return <ILP1Model lang={lang} dict={dict} />;

@@ -23,6 +23,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: string;
       runCP2: string;
       runCP2Comparison: string;
+      runRandomLab: string;
       runSubsetDp: string;
       runILP1: string;
       runILP2: string;
@@ -49,6 +50,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Lancer l\'application CP1',
       runCP2: 'Lancer l\'application CP2',
       runCP2Comparison: 'Voir le laboratoire CP2+',
+      runRandomLab: 'Lancer le laboratoire de graphes',
       runSubsetDp: 'Lancer Subset DP',
       runILP1: 'Lancer l\'application ILP1',
       runILP2: 'Lancer l\'application ILP2',
@@ -77,6 +79,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'CP2 avec un élagage précoce sûr lorsque les sommets atteignables vers l’avant ne peuvent plus reconnecter le chemin dans G.',
           route: '/methods/cp2-plus'
+        },
+        {
+          id: 'random-graph-demo-lab',
+          name: 'Laboratoire de graphes aléatoires',
+          sourceLabel: 'Démonstration générée déterministe',
+          badge: 'exact',
+          desc: 'Génère des graphes acycliques Erdős–Rényi ou scale-free-style avec graine, puis compare CP2, CP2+ et ILP2 lorsque c’est sûr.',
+          route: '/methods/random-graph-lab'
         },
         {
           id: 'subset-dp',
@@ -164,6 +174,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'Launch CP1 Solver App',
       runCP2: 'Launch CP2 Solver App',
       runCP2Comparison: 'View CP2+ Comparison Lab',
+      runRandomLab: 'Launch Graph Lab',
       runSubsetDp: 'Launch Subset DP',
       runILP1: 'Launch ILP1 Solver App',
       runILP2: 'Launch ILP2 Solver App',
@@ -192,6 +203,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'CP2 with a safe early prune when forward-reachable vertices can no longer reconnect the path in G.',
           route: '/methods/cp2-plus'
+        },
+        {
+          id: 'random-graph-demo-lab',
+          name: 'Random-Graph Demonstration Lab',
+          sourceLabel: 'Deterministic generated demo',
+          badge: 'exact',
+          desc: 'Generates seeded acyclic Erdős–Rényi or scale-free-style graphs, then compares CP2, CP2+, and ILP2 when safe.',
+          route: '/methods/random-graph-lab'
         },
         {
           id: 'subset-dp',
@@ -279,6 +298,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
       runCP1: 'تشغيل نموذج CP1',
       runCP2: 'تشغيل نموذج CP2',
       runCP2Comparison: 'عرض مختبر مقارنة CP2+',
+      runRandomLab: 'تشغيل مختبر المخططات',
       runSubsetDp: 'تشغيل Subset DP',
       runILP1: 'تشغيل نموذج ILP1',
       runILP2: 'تشغيل نموذج ILP2',
@@ -307,6 +327,14 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           badge: 'exact',
           desc: 'CP2 مع تقليم مبكر آمن عندما تعجز الرؤوس القابلة للوصول إلى الأمام عن إعادة وصل المسار في G.',
           route: '/methods/cp2-plus'
+        },
+        {
+          id: 'random-graph-demo-lab',
+          name: 'مختبر عرض المخططات العشوائية',
+          sourceLabel: 'عرض حتمي مولد',
+          badge: 'exact',
+          desc: 'يولد مخططات Erdős–Rényi أو scale-free-style بلا دورات باستخدام seed، ثم يقارن CP2 وCP2+ وILP2 عندما يكون آمناً.',
+          route: '/methods/random-graph-lab'
         },
         {
           id: 'subset-dp',
@@ -474,7 +502,7 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
                       paddingInline: 'var(--space-md)'
                     }}
                   >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
+                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'random-graph-demo-lab' ? t.runRandomLab : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
                   </Link>
                   {method.id === 'cp2-plus' && (
                     <Link
