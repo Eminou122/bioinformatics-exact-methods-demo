@@ -91,7 +91,12 @@ export interface ILP2Counters {
   candidateEvaluationEvents: number;
   witnessParentLinksAssigned: number;
   witnessLevelsAssigned: number;
+  earlyTermination: boolean;
+  candidatesSkippedAfterWinner: number;
 }
+
+const ILP2_PLUS_COMPARATOR_INVARIANT = 'No later candidate can outrank the first feasible candidate under the existing canonical comparator.';
+const ILP2_PLUS_TERMINATION_TRACE = 'The candidate list was fully enumerated and canonically sorted. No later candidate can outrank this feasible winner.';
 
 function parentId(parent: string, child: string): string {
   return `${parent}->${child}`;
@@ -374,11 +379,25 @@ function incompleteTraceEvent(
   };
 }
 
-export function solveILP2(
+const ZERO_COUNTERS: ILP2Counters = {
+  enumeratedCandidates: 0,
+  rejectedDisconnectedGenomicCandidates: 0,
+  rejectedWitnessCandidates: 0,
+  acceptedFeasibleCandidates: 0,
+  candidateEvaluationEvents: 0,
+  witnessParentLinksAssigned: 0,
+  witnessLevelsAssigned: 0,
+  earlyTermination: false,
+  candidatesSkippedAfterWinner: 0,
+};
+
+// ponytail: shared core; earlyTerminate=false for ILP2, true for ILP2+
+function solveILP2Core(
   vertices: string[],
   edgesD: { from: string; to: string }[],
   edgesG: { u: string; v: string }[],
-  options: ILP2SolverOptions | number = {}
+  options: ILP2SolverOptions | number,
+  earlyTerminate: boolean
 ): ILP2SolverResult {
   const maxEvents = typeof options === 'number' ? options : options.maxEvents ?? 7000;
   const shouldCancel = typeof options === 'number' ? undefined : options.shouldCancel;
@@ -392,7 +411,7 @@ export function solveILP2(
   let proofCompleteEmitted = false;
   let interruptedByCap = false;
   let cancelled = false;
-  const counters: ILP2Counters = { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 };
+  const counters: ILP2Counters = { ...ZERO_COUNTERS };
 
   function addTrace(event: Omit<ILP2TraceEvent, 'bestPath' | 'exploredCandidates' | 'rejectedCandidates' | 'stepCount'>): boolean {
     if (trace.length >= maxEvents) {
@@ -450,7 +469,7 @@ export function solveILP2(
       proofCompleteEmitted: false,
       interruptedByCap: false,
       cancelled: false,
-      counters: { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 },
+      counters: { ...ZERO_COUNTERS },
       error: {
         code: validation.errorCode!,
         node: validation.invalidNode,
@@ -485,7 +504,7 @@ export function solveILP2(
       proofCompleteEmitted: false,
       interruptedByCap: false,
       cancelled: false,
-      counters: { enumeratedCandidates: 0, rejectedDisconnectedGenomicCandidates: 0, rejectedWitnessCandidates: 0, acceptedFeasibleCandidates: 0, candidateEvaluationEvents: 0, witnessParentLinksAssigned: 0, witnessLevelsAssigned: 0 },
+      counters: { ...ZERO_COUNTERS },
       error: { code: 'CYCLE_DETECTED' },
     };
   }
@@ -514,6 +533,7 @@ export function solveILP2(
   }
 
   const paths = enumeratePaths(vertices, edgesD).sort(comparePaths);
+  const totalPaths = paths.length;
   for (const path of paths) {
     if (shouldStop()) break;
     exploredCandidates++;
@@ -665,6 +685,24 @@ export function solveILP2(
           reason: 'objective-and-lexical-improvement',
         })) break;
       }
+      if (earlyTerminate && counters.acceptedFeasibleCandidates === 1) {
+        const skippedAfterWinner = totalPaths - exploredCandidates;
+        if (skippedAfterWinner > 0) {
+          if (!addTrace({
+            type: 'constraint-check',
+            message: ILP2_PLUS_TERMINATION_TRACE,
+            currentPath: path,
+            decisions: candidate.decisions,
+            root: candidate.root,
+            parentLinks: candidate.parentLinks,
+            levels: candidate.levels,
+            reason: 'sorted-prefix-termination',
+          })) break;
+          counters.candidatesSkippedAfterWinner = skippedAfterWinner;
+          counters.earlyTermination = true;
+          break;
+        }
+      }
     }
 
     if (!addTrace({
@@ -682,9 +720,14 @@ export function solveILP2(
   if (!cancelled && !interruptedByCap) {
     searchCompleted = true;
     const proofPath = bestPath ? [...bestPath] : null;
+    const proofMessage = proofPath
+      ? (counters.earlyTermination
+        ? `Search complete (early termination). Optimal path is ${proofPath.join(' -> ')}. ${ILP2_PLUS_COMPARATOR_INVARIANT} ${exploredCandidates} of ${totalPaths} candidates evaluated.`
+        : `Search complete. Optimal path is ${proofPath.join(' -> ')}.`)
+      : 'Search complete. No feasible path exists.';
     const proofAdded = addTrace({
       type: 'proof-complete',
-      message: proofPath ? `Search complete. Optimal path is ${proofPath.join(' -> ')}.` : 'Search complete. No feasible path exists.',
+      message: proofMessage,
       currentPath: proofPath || [],
       decisions: bestCandidate?.decisions || null,
       root: bestCandidate?.root || null,
@@ -729,4 +772,22 @@ export function solveILP2(
     cancelled,
     counters,
   };
+}
+
+export function solveILP2(
+  vertices: string[],
+  edgesD: { from: string; to: string }[],
+  edgesG: { u: string; v: string }[],
+  options: ILP2SolverOptions | number = {}
+): ILP2SolverResult {
+  return solveILP2Core(vertices, edgesD, edgesG, options, false);
+}
+
+export function solveILP2Plus(
+  vertices: string[],
+  edgesD: { from: string; to: string }[],
+  edgesG: { u: string; v: string }[],
+  options: ILP2SolverOptions | number = {}
+): ILP2SolverResult {
+  return solveILP2Core(vertices, edgesD, edgesG, options, true);
 }

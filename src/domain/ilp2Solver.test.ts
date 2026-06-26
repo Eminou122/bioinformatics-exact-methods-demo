@@ -5,7 +5,8 @@ import { solveCP2 } from './cp2Solver';
 import { solveAlgoBBPlusPlus } from './algoBBPlusPlus';
 import { solveConsistentPath } from './pathAlgorithms';
 import { solveILP1 } from './ilp1Solver';
-import { deriveILP2Candidate, solveILP2, validateILP2Assignment, type ILP2DecisionData } from './ilp2Solver';
+import { deriveILP2Candidate, solveILP2, solveILP2Plus, validateILP2Assignment, type ILP2DecisionData } from './ilp2Solver';
+import { solveCP2Plus } from './cp2PlusSolver';
 
 type EdgeD = { from: string; to: string };
 type EdgeG = { u: string; v: string };
@@ -384,5 +385,179 @@ describe('ILP2 educational rooted-level formulation solver', () => {
     expect(winnerMismatches).toBe(0);
     expect(validityMismatches).toBe(0);
     expect(uncappedIncompleteRuns).toBe(0);
+  });
+});
+
+describe('ILP2+ sorted-prefix early termination solver', () => {
+  // Test 1: identical winner, objective, validity, proof-complete to ILP2
+  test('returns identical canonical winner and proof-complete to ILP2 on complete cases', () => {
+    const vertices = ['A', 'B', 'C', 'D'];
+    const edgesD = [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }, { from: 'C', to: 'D' }];
+    const edgesG = [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }, { u: 'C', v: 'D' }];
+    const ilp2 = solveILP2(vertices, edgesD, edgesG, { maxEvents: 200000 });
+    const ilp2Plus = solveILP2Plus(vertices, edgesD, edgesG, { maxEvents: 200000 });
+    expect(ilp2Plus.bestPath).toEqual(ilp2.bestPath);
+    expect(ilp2Plus.bestPath?.length).toBe(ilp2.bestPath?.length);
+    expect(ilp2Plus.bestCandidate?.report.feasible).toBe(ilp2.bestCandidate?.report.feasible);
+    expect(ilp2Plus.status).toBe(ilp2.status);
+    expect(ilp2Plus.proofCompleteEmitted).toBe(true);
+    expect(ilp2.proofCompleteEmitted).toBe(true);
+    expect(ilp2Plus.counters.earlyTermination).toBe(true);
+    expect(ilp2Plus.exploredCandidates).toBeLessThanOrEqual(ilp2.exploredCandidates);
+  });
+
+  // Test 2: terminates after first feasible sorted candidate
+  test('terminates candidate evaluation after first feasible sorted candidate', () => {
+    // Chain A->B->C->D, G={A-B, B-C}: A->B->C->D G-disconnected, A->B->C first feasible.
+    // 10 total paths; exploredCandidates=2, skipped=8.
+    const result = solveILP2Plus(
+      ['A', 'B', 'C', 'D'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }, { from: 'C', to: 'D' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 200000 }
+    );
+    expect(result.bestPath).toEqual(['A', 'B', 'C']);
+    expect(result.counters.earlyTermination).toBe(true);
+    expect(result.counters.acceptedFeasibleCandidates).toBe(1);
+    expect(result.exploredCandidates).toBe(2);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(8);
+    expect(result.proofCompleteEmitted).toBe(true);
+    expect(result.status).toBe('optimal');
+    expect(result.trace.some((event) =>
+      event.message === 'The candidate list was fully enumerated and canonically sorted. No later candidate can outrank this feasible winner.'
+    )).toBe(true);
+    expect(result.trace.at(-1)?.message).toContain('No later candidate can outrank the first feasible candidate under the existing canonical comparator.');
+  });
+
+  // Test 3: no false early termination when there are no later candidates to skip
+  test('does not falsely claim early termination when winner is the only path', () => {
+    const result = solveILP2Plus(['A'], [], [], { maxEvents: 200000 });
+    expect(result.status).toBe('optimal');
+    expect(result.bestPath).toEqual(['A']);
+    expect(result.counters.earlyTermination).toBe(false);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(0);
+    expect(result.exploredCandidates).toBe(1);
+  });
+
+  // Test 4: no-solution (empty graph) — all (zero) candidates evaluated, no early termination
+  test('no-solution case evaluates all candidates without early termination', () => {
+    const result = solveILP2Plus([], [], [], { maxEvents: 200000 });
+    expect(result.status).toBe('no-solution');
+    expect(result.counters.earlyTermination).toBe(false);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(0);
+    expect(result.exploredCandidates).toBe(0);
+    expect(result.proofCompleteEmitted).toBe(true);
+  });
+
+  // Test 5: many infeasible leading candidates before first feasible
+  test('infeasible leading candidates: reaches first feasible candidate correctly', () => {
+    // Complete D on 4 vertices, empty G: all 11 multi-vertex paths G-disconnected,
+    // singleton A at position 12 is first feasible. 15 total, 3 skipped.
+    const vertices = ['A', 'B', 'C', 'D'];
+    const edgesD = [
+      { from: 'A', to: 'B' }, { from: 'A', to: 'C' }, { from: 'A', to: 'D' },
+      { from: 'B', to: 'C' }, { from: 'B', to: 'D' }, { from: 'C', to: 'D' },
+    ];
+    const result = solveILP2Plus(vertices, edgesD, [], { maxEvents: 200000 });
+    expect(result.bestPath).toEqual(['A']);
+    expect(result.counters.earlyTermination).toBe(true);
+    expect(result.counters.acceptedFeasibleCandidates).toBe(1);
+    expect(result.exploredCandidates).toBe(12);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(3);
+    expect(result.status).toBe('optimal');
+    expect(result.proofCompleteEmitted).toBe(true);
+  });
+
+  // Test 6: lexical tie — same lex-canonical winner as ILP2
+  test('lexical tie preserves canonical winner identical to ILP2', () => {
+    const vertices = ['A', 'B', 'C'];
+    const edgesD = [{ from: 'A', to: 'B' }, { from: 'A', to: 'C' }];
+    const edgesG = [{ u: 'A', v: 'B' }, { u: 'A', v: 'C' }];
+    const ilp2 = solveILP2(vertices, edgesD, edgesG, { maxEvents: 200000 });
+    const ilp2Plus = solveILP2Plus(vertices, edgesD, edgesG, { maxEvents: 200000 });
+    expect(ilp2Plus.bestPath).toEqual(['A', 'B']); // lex-smaller of A->B and A->C
+    expect(ilp2Plus.bestPath).toEqual(ilp2.bestPath);
+    expect(ilp2Plus.counters.earlyTermination).toBe(true);
+    expect(ilp2Plus.counters.acceptedFeasibleCandidates).toBe(1);
+  });
+
+  // Test 7: Phase D disconnected-G rejection still correct in ILP2+
+  test('Phase D disconnected-G rejection remains correct in ILP2+', () => {
+    const result = solveILP2Plus(
+      ['A', 'B', 'C', 'D'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }, { from: 'C', to: 'D' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 200000 }
+    );
+    const earlyReject = result.trace.find((e) => e.reason === 'induced-G-disconnected');
+    expect(earlyReject).toBeDefined();
+    expect(earlyReject?.type).toBe('constraint-rejection');
+    expect(earlyReject?.decisions).toBeNull();
+    expect(result.counters.rejectedDisconnectedGenomicCandidates).toBeGreaterThan(0);
+  });
+
+  // Test 8: capped and cancelled runs are incomplete, no early termination claimed
+  test('capped run is incomplete with no early termination claimed', () => {
+    const result = solveILP2Plus(
+      ['A', 'B', 'C'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 2 }
+    );
+    expect(result.status).toBe('incomplete');
+    expect(result.proofCompleteEmitted).toBe(false);
+    expect(result.counters.earlyTermination).toBe(false);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(0);
+  });
+
+  test('cancelled run is incomplete with no early termination claimed', () => {
+    const result = solveILP2Plus(
+      ['A', 'B', 'C'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { shouldCancel: () => true }
+    );
+    expect(result.status).toBe('incomplete');
+    expect(result.cancelled).toBe(true);
+    expect(result.counters.earlyTermination).toBe(false);
+  });
+
+  // Test 9: existing ILP2 counter invariants unchanged
+  test('ILP2 new counter fields are always false/0 (ILP2 unchanged)', () => {
+    const result = solveILP2(
+      ['A', 'B', 'C', 'D'],
+      [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }, { from: 'C', to: 'D' }],
+      [{ u: 'A', v: 'B' }, { u: 'B', v: 'C' }],
+      { maxEvents: 200000 }
+    );
+    expect(result.counters.earlyTermination).toBe(false);
+    expect(result.counters.candidatesSkippedAfterWinner).toBe(0);
+    expect(result.counters.enumeratedCandidates).toBe(10);
+  });
+
+  // Test 10: differential corpus — ILP2+ matches ILP2, CP2, CP2+ on complete cases
+  test.each(differentialPartitions)('ILP2+ matches ILP2, CP2, and CP2+ canonical winner on corpus $name', ({ cases }) => {
+    let mismatches = 0;
+    let incompletes = 0;
+
+    for (const input of cases) {
+      const ilp2 = solveILP2(input.vertices, input.edgesD, input.edgesG, { maxEvents: 200000 });
+      const ilp2Plus = solveILP2Plus(input.vertices, input.edgesD, input.edgesG, { maxEvents: 200000 });
+      const cp2 = solveCP2(input.vertices, input.edgesD, input.edgesG, { maxEvents: 200000 });
+      const cp2Plus = solveCP2Plus(input.vertices, input.edgesD, input.edgesG, { maxEvents: 200000 });
+
+      const allComplete = ilp2.proofCompleteEmitted && ilp2Plus.proofCompleteEmitted
+        && cp2.proofCompleteEmitted && cp2Plus.proofCompleteEmitted;
+
+      if (!allComplete) { incompletes++; continue; }
+
+      const plusPath = JSON.stringify(ilp2Plus.bestPath ?? []);
+      if (plusPath !== JSON.stringify(ilp2.bestPath ?? [])) mismatches++;
+      if (plusPath !== JSON.stringify(cp2.bestPath ?? [])) mismatches++;
+      if (plusPath !== JSON.stringify(cp2Plus.bestPath ?? [])) mismatches++;
+    }
+
+    expect(mismatches).toBe(0);
+    expect(incompletes).toBe(0);
   });
 });
