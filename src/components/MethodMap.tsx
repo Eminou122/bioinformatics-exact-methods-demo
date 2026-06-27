@@ -8,418 +8,199 @@ interface MethodMapProps {
   navigate: (path: string) => void;
 }
 
+type Method = {
+  id: string;
+  name: string;
+  label: string;
+  desc: string;
+  route: string;
+};
+
+type MethodMapCopy = {
+  title: string;
+  subtitle: string;
+  source2025: string;
+  source2022: string;
+  runnableTitle: string;
+  referenceTitle: string;
+  runnableBadge: string;
+  referenceBadge: string;
+  notRunnable: string;
+  learnMore: string;
+  run: string;
+  compare: string;
+  runnable: Method[];
+  reference: Method[];
+};
+
+const content: Record<Language, MethodMapCopy> = {
+  fr: {
+    title: 'Carte des Méthodes de Recherche',
+    subtitle: 'Les démonstrations exécutables sont séparées des méthodes papier qui restent seulement documentées ici.',
+    source2025: 'Source 2025 : "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
+    source2022: 'Source 2022 : "Improved approaches to solve the One-To-One SkewGraM problem"',
+    runnableTitle: 'Runnable demonstrations',
+    referenceTitle: 'Reference-only methods',
+    runnableBadge: 'Démonstration exécutable',
+    referenceBadge: 'Référence seulement',
+    notRunnable: 'Non exécutable dans la démonstration acyclique actuelle.',
+    learnMore: 'En savoir plus',
+    run: 'Ouvrir',
+    compare: 'Voir le laboratoire CP2+',
+    runnable: [
+      { id: 'legacy', name: 'Legacy Enumeration', label: 'Baseline exact', desc: 'Énumération exhaustive exacte des chemins de D avec test de connexité induite dans G.', route: '/legacy' },
+      { id: 'cp1', name: 'CP1', label: '2025', desc: 'Programmation par contraintes pour le plus long chemin (D,G)-cohérent dans un DAG.', route: '/methods/cp1' },
+      { id: 'cp2', name: 'CP2', label: '2025', desc: 'CP1 avec borne supérieure dirigée sûre pour couper les branches sous-optimales.', route: '/methods/cp2' },
+      { id: 'cp2-plus', name: 'CP2+', label: 'Exact integration', desc: 'CP2 avec propagation génomique sûre quand les sommets atteignables ne peuvent plus reconnecter G.', route: '/methods/cp2-plus' },
+      { id: 'algobb', name: 'AlgoBB++', label: '2022', desc: 'Branch-and-bound borné avec exploration arc par arc dans D et validation de connexité dans G.', route: '/methods/algobb-plus-plus' },
+      { id: 'ilp1', name: 'ILP1', label: '2022', desc: 'Formulation éducative bornée avec variables binaires x/y/z et témoin de connexité génomique.', route: '/methods/ilp1' },
+      { id: 'ilp2', name: 'ILP2', label: '2022', desc: 'Formulation éducative avec racine génomique, liens parents et niveaux.', route: '/methods/ilp2' },
+      { id: 'subset-dp', name: 'Subset DP', label: 'Méthode exacte pédagogique', desc: 'Programmation dynamique exacte sur sous-ensemble et dernier sommet pour petits graphes.', route: '/methods/subset-dp' },
+      { id: 'random-graph-demo-lab', name: 'Laboratoire de graphes aléatoires', label: 'Generated demo', desc: 'Génère des DAG reproductibles et compare les méthodes applicables lorsque c’est sûr.', route: '/methods/random-graph-lab' },
+    ],
+    reference: [
+      { id: 'cp3', name: 'CP3', label: '2025 cyclic trail', desc: 'Méthode de pistes (trails) pour graphes avec cycles; elle ne s’applique pas au laboratoire acyclique de chemins.', route: '/methods/cp3' },
+      { id: 'cp4', name: 'CP4', label: '2025 cyclic trail', desc: 'CP3 avec stratégie Walk-and-Cover pour pistes dans graphes cycliques, pas pour la démo acyclique actuelle.', route: '/methods/cp4' },
+      { id: 'hnet', name: 'HNet', label: '2022 trail baseline', desc: 'Méthode antérieure de recherche de pistes servant de référence papier.', route: '/methods/hnet' },
+      { id: 'enumeration', name: 'Arc-by-Arc & Nogoods Enumeration', label: 'Concept', desc: 'Concept papier d’énumération arc par arc et nogoods; la démo exécutable correspondante est Legacy Enumeration.', route: '/methods/enumeration' },
+      { id: 'conservation', name: 'Trail Grouping & Conservation', label: 'Concept', desc: 'Concepts biologiques de regroupement de pistes et de conservation métabolique.', route: '/methods/conservation' },
+    ],
+  },
+  en: {
+    title: 'Research Methods Map',
+    subtitle: 'Runnable demos are separated from paper methods that are only documented here.',
+    source2025: '2025 Source: "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
+    source2022: '2022 Source: "Improved approaches to solve the One-To-One SkewGraM problem"',
+    runnableTitle: 'Runnable demonstrations',
+    referenceTitle: 'Reference-only methods',
+    runnableBadge: 'Runnable demo',
+    referenceBadge: 'Reference-only',
+    notRunnable: 'Not runnable in the current acyclic demonstration.',
+    learnMore: 'Learn More',
+    run: 'Open',
+    compare: 'View CP2+ Comparison Lab',
+    runnable: [
+      { id: 'legacy', name: 'Legacy Enumeration', label: 'Baseline exact', desc: 'Exact exhaustive enumeration of D paths with induced-G connectivity checks.', route: '/legacy' },
+      { id: 'cp1', name: 'CP1', label: '2025', desc: 'Constraint programming for the longest (D,G)-consistent path in a DAG.', route: '/methods/cp1' },
+      { id: 'cp2', name: 'CP2', label: '2025', desc: 'CP1 with a safe directed upper bound for pruning sub-optimal branches.', route: '/methods/cp2' },
+      { id: 'cp2-plus', name: 'CP2+', label: 'Exact integration', desc: 'CP2 with safe genomic propagation when reachable vertices can no longer reconnect G.', route: '/methods/cp2-plus' },
+      { id: 'algobb', name: 'AlgoBB++', label: '2022', desc: 'Bounded branch-and-bound with arc-by-arc exploration in D and connectivity validation in G.', route: '/methods/algobb-plus-plus' },
+      { id: 'ilp1', name: 'ILP1', label: '2022', desc: 'Bounded educational formulation with binary x/y/z variables and a genomic connectivity witness.', route: '/methods/ilp1' },
+      { id: 'ilp2', name: 'ILP2', label: '2022', desc: 'Educational rooted-level formulation with genomic root, parent links, and levels.', route: '/methods/ilp2' },
+      { id: 'subset-dp', name: 'Subset DP', label: 'Educational exact method', desc: 'Exact dynamic programming over subset and endpoint for small graphs.', route: '/methods/subset-dp' },
+      { id: 'random-graph-demo-lab', name: 'Random Graph Lab', label: 'Generated demo', desc: 'Generates reproducible DAGs and compares applicable methods when safe.', route: '/methods/random-graph-lab' },
+    ],
+    reference: [
+      { id: 'cp3', name: 'CP3', label: '2025 cyclic trail', desc: 'Trail method for graphs with cycles; it is not applicable to the acyclic path lab.', route: '/methods/cp3' },
+      { id: 'cp4', name: 'CP4', label: '2025 cyclic trail', desc: 'CP3 plus Walk-and-Cover for cyclic-graph trails, not the current acyclic path demo.', route: '/methods/cp4' },
+      { id: 'hnet', name: 'HNet', label: '2022 trail baseline', desc: 'Prior exact trail-search method used as a paper reference baseline.', route: '/methods/hnet' },
+      { id: 'enumeration', name: 'Arc-by-Arc & Nogoods Enumeration', label: 'Concept', desc: 'Paper concept for arc-by-arc enumeration and nogoods; the runnable counterpart is Legacy Enumeration.', route: '/methods/enumeration' },
+      { id: 'conservation', name: 'Trail Grouping & Conservation', label: 'Concept', desc: 'Biological concepts for trail grouping and metabolic conservation.', route: '/methods/conservation' },
+    ],
+  },
+  ar: {
+    title: 'خريطة طرق البحث العلمي',
+    subtitle: 'تُفصل العروض القابلة للتشغيل عن طرق الأوراق العلمية الموثقة فقط هنا.',
+    source2025: 'مصدر ٢٠٢٥: "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
+    source2022: 'مصدر ٢٠٢٢: "Improved approaches to solve the One-To-One SkewGraM problem"',
+    runnableTitle: 'Runnable demonstrations',
+    referenceTitle: 'Reference-only methods',
+    runnableBadge: 'عرض قابل للتشغيل',
+    referenceBadge: 'مرجع فقط',
+    notRunnable: 'غير قابلة للتشغيل في العرض الحالي الخالي من الدورات.',
+    learnMore: 'اقرأ المزيد',
+    run: 'فتح',
+    compare: 'عرض مختبر مقارنة CP2+',
+    runnable: [
+      { id: 'legacy', name: 'Legacy Enumeration', label: 'Baseline exact', desc: 'تعداد شامل دقيق لمسارات D مع فحص اتصال G المستحث.', route: '/legacy' },
+      { id: 'cp1', name: 'CP1', label: '2025', desc: 'برمجة بالقيود لإيجاد أطول مسار متسق (D,G) في DAG.', route: '/methods/cp1' },
+      { id: 'cp2', name: 'CP2', label: '2025', desc: 'CP1 مع حد أعلى موجه وآمن لتقليم الفروع دون المثلى.', route: '/methods/cp2' },
+      { id: 'cp2-plus', name: 'CP2+', label: 'Exact integration', desc: 'CP2 مع انتشار جينومي آمن عندما لا تستطيع الرؤوس القابلة للوصول إعادة وصل G.', route: '/methods/cp2-plus' },
+      { id: 'algobb', name: 'AlgoBB++', label: '2022', desc: 'تفريع وتقييد محدود مع استكشاف قوس تلو الآخر في D والتحقق من الاتصال في G.', route: '/methods/algobb-plus-plus' },
+      { id: 'ilp1', name: 'ILP1', label: '2022', desc: 'صياغة تعليمية محدودة بمتغيرات x/y/z ثنائية وشاهد اتصال جينومي.', route: '/methods/ilp1' },
+      { id: 'ilp2', name: 'ILP2', label: '2022', desc: 'صياغة تعليمية بجذر جينومي وروابط آباء ومستويات.', route: '/methods/ilp2' },
+      { id: 'subset-dp', name: 'Subset DP', label: 'Educational exact', desc: 'برمجة ديناميكية دقيقة على subset وآخر رأس للمخططات الصغيرة.', route: '/methods/subset-dp' },
+      { id: 'random-graph-demo-lab', name: 'مختبر المخططات العشوائية', label: 'Generated demo', desc: 'ينشئ DAGs قابلة للتكرار ويقارن الطرق القابلة للتطبيق عندما يكون ذلك آمناً.', route: '/methods/random-graph-lab' },
+    ],
+    reference: [
+      { id: 'cp3', name: 'CP3', label: '2025 cyclic trail', desc: 'طريقة آثار (trails) للمخططات التي تحتوي على دورات؛ لا تنطبق على مختبر المسارات الخالي من الدورات.', route: '/methods/cp3' },
+      { id: 'cp4', name: 'CP4', label: '2025 cyclic trail', desc: 'CP3 مع Walk-and-Cover لآثار المخططات الدائرية، وليس للعرض الحالي الخالي من الدورات.', route: '/methods/cp4' },
+      { id: 'hnet', name: 'HNet', label: '2022 trail baseline', desc: 'طريقة دقيقة سابقة للبحث عن الآثار تستخدم كمرجع في الأوراق العلمية.', route: '/methods/hnet' },
+      { id: 'enumeration', name: 'Arc-by-Arc & Nogoods Enumeration', label: 'Concept', desc: 'مفهوم ورقي للتعداد قوساً بقوس وقيود nogoods؛ النظير القابل للتشغيل هو Legacy Enumeration.', route: '/methods/enumeration' },
+      { id: 'conservation', name: 'Trail Grouping & Conservation', label: 'Concept', desc: 'مفاهيم بيولوجية لتجميع الآثار والحفظ الاستقلابي.', route: '/methods/conservation' },
+    ],
+  },
+};
+
 export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
   const isAr = lang === 'ar';
-  
-  const content: Record<Language, {
-    title: string;
-    subtitle: string;
-    source2025: string;
-    source2022: string;
-    badgeExact: string;
-    badgeSimulation: string;
-    badgeReference: string;
-    learnMore: string;
-      runCP1: string;
-      runCP2: string;
-      runCP2Comparison: string;
-      runRandomLab: string;
-      runSubsetDp: string;
-      runILP1: string;
-      runILP2: string;
-      runLegacy: string;
-    methods: {
-      id: string;
-      name: string;
-      paper?: string;
-      sourceLabel?: string;
-      badge: 'exact' | 'simulation' | 'reference';
-      desc: string;
-      route?: string;
-    }[];
-  }> = {
-    fr: {
-      title: 'Carte des Méthodes de Recherche',
-      subtitle: 'Classification des approches exactes pour la cohérence métabolisme-génome issue des publications de 2022 et 2025.',
-      source2025: 'Source 2025 : "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
-      source2022: 'Source 2022 : "Improved approaches to solve the One-To-One SkewGraM problem"',
-      badgeExact: 'Implémentation graphe borné exact',
-      badgeSimulation: 'Simulation pédagogique',
-      badgeReference: 'Méthode de référence papier',
-      learnMore: 'En savoir plus',
-      runCP1: 'Lancer l\'application CP1',
-      runCP2: 'Lancer l\'application CP2',
-      runCP2Comparison: 'Voir le laboratoire CP2+',
-      runRandomLab: 'Lancer le laboratoire de graphes',
-      runSubsetDp: 'Lancer Subset DP',
-      runILP1: 'Lancer l\'application ILP1',
-      runILP2: 'Lancer l\'application ILP2',
-      runLegacy: 'Lancer la démo énumération',
-      methods: [
-        {
-          id: 'cp1',
-          name: 'CP1 (Constraint Programming 1)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'Méthode de programmation par contraintes pour trouver le plus long chemin (D,G)-cohérent dans un DAG.',
-          route: '/methods/cp1'
-        },
-        {
-          id: 'cp2',
-          name: 'CP2 (CP avec borne supérieure)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'Implémentation exacte pour petits DAG : CP1 avec borne supérieure sûre pour élaguer des branches sous-optimales.',
-          route: '/methods/cp2'
-        },
-        {
-          id: 'cp2-plus',
-          name: 'CP2+ (propagation génomique sûre)',
-          sourceLabel: 'Intégration éducative exacte',
-          badge: 'exact',
-          desc: 'CP2 avec un élagage précoce sûr lorsque les sommets atteignables vers l’avant ne peuvent plus reconnecter le chemin dans G.',
-          route: '/methods/cp2-plus'
-        },
-        {
-          id: 'random-graph-demo-lab',
-          name: 'Laboratoire de graphes aléatoires',
-          sourceLabel: 'Démonstration générée déterministe',
-          badge: 'exact',
-          desc: 'Génère des graphes acycliques Erdős–Rényi ou scale-free-style avec graine, puis compare CP2, CP2+ et ILP2 lorsque c’est sûr.',
-          route: '/methods/random-graph-lab'
-        },
-        {
-          id: 'subset-dp',
-          name: 'Exact Subset Dynamic Programming',
-          sourceLabel: 'Méthode exacte pédagogique',
-          badge: 'exact',
-          desc: 'Programmation dynamique exacte sur subset et dernier sommet; exacte seulement pour petits graphes quand la recherche se termine.',
-          route: '/methods/subset-dp'
-        },
-        {
-          id: 'cp3',
-          name: 'CP3 (Trail Solver dans les cycles)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'Gère les pistes (trails) dans les graphes cycliques en construisant un sous-graphe eulérien.',
-          route: '/methods/cp3'
-        },
-        {
-          id: 'cp4',
-          name: 'CP4 (CP3 avec Walk & Cover)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'CP3 augmenté de la stratégie d\'embranchement Walk-and-Cover pour privilégier les sommets non couverts.',
-          route: '/methods/cp4'
-        },
-        {
-          id: 'algobb',
-          name: 'AlgoBB++',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Implémentation exacte pour petits graphes : branch-and-bound borné avec exploration arc par arc dans D et validation de connexité dans G.',
-          route: '/methods/algobb-plus-plus'
-        },
-        {
-          id: 'ilp1',
-          name: 'ILP1 (Integer Linear Programming 1)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Formulation éducative bornée exacte pour petits DAG : variables binaires x/y/z et témoin de connexité génomique.',
-          route: '/methods/ilp1'
-        },
-        {
-          id: 'ilp2',
-          name: 'ILP2 (Racine et niveaux)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Implémentation exacte pour petits DAG : formulation éducative avec racine génomique, liens parents et niveaux.',
-          route: '/methods/ilp2'
-        },
-        {
-          id: 'hnet',
-          name: 'HNet',
-          paper: '2022',
-          badge: 'reference',
-          desc: 'Méthode exacte antérieure de recherche de pistes (trails) servant de référence de comparaison.',
-          route: '/methods/hnet'
-        },
-        {
-          id: 'enumeration',
-          name: 'Énumération Arc-par-Arc & Nogoods',
-          paper: '2022/2025',
-          badge: 'simulation',
-          desc: 'Recherche exhaustive de chemins dans D. (La démo historique est préservée sous /legacy).',
-          route: '/methods/enumeration'
-        },
-        {
-          id: 'conservation',
-          name: 'Regroupement de Pistes & Conservation',
-          paper: '2022/2025',
-          badge: 'reference',
-          desc: 'Concepts de regroupement de pistes biologiques strictes pour interpréter la conservation métabolique.',
-          route: '/methods/conservation'
-        }
-      ]
-    },
-    en: {
-      title: 'Research Methods Map',
-      subtitle: 'Classification of exact approaches for metabolic-genomic consistency from the 2022 and 2025 publications.',
-      source2025: '2025 Source: "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
-      source2022: '2022 Source: "Improved approaches to solve the One-To-One SkewGraM problem"',
-      badgeExact: 'Exact small-graph implementation',
-      badgeSimulation: 'Educational simulation',
-      badgeReference: 'Paper-reference method',
-      learnMore: 'Learn More',
-      runCP1: 'Launch CP1 Solver App',
-      runCP2: 'Launch CP2 Solver App',
-      runCP2Comparison: 'View CP2+ Comparison Lab',
-      runRandomLab: 'Launch Graph Lab',
-      runSubsetDp: 'Launch Subset DP',
-      runILP1: 'Launch ILP1 Solver App',
-      runILP2: 'Launch ILP2 Solver App',
-      runLegacy: 'Launch Legacy Enumeration',
-      methods: [
-        {
-          id: 'cp1',
-          name: 'CP1 (Constraint Programming 1)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'Constraint programming method for finding the longest (D,G)-consistent path in a DAG.',
-          route: '/methods/cp1'
-        },
-        {
-          id: 'cp2',
-          name: 'CP2 (CP with Upper Bound)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'Exact small-DAG implementation: CP1 with a safe upper bound for pruning sub-optimal branches.',
-          route: '/methods/cp2'
-        },
-        {
-          id: 'cp2-plus',
-          name: 'CP2+ (Safe Genomic Propagation)',
-          sourceLabel: 'Educational exact integration',
-          badge: 'exact',
-          desc: 'CP2 with a safe early prune when forward-reachable vertices can no longer reconnect the path in G.',
-          route: '/methods/cp2-plus'
-        },
-        {
-          id: 'random-graph-demo-lab',
-          name: 'Random-Graph Demonstration Lab',
-          sourceLabel: 'Deterministic generated demo',
-          badge: 'exact',
-          desc: 'Generates seeded acyclic Erdős–Rényi or scale-free-style graphs, then compares CP2, CP2+, and ILP2 when safe.',
-          route: '/methods/random-graph-lab'
-        },
-        {
-          id: 'subset-dp',
-          name: 'Exact Subset Dynamic Programming',
-          sourceLabel: 'Educational exact method',
-          badge: 'exact',
-          desc: 'Exact dynamic programming over subset and endpoint; exact only for small graphs when the search completes.',
-          route: '/methods/subset-dp'
-        },
-        {
-          id: 'cp3',
-          name: 'CP3 (Trail Solver in Cycles)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'Handles trails in graphs containing cycles by constructing an Eulerian subgraph.',
-          route: '/methods/cp3'
-        },
-        {
-          id: 'cp4',
-          name: 'CP4 (CP3 with Walk & Cover)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'CP3 augmented with the Walk-and-Cover branching strategy to prefer uncovered vertices.',
-          route: '/methods/cp4'
-        },
-        {
-          id: 'algobb',
-          name: 'AlgoBB++',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Exact small-graph implementation: bounded branch-and-bound with arc-by-arc exploration in D and connectivity validation in G.',
-          route: '/methods/algobb-plus-plus'
-        },
-        {
-          id: 'ilp1',
-          name: 'ILP1 (Integer Linear Programming 1)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Exact bounded educational formulation for small DAGs: binary x/y/z variables and a genomic connectivity witness.',
-          route: '/methods/ilp1'
-        },
-        {
-          id: 'ilp2',
-          name: 'ILP2 (Rooted Levels)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'Exact small-DAG implementation: educational root, parent-link, and level formulation for genomic connectivity.',
-          route: '/methods/ilp2'
-        },
-        {
-          id: 'hnet',
-          name: 'HNet',
-          paper: '2022',
-          badge: 'reference',
-          desc: 'Prior exact trail search method used as a comparison baseline.',
-          route: '/methods/hnet'
-        },
-        {
-          id: 'enumeration',
-          name: 'Arc-by-Arc & Nogoods Enumeration',
-          paper: '2022/2025',
-          badge: 'simulation',
-          desc: 'Exhaustive path search in D. (Legacy exact explorer is preserved under /legacy).',
-          route: '/methods/enumeration'
-        },
-        {
-          id: 'conservation',
-          name: 'Trail Grouping & Conservation',
-          paper: '2022/2025',
-          badge: 'reference',
-          desc: 'Biological interpretation concepts utilizing strict trail grouping and conservation patterns.',
-          route: '/methods/conservation'
-        }
-      ]
-    },
-    ar: {
-      title: 'خريطة طرق البحث العلمي',
-      subtitle: 'تصنيف الأساليب الدقيقة للاتساق بين الاستقلاب والجينوم من منشورات عامي ٢٠٢٢ و ٢٠٢٥.',
-      source2025: 'مصدر ٢٠٢٥: "Constraint programming approaches for finding conserved metabolic and genomic patterns"',
-      source2022: 'مصدر ٢٠٢٢: "Improved approaches to solve the One-To-One SkewGraM problem"',
-      badgeExact: 'تطبيق عملي دقيق للمخططات المحدودة',
-      badgeSimulation: 'محاكاة تعليمية',
-      badgeReference: 'طريقة مرجعية من الأوراق العلمية',
-      learnMore: 'اقرأ المزيد',
-      runCP1: 'تشغيل نموذج CP1',
-      runCP2: 'تشغيل نموذج CP2',
-      runCP2Comparison: 'عرض مختبر مقارنة CP2+',
-      runRandomLab: 'تشغيل مختبر المخططات',
-      runSubsetDp: 'تشغيل Subset DP',
-      runILP1: 'تشغيل نموذج ILP1',
-      runILP2: 'تشغيل نموذج ILP2',
-      runLegacy: 'تشغيل محاكاة التعداد القديمة',
-      methods: [
-        {
-          id: 'cp1',
-          name: 'CP1 (البرمجة بالقيود ١)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'أسلوب البرمجة بالقيود للعثور على أطول مسار متسق (D,G) في مخطط موجه خالي من الدورات (DAG).',
-          route: '/methods/cp1'
-        },
-        {
-          id: 'cp2',
-          name: 'CP2 (البرمجة بالقيود مع حد أعلى)',
-          paper: '2025',
-          badge: 'exact',
-          desc: 'تطبيق دقيق لمخططات DAG الصغيرة: CP1 مع حد أعلى آمن لتقليم الفروع دون المثلى.',
-          route: '/methods/cp2'
-        },
-        {
-          id: 'cp2-plus',
-          name: 'CP2+ (انتشار جينومي آمن)',
-          sourceLabel: 'دمج تعليمي دقيق',
-          badge: 'exact',
-          desc: 'CP2 مع تقليم مبكر آمن عندما تعجز الرؤوس القابلة للوصول إلى الأمام عن إعادة وصل المسار في G.',
-          route: '/methods/cp2-plus'
-        },
-        {
-          id: 'random-graph-demo-lab',
-          name: 'مختبر عرض المخططات العشوائية',
-          sourceLabel: 'عرض حتمي مولد',
-          badge: 'exact',
-          desc: 'يولد مخططات Erdős–Rényi أو scale-free-style بلا دورات باستخدام seed، ثم يقارن CP2 وCP2+ وILP2 عندما يكون آمناً.',
-          route: '/methods/random-graph-lab'
-        },
-        {
-          id: 'subset-dp',
-          name: 'Exact Subset Dynamic Programming',
-          sourceLabel: 'طريقة تعليمية دقيقة',
-          badge: 'exact',
-          desc: 'برمجة ديناميكية دقيقة على subset وآخر رأس؛ دقيقة فقط للرسوم الصغيرة عند اكتمال البحث.',
-          route: '/methods/subset-dp'
-        },
-        {
-          id: 'cp3',
-          name: 'CP3 (محلل الأثر في الدورات)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'يتعامل مع الآثار (trails) في المخططات التي قد تحتوي على دورات عن طريق بناء مخطط فرعي أويلري.',
-          route: '/methods/cp3'
-        },
-        {
-          id: 'cp4',
-          name: 'CP4 (CP3 مع Walk & Cover)',
-          paper: '2025',
-          badge: 'reference',
-          desc: 'CP3 معززاً باستراتيجية التفريع Walk-and-Cover لتفضيل التوسع نحو الرؤوس غير المغطاة.',
-          route: '/methods/cp4'
-        },
-        {
-          id: 'algobb',
-          name: 'AlgoBB++',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'تطبيق دقيق للمخططات الصغيرة: تفريع وتقييد محدود مع استكشاف قوس تلو الآخر في D والتحقق من الاتصال في G.',
-          route: '/methods/algobb-plus-plus'
-        },
-        {
-          id: 'ilp1',
-          name: 'ILP1 (البرمجة الخطية الصحيحة ١)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'صياغة تعليمية دقيقة ومحدودة لمخططات DAG الصغيرة: متغيرات x/y/z ثنائية وشاهد اتصال جينومي.',
-          route: '/methods/ilp1'
-        },
-        {
-          id: 'ilp2',
-          name: 'ILP2 (الجذر والمستويات)',
-          paper: '2022',
-          badge: 'exact',
-          desc: 'تطبيق دقيق لمخططات DAG الصغيرة: صياغة تعليمية بجذر جينومي وروابط آباء ومستويات.',
-          route: '/methods/ilp2'
-        },
-        {
-          id: 'hnet',
-          name: 'HNet',
-          paper: '2022',
-          badge: 'reference',
-          desc: 'طريقة دقيقة سابقة للبحث عن الأثر تستخدم كمعيار للمقارنة.',
-          route: '/methods/hnet'
-        },
-        {
-          id: 'enumeration',
-          name: 'التعداد التفصيلي للقوس تلو الآخر',
-          paper: '2022/2025',
-          badge: 'simulation',
-          desc: 'البحث الشامل لجميع المسارات في D. (تم الاحتفاظ بالبرنامج القديم تحت الرابط /legacy).',
-          route: '/methods/enumeration'
-        },
-        {
-          id: 'conservation',
-          name: 'تجميع المسارات وحفظها',
-          paper: '2022/2025',
-          badge: 'reference',
-          desc: 'مفاهيم تجميع الأثر البيولوجي الدقيق لتفسير الحفظ الاستقلابي.',
-          route: '/methods/conservation'
-        }
-      ]
-    }
-  };
-
   const t = content[lang];
+
+  const renderMethod = (method: Method, runnable: boolean) => (
+    <article key={method.id} className="card" data-testid={`method-map-${method.id}`}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 'var(--space-sm)', marginBlockEnd: 'var(--space-sm)' }}>
+        <span style={{
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: runnable ? 'var(--primary)' : 'var(--neutral-medium)',
+          backgroundColor: runnable ? 'var(--primary-bg)' : 'var(--neutral-bg-hover)',
+          paddingBlock: 'var(--space-xs)',
+          paddingInline: 'var(--space-sm)',
+          borderRadius: 'var(--radius-sm)'
+        }}>
+          <span className="icon-label">
+            <Icon name={runnable ? 'check' : 'info'} size={15} />
+            {runnable ? t.runnableBadge : t.referenceBadge}
+          </span>
+        </span>
+        <span dir="ltr" style={{ fontSize: '0.8rem', color: 'var(--neutral-light)', fontWeight: 700 }}>
+          {method.label}
+        </span>
+      </div>
+
+      <h3 dir="ltr" style={{ fontSize: '1.15rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
+        <span className="icon-label">
+          <Icon name={method.id === 'algobb' ? 'route' : method.id === 'cp1' ? 'network' : 'book'} size={18} />
+          {method.name}
+        </span>
+      </h3>
+      <p style={{ fontSize: '0.9rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-sm)' }}>
+        {method.desc}
+      </p>
+      {!runnable && (
+        <p style={{ fontWeight: 800, color: 'var(--primary)', marginBlockEnd: 'var(--space-md)' }}>
+          {t.notRunnable}
+        </p>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+        <Link
+          to={method.route}
+          navigate={navigate}
+          className={runnable ? 'btn btn-primary' : 'btn btn-secondary'}
+          style={{ minHeight: 38, fontSize: '0.85rem', width: 'auto', paddingBlock: 4, paddingInline: 'var(--space-md)' }}
+        >
+          {runnable ? t.run : t.learnMore}
+        </Link>
+        {method.id === 'cp2-plus' && (
+          <Link
+            to="/methods/cp2-plus/comparison"
+            navigate={navigate}
+            className="btn btn-secondary"
+            style={{ minHeight: 38, fontSize: '0.85rem', width: 'auto', paddingBlock: 4, paddingInline: 'var(--space-md)' }}
+          >
+            {t.compare}
+          </Link>
+        )}
+      </div>
+    </article>
+  );
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
       <header style={{ marginBlockEnd: 'var(--space-xl)' }}>
         <h2 style={{ fontSize: '1.75rem', color: 'var(--primary)' }}>{t.title}</h2>
         <p style={{ fontSize: '1.05rem', color: 'var(--neutral-medium)' }}>{t.subtitle}</p>
-        
         <div style={{
           padding: 'var(--space-md)',
           backgroundColor: 'var(--primary-bg)',
@@ -431,111 +212,24 @@ export const MethodMap: React.FC<MethodMapProps> = ({ lang, navigate }) => {
           fontStyle: 'italic',
           color: 'var(--primary)'
         }}>
-          <div>{t.source2025}</div>
-          <div style={{ marginBlockStart: 'var(--space-xs)' }}>{t.source2022}</div>
+          <div dir="ltr">{t.source2025}</div>
+          <div dir="ltr" style={{ marginBlockStart: 'var(--space-xs)' }}>{t.source2022}</div>
         </div>
       </header>
 
-      <div className="grid grid-2" style={{ marginBlockEnd: 'var(--space-xl)' }}>
-        {t.methods.map((method) => {
-          let badgeText = t.badgeReference;
-          let badgeColor = 'var(--neutral-medium)';
-          let badgeBg = 'var(--neutral-bg-hover)';
+      <section aria-labelledby="method-map-runnable" style={{ marginBlockEnd: 'var(--space-xl)' }}>
+        <h3 id="method-map-runnable" style={{ color: 'var(--primary)', fontSize: '1.35rem' }}>{t.runnableTitle}</h3>
+        <div className="grid grid-2">
+          {t.runnable.map((method) => renderMethod(method, true))}
+        </div>
+      </section>
 
-          if (method.badge === 'exact') {
-            badgeText = t.badgeExact;
-            badgeColor = 'var(--primary)';
-            badgeBg = 'var(--primary-bg)';
-          } else if (method.badge === 'simulation') {
-            badgeText = t.badgeSimulation;
-            badgeColor = 'var(--accent-gold)';
-            badgeBg = 'var(--accent-gold-bg)';
-          }
-
-          return (
-            <div key={method.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBlockEnd: 'var(--space-sm)' }}>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: badgeColor,
-                    backgroundColor: badgeBg,
-                    paddingBlock: 'var(--space-xs)',
-                    paddingInline: 'var(--space-sm)',
-                    borderRadius: 'var(--radius-sm)'
-                  }}>
-                    <span className="icon-label">
-                      <Icon name={method.badge === 'exact' ? 'check' : method.badge === 'simulation' ? 'route' : 'info'} size={15} />
-                      {badgeText}
-                    </span>
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--neutral-light)', fontWeight: 600 }}>
-                    {method.sourceLabel ?? `${method.paper} Paper`}
-                  </span>
-                </div>
-                
-                <h3 style={{ fontSize: '1.2rem', color: 'var(--neutral-dark)', marginBlockEnd: 'var(--space-xs)' }}>
-                  <span className="icon-label">
-                    <Icon name={method.id === 'algobb' ? 'route' : method.id === 'cp1' ? 'network' : 'book'} size={18} />
-                    {method.name}
-                  </span>
-                </h3>
-                
-                <p style={{ fontSize: '0.9rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-md)' }}>
-                  {method.desc}
-                </p>
-              </div>
-
-              {method.route && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
-                  <Link 
-                    to={method.route} 
-                    navigate={navigate}
-                    className="btn btn-primary"
-                    style={{ 
-                      minHeight: '38px',
-                      fontSize: '0.85rem',
-                      width: 'auto',
-                      paddingBlock: '4px',
-                      paddingInline: 'var(--space-md)'
-                    }}
-                  >
-                    {method.id === 'cp1' ? t.runCP1 : method.id === 'cp2' ? t.runCP2 : method.id === 'random-graph-demo-lab' ? t.runRandomLab : method.id === 'subset-dp' ? t.runSubsetDp : method.id === 'ilp1' ? t.runILP1 : method.id === 'ilp2' ? t.runILP2 : t.learnMore}
-                  </Link>
-                  {method.id === 'cp2-plus' && (
-                    <Link
-                      to="/methods/cp2-plus/comparison"
-                      navigate={navigate}
-                      className="btn btn-secondary"
-                      style={{ minHeight: '38px', fontSize: '0.85rem', width: 'auto', paddingBlock: 4, paddingInline: 'var(--space-md)' }}
-                    >
-                      {t.runCP2Comparison}
-                    </Link>
-                  )}
-                  {method.id === 'enumeration' && (
-                    <Link 
-                      to="/legacy" 
-                      navigate={navigate}
-                      className="btn btn-secondary"
-                      style={{ 
-                        minHeight: '38px',
-                        fontSize: '0.85rem',
-                        width: 'auto',
-                        paddingBlock: '4px',
-                        paddingInline: 'var(--space-md)'
-                      }}
-                    >
-                      {t.runLegacy}
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <section aria-labelledby="method-map-reference" style={{ marginBlockEnd: 'var(--space-xl)' }}>
+        <h3 id="method-map-reference" style={{ color: 'var(--primary)', fontSize: '1.35rem' }}>{t.referenceTitle}</h3>
+        <div className="grid grid-2">
+          {t.reference.map((method) => renderMethod(method, false))}
+        </div>
+      </section>
     </div>
   );
 };

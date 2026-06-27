@@ -10,6 +10,11 @@ interface MethodPlaceholdersProps {
 
 export const MethodPlaceholders: React.FC<MethodPlaceholdersProps> = ({ methodId, lang, navigate }) => {
   const isAr = lang === 'ar';
+  const referenceOnlyNote: Record<Language, string> = {
+    fr: 'Référence seulement : non exécutable dans la démonstration acyclique actuelle.',
+    en: 'Reference-only: not runnable in the current acyclic demonstration.',
+    ar: 'مرجع فقط: غير قابل للتشغيل في العرض الحالي الخالي من الدورات.'
+  };
 
   const explanations: Record<string, Record<Language, { title: string; badge: string; text: string; linkText: string }>> = {
     cp2: {
@@ -35,40 +40,40 @@ export const MethodPlaceholders: React.FC<MethodPlaceholdersProps> = ({ methodId
     cp3: {
       fr: {
         title: 'CP3 — Recherche de Pistes (Trails) avec Cycles',
-        badge: 'Méthode de référence papier',
-        text: 'CP3 gère les pistes dans les graphes pouvant contenir des cycles. Elle construit un sous-graphe eulérien dans un graphe augmenté, puis en extrait une piste valide.',
+        badge: 'Référence seulement',
+        text: 'CP3 gère les pistes (trails) dans les graphes pouvant contenir des cycles. Elle construit un sous-graphe eulérien dans un graphe augmenté, puis en extrait une piste valide. Cette distinction de piste cyclique ne s’applique pas au laboratoire acyclique de chemins.',
         linkText: 'Retour aux méthodes'
       },
       en: {
         title: 'CP3 — Trail Search in Cyclic Graphs',
-        badge: 'Paper-reference method',
-        text: 'CP3 handles trails in graphs that may contain cycles. It constructs an Eulerian subgraph in an augmented graph, then extracts a trail.',
+        badge: 'Reference-only',
+        text: 'CP3 handles trails in graphs that may contain cycles. It constructs an Eulerian subgraph in an augmented graph, then extracts a trail. This cyclic-trail distinction is not applicable to the acyclic path lab.',
         linkText: 'Back to methods'
       },
       ar: {
         title: 'CP3 — البحث عن أثر (Trails) في المخططات الدائرية',
-        badge: 'طريقة مرجعية من الأوراق العلمية',
-        text: 'يتعامل CP3 مع الآثار في المخططات التي قد تحتوي على دورات. حيث يقوم بإنشاء مخطط فرعي أويلري في مخطط مضاف، ثم يستخرج منه أثراً صالحاً.',
+        badge: 'مرجع فقط',
+        text: 'يتعامل CP3 مع الآثار في المخططات التي قد تحتوي على دورات. حيث يقوم بإنشاء مخطط فرعي أويلري في مخطط مضاف، ثم يستخرج منه أثراً صالحاً. هذا الفرق الخاص بالأثر في المخططات الدائرية لا ينطبق على مختبر المسارات الخالي من الدورات.',
         linkText: 'العودة إلى خريطة الطرق'
       }
     },
     cp4: {
       fr: {
         title: 'CP4 — CP3 avec Stratégie Walk & Cover',
-        badge: 'Méthode de référence papier',
-        text: 'CP4 représente la méthode CP3 enrichie de la stratégie d\'embranchement Walk-and-Cover, qui privilégie le déplacement et l\'expansion vers des sommets non encore couverts.',
+        badge: 'Référence seulement',
+        text: 'CP4 représente la méthode CP3 enrichie de la stratégie d\'embranchement Walk-and-Cover, qui privilégie le déplacement et l\'expansion vers des sommets non encore couverts. Comme CP3, elle concerne les pistes dans des graphes cycliques, pas la démonstration acyclique actuelle.',
         linkText: 'Retour aux méthodes'
       },
       en: {
         title: 'CP4 — CP3 with Walk & Cover Strategy',
-        badge: 'Paper-reference method',
-        text: 'CP4 is CP3 plus the walk-and-cover branching strategy, which prefers expanding toward uncovered vertices.',
+        badge: 'Reference-only',
+        text: 'CP4 is CP3 plus the walk-and-cover branching strategy, which prefers expanding toward uncovered vertices. Like CP3, it is for cyclic-graph trails, not the current acyclic path demonstration.',
         linkText: 'Back to methods'
       },
       ar: {
         title: 'CP4 — نموذج CP3 مع استراتيجية Walk & Cover',
-        badge: 'طريقة مرجعية من الأوراق العلمية',
-        text: 'CP4 هو عبارة عن CP3 بالإضافة إلى استراتيجية التفريع Walk-and-Cover، والتي تفضل التوسع نحو الرؤوس غير المغطاة بالمسار.',
+        badge: 'مرجع فقط',
+        text: 'CP4 هو عبارة عن CP3 بالإضافة إلى استراتيجية التفريع Walk-and-Cover، والتي تفضل التوسع نحو الرؤوس غير المغطاة بالمسار. ومثل CP3، فهو خاص بآثار المخططات الدائرية وليس بعرض المسارات الحالي الخالي من الدورات.',
         linkText: 'العودة إلى خريطة الطرق'
       }
     },
@@ -220,6 +225,9 @@ export const MethodPlaceholders: React.FC<MethodPlaceholdersProps> = ({ methodId
 
         <p style={{ fontSize: '1.05rem', color: 'var(--neutral-medium)', marginBlockEnd: 'var(--space-xl)' }}>
           {t.text}
+        </p>
+        <p style={{ fontWeight: 800, color: 'var(--primary)', marginBlockEnd: 'var(--space-xl)' }}>
+          {referenceOnlyNote[lang]}
         </p>
 
         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>

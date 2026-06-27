@@ -11,7 +11,7 @@ describe('Random-Graph Demonstration Lab', () => {
 
   afterEach(() => cleanup());
 
-  test('renders the route, navbar link, Method Map link, and released solver result surfaces', () => {
+  test('renders the route, primary nav link, Method Map link, and released solver result surfaces', () => {
     render(<App />);
 
     expect(screen.getByTestId('random-graph-demo-lab')).toBeDefined();
@@ -29,7 +29,8 @@ describe('Random-Graph Demonstration Lab', () => {
 
     fireEvent.click(screen.getByRole('link', { name: 'Carte des Méthodes' }));
     expect(screen.getByText('Laboratoire de graphes aléatoires')).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Lancer le laboratoire de graphes' }).getAttribute('href')).toBe('/methods/random-graph-lab');
+    expect(screen.getByTestId('method-map-random-graph-demo-lab').textContent).toContain('Démonstration exécutable');
+    expect(within(screen.getByTestId('method-map-random-graph-demo-lab')).getByRole('link', { name: 'Ouvrir' }).getAttribute('href')).toBe('/methods/random-graph-lab');
   });
 
   test('owns the page-local cockpit wrapper and layout repair styles', () => {

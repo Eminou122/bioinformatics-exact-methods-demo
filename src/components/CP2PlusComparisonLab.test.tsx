@@ -15,7 +15,7 @@ describe('CP2+ Comparison Lab', () => {
   test('renders the public route and is reachable from CP2+ and the Method Map', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Laboratoire de comparaison CP2+' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Modèle CP2+' }).style.fontWeight).toBe('700');
+    expect(screen.getByRole('link', { name: 'Carte des Méthodes' }).style.fontWeight).toBe('700');
 
     fireEvent.click(screen.getByRole('link', { name: 'Retour à CP2+' }));
     const labLink = screen.getByRole('link', { name: 'Voir le laboratoire de comparaison' });

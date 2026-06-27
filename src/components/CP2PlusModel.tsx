@@ -23,7 +23,9 @@ const labels = {
     title: 'CP2+ — Propagation sûre de faisabilité génomique',
     description: 'Une implémentation CP2 améliorée qui ajoute un élagage précoce sûr de l’impossibilité génomique. Elle reste exacte lorsque la recherche se termine.',
     honesty: 'CP2+ est une spécialisation à une extrémité intégrée à CP2. Ce n’est ni une nouvelle méthode de recherche ni une reproduction d’article.',
+    whySafe: 'Pourquoi CP2+ peut élaguer en sécurité',
     explanation: 'CP2+ conserve la borne de plus long suffixe dirigé de CP2. Il coupe aussi une branche seulement si même tous les sommets inutilisés atteignables vers l’avant ne peuvent reconnecter les sommets déjà sélectionnés dans G.',
+    exactDistinction: 'CP2 élague avec une borne supérieure dirigée sûre : si le préfixe D courant plus le plus long suffixe D possible ne peut pas battre l’incumbent, la branche ne peut pas améliorer la solution. CP2+ conserve cette règle CP2 et ajoute une règle génomique : il observe les composantes connexes des sommets sélectionnés dans G et les sommets encore atteignables vers l’avant dans D. Si ces sommets futurs atteignables ne peuvent pas reconnecter les composantes G sélectionnées, CP2+ élague le préfixe en sécurité. CP2+ ne change pas l’objectif, la règle de départage ni la définition d’un chemin légal; il rejette seulement des préfixes que CP2 explorerait encore.',
     necessary: 'Ce test est une condition nécessaire seulement : une reconnexion possible dans le graphe relâché ne garantit pas qu’une complétion dirigée existe.',
     examples: 'Exemples pédagogiques',
     graphSummary: 'Résumé des graphes',
@@ -73,7 +75,9 @@ const labels = {
     title: 'CP2+ — Safe Genomic-Feasibility Propagation',
     description: 'An enhanced CP2 implementation that adds a safe early genomic-impossibility prune. It remains exact when search completes.',
     honesty: 'CP2+ is a one-ended specialization integrated into CP2. It is not a new research method or a paper reproduction.',
+    whySafe: 'Why CP2+ can prune safely',
     explanation: 'CP2+ preserves CP2’s directed longest-suffix bound. It also cuts a branch only when even all forward-reachable unused vertices cannot reconnect the already selected vertices in G.',
+    exactDistinction: 'CP2 prunes by a safe directed upper bound: if the current D-prefix plus the longest possible D suffix cannot beat the incumbent, the branch is impossible to improve. CP2+ keeps that CP2 rule and adds one genomic rule: it looks at the selected vertices’ connected components in G and the vertices still reachable forward in D. If those future reachable vertices cannot reconnect the selected G-components, CP2+ safely prunes the prefix. CP2+ does not change the objective, tie-break rule, or legal path definition; it only rejects prefixes that CP2 would still explore.',
     necessary: 'This is only a necessary-condition test: reconnection in the relaxed graph does not certify that a directed completion exists.',
     examples: 'Teaching Examples',
     graphSummary: 'D/G graph summary',
@@ -123,7 +127,9 @@ const labels = {
     title: 'CP2+ — الانتشار الآمن لإمكان الاتصال الجينومي',
     description: 'تطبيق محسن لـ CP2 يضيف تقليماً مبكراً وآمناً عند استحالة الاتصال الجينومي. ويظل دقيقاً عند اكتمال البحث.',
     honesty: 'CP2+ تخصيص أحادي الطرف مدمج في CP2. ليس طريقة بحث جديدة ولا إعادة إنتاج لورقة علمية.',
+    whySafe: 'لماذا يستطيع CP2+ التقليم بأمان',
     explanation: 'يحافظ CP2+ على حد CP2 لأطول لاحقة موجهة. ويقطع الفرع فقط إذا كانت كل الرؤوس غير المستخدمة القابلة للوصول إلى الأمام غير قادرة على إعادة وصل الرؤوس المحددة في G.',
+    exactDistinction: 'يقلّم CP2 باستخدام حد أعلى موجه وآمن: إذا كان بادئ المسار الحالي في D مع أطول لاحقة D ممكنة لا يستطيع تجاوز الحل الحالي، فلا يمكن لهذا الفرع تحسين الحل. يحتفظ CP2+ بقاعدة CP2 هذه ويضيف قاعدة جينومية واحدة: ينظر إلى المكونات المتصلة للرؤوس المختارة في G وإلى الرؤوس التي ما زالت قابلة للوصول إلى الأمام في D. إذا كانت هذه الرؤوس المستقبلية القابلة للوصول لا تستطيع إعادة وصل مكونات G المختارة، فإن CP2+ يقلّم البادئ بأمان. لا يغيّر CP2+ الهدف ولا قاعدة كسر التعادل ولا تعريف المسار القانوني؛ بل يرفض فقط بادئات كان CP2 سيستمر في استكشافها.',
     necessary: 'هذا اختبار لشرط ضروري فقط: إمكان الاتصال في المخطط المرخى لا يثبت وجود إكمال موجه.',
     examples: 'الأمثلة التعليمية',
     graphSummary: 'ملخص المخططين D/G',
@@ -261,8 +267,14 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate
       <MethodEducationBlock methodId="cp2-plus" lang={lang} />
 
       <section className="card">
-        <p>{t.explanation}</p>
-        <p style={{ marginBlockEnd: 0, color: 'var(--primary)', fontWeight: 700 }}>{t.necessary}</p>
+        <details data-testid="cp2-plus-safe-prune-details">
+          <summary style={{ cursor: 'pointer', fontWeight: 900, color: 'var(--primary)' }}>{t.whySafe}</summary>
+          <div style={{ marginBlockStart: 'var(--space-sm)' }}>
+            <p>{t.explanation}</p>
+            <p>{t.exactDistinction}</p>
+            <p style={{ marginBlockEnd: 0, color: 'var(--primary)', fontWeight: 700 }}>{t.necessary}</p>
+          </div>
+        </details>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-sm)', marginBlockStart: 'var(--space-md)' }}>
           <Link to="/methods/cp2-plus/comparison" navigate={navigate} className="btn btn-primary" style={{ width: 'auto' }}>
             {t.comparisonLab}

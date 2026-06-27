@@ -91,54 +91,50 @@ describe('Routing and Educational UI QA Suite', () => {
     window.localStorage.clear();
   });
 
-  test('all routes render properly through navbar navigation', () => {
+  test('primary navigation contains only the four required destinations and methods stay linked from Method Map', () => {
     render(<App />);
 
-    // Root route should render Start Here by default
     expect(screen.getByText(/Module d'Apprentissage Pas-à-Pas/i)).toBeDefined();
 
-    // Click "Carte des Méthodes"
-    const methodsLink = screen.getByText('Carte des Méthodes');
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Commencer Ici',
+      'Carte des Méthodes',
+      'Graphes aléatoires',
+      'Démo Énumération (Legacy)',
+    ]);
+
+    const methodsLink = within(nav).getByRole('link', { name: 'Carte des Méthodes' });
     fireEvent.click(methodsLink);
     expect(screen.getByText('Carte des Méthodes de Recherche')).toBeDefined();
 
-    // Click "Modèle CP1"
-    const cp1Link = screen.getByText('Modèle CP1');
-    fireEvent.click(cp1Link);
-    expect(screen.getByText('Modèle Éducatif CP1 — Programmation par Contraintes')).toBeDefined();
-
-    // Click "Modèle CP2"
-    const cp2Link = screen.getByText('Modèle CP2');
-    fireEvent.click(cp2Link);
-    expect(screen.getByText('CP2 — CP1 avec Bornes Supérieures Sûres')).toBeDefined();
-
-    // Click "Modèle ILP1"
-    const ilp1Link = screen.getByText('Modèle ILP1');
-    fireEvent.click(ilp1Link);
-    expect(screen.getByText('ILP1 — Décisions Binaires et Contraintes Linéaires')).toBeDefined();
-
-    // Click "Modèle ILP2"
-    const ilp2Link = screen.getByText('Modèle ILP2');
-    fireEvent.click(ilp2Link);
-    expect(screen.getByText('ILP2 — Rooted Connectivity with Levels')).toBeDefined();
-
-    // Click "Démo Énumération (Legacy)"
-    const legacyLink = screen.getByText('Démo Énumération (Legacy)');
-    fireEvent.click(legacyLink);
-    expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
+    const runnableRoutes = [
+      '/legacy',
+      '/methods/cp1',
+      '/methods/cp2',
+      '/methods/cp2-plus',
+      '/methods/algobb-plus-plus',
+      '/methods/ilp1',
+      '/methods/ilp2',
+      '/methods/subset-dp',
+      '/methods/random-graph-lab',
+    ];
+    for (const route of runnableRoutes) {
+      expect(screen.getAllByRole('link').some((link) => link.getAttribute('href') === route)).toBe(true);
+    }
   });
 
   test('Subset DP is labeled as an educational exact method, not a paper-derived method', () => {
     window.history.pushState({}, '', '/methods');
     render(<App />);
 
-    const subsetCard = screen.getByText('Exact Subset Dynamic Programming').closest('.card') as HTMLElement;
+    const subsetCard = screen.getByText('Subset DP').closest('.card') as HTMLElement;
     expect(subsetCard).toBeDefined();
     expect(within(subsetCard).getByText('Méthode exacte pédagogique')).toBeDefined();
     expect(subsetCard.textContent).not.toMatch(/Educational Paper|papier pédagogique/i);
 
     fireEvent.click(screen.getByText('English'));
-    const englishSubsetCard = screen.getByText('Exact Subset Dynamic Programming').closest('.card') as HTMLElement;
+    const englishSubsetCard = screen.getByText('Subset DP').closest('.card') as HTMLElement;
     expect(within(englishSubsetCard).getByText('Educational exact method')).toBeDefined();
     expect(englishSubsetCard.textContent).not.toContain('Educational Paper');
   });
@@ -214,6 +210,21 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(block.textContent).toContain('It does not change the objective, tie-break rule, or legal path definition.');
   });
 
+  test('CP2+ extended pruning explanation is collapsed initially and opens on demand', () => {
+    window.history.pushState({}, '', '/methods/cp2-plus');
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    const details = screen.getByTestId('cp2-plus-safe-prune-details') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(screen.getByText('Why CP2+ can prune safely')).toBeDefined();
+    expect(details.textContent).toContain('CP2 prunes by a safe directed upper bound');
+    expect(details.textContent).toContain('CP2+ does not change the objective, tie-break rule, or legal path definition');
+
+    fireEvent.click(screen.getByText('Why CP2+ can prune safely'));
+    expect(details.open).toBe(true);
+  });
+
   test('ILP2 educational block states the pre-enumeration safety limitation', () => {
     window.history.pushState({}, '', '/methods/ilp2');
     render(<App />);
@@ -255,21 +266,41 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(cp2Block.textContent).not.toMatch(/capped run is optimal|cancelled run is optimal/i);
   });
 
-  test('method badges match declared status', () => {
+  test('Method Map has runnable and reference-only groups with honest CP3 and CP4 cyclic-trail labels', () => {
     window.history.pushState({}, '', '/methods');
     render(<App />);
 
-    // Check CP1 has exact badge
-    expect(screen.getAllByText(/Implémentation graphe borné exact/i).length).toBeGreaterThan(0);
-    // Check CP2 is now included in the exact small-graph implementation group
-    expect(screen.getAllByText(/Implémentation exacte pour petits DAG/i).length).toBeGreaterThanOrEqual(2);
-    // Check ILP1 and ILP2 are now included in the exact small-graph implementation group
-    expect(screen.getByText(/Formulation éducative bornée exacte/i)).toBeDefined();
-    expect(screen.getByText(/racine génomique, liens parents et niveaux/i)).toBeDefined();
-    // Check paper-only methods still keep reference badges
-    expect(screen.getAllByText(/Méthode de référence papier/i).length).toBeGreaterThan(0);
-    // Check Enumeration has simulation badge
-    expect(screen.getAllByText(/Simulation pédagogique/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Runnable demonstrations' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Reference-only methods' })).toBeDefined();
+
+    for (const name of ['Legacy Enumeration', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'Subset DP']) {
+      expect(screen.getByText(name)).toBeDefined();
+    }
+
+    const cp3 = screen.getByTestId('method-map-cp3');
+    const cp4 = screen.getByTestId('method-map-cp4');
+    expect(cp3.textContent).toContain('Référence seulement');
+    expect(cp3.textContent).toContain('cyclic trail');
+    expect(cp3.textContent).toContain('Non exécutable dans la démonstration acyclique actuelle');
+    expect(cp4.textContent).toContain('Référence seulement');
+    expect(cp4.textContent).toContain('cyclic trail');
+  });
+
+  test('Method Map labels render in English, French, and Arabic with RTL Arabic shell', () => {
+    window.history.pushState({}, '', '/methods');
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: 'Runnable demonstrations' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Reference-only methods' })).toBeDefined();
+
+    fireEvent.click(screen.getByText('English'));
+    expect(screen.getAllByText('Runnable demo').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Reference-only').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(screen.getAllByText('عرض قابل للتشغيل').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('مرجع فقط').length).toBeGreaterThan(0);
   });
 
   test('Start Here chapters and checkpoint questions function correctly', () => {
