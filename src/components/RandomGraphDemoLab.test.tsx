@@ -221,7 +221,7 @@ describe('Random-Graph Demonstration Lab', () => {
     const { container } = render(<App />);
 
     fireEvent.click(screen.getByText('English'));
-    expect(screen.getByText('Random-Graph Demonstration Lab')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Random-Graph Demonstration Lab', level: 2 })).toBeDefined();
     expect(screen.getByText('Acyclic Erdős–Rényi')).toBeDefined();
 
     fireEvent.click(screen.getByText('العربية'));
@@ -303,5 +303,141 @@ describe('Random-Graph Demonstration Lab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2+' }));
     expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('diamond-merge-lexical-ties-small');
+  });
+
+  // H3A tests
+  test('H3A: default UI shows Complexity, D/G relationship, and Generate as primary controls', () => {
+    render(<App />);
+
+    const builder = screen.getByTestId('simple-scenario-builder');
+    expect(builder).toBeDefined();
+    // Complexity and D/G relationship selects present in builder
+    expect(within(builder).getByRole('combobox', { name: 'Complexité' })).toBeDefined();
+    expect(within(builder).getByRole('combobox', { name: 'Relation D/G' })).toBeDefined();
+    expect(within(builder).getByRole('button', { name: 'Générer un nouveau scénario aléatoire' })).toBeDefined();
+    // complexity options include all five levels
+    const complexitySelect = within(builder).getByRole('combobox', { name: 'Complexité' }) as HTMLSelectElement;
+    const optionValues = [...complexitySelect.options].map((o) => o.value);
+    expect(optionValues).toEqual(['tiny', 'small', 'medium', 'large', 'huge']);
+    // D/G mode options include all six modes
+    const modeSelect = within(builder).getByRole('combobox', { name: 'Relation D/G' }) as HTMLSelectElement;
+    const modeValues = [...modeSelect.options].map((o) => o.value);
+    expect(modeValues).toEqual(['independent', 'similar', 'dense-g-sparse-d', 'dense-d-sparse-g', 'small-d-core-huge-g', 'fragmented-g']);
+  });
+
+  test('H3A: technical controls are inside the Advanced reproducibility details element', () => {
+    render(<App />);
+
+    const advanced = screen.getByTestId('advanced-reproducibility');
+    expect(advanced.tagName.toLowerCase()).toBe('details');
+    // seeds live inside details
+    expect(within(advanced).getByLabelText('seedOrder')).toBeDefined();
+    expect(within(advanced).getByLabelText('seedD')).toBeDefined();
+    expect(within(advanced).getByLabelText('seedG')).toBeDefined();
+    expect(within(advanced).getByLabelText('n')).toBeDefined();
+    expect(within(advanced).getByLabelText('pD')).toBeDefined();
+    // Advanced replay buttons inside details
+    expect(within(advanced).getByRole('button', { name: 'Générer' })).toBeDefined();
+    expect(within(advanced).getByRole('button', { name: 'Réinitialiser' })).toBeDefined();
+    expect(within(advanced).getByRole('button', { name: 'Nouveau scénario aléatoire' })).toBeDefined();
+  });
+
+  test('H3A: Huge complexity shows truthful next-generation-phase notice and disables primary generate', () => {
+    render(<App />);
+
+    const complexitySelect = screen.getByRole('combobox', { name: 'Complexité' }) as HTMLSelectElement;
+    fireEvent.change(complexitySelect, { target: { value: 'huge' } });
+
+    const notice = screen.getByTestId('next-phase-notice');
+    expect(notice.textContent).toContain('Disponible dans la prochaine phase de génération.');
+    const generateBtn = screen.getByRole('button', { name: 'Générer un nouveau scénario aléatoire' }) as HTMLButtonElement;
+    expect(generateBtn.disabled).toBe(true);
+  });
+
+  test('H3A: Large complexity also shows next-generation-phase notice', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Complexité' }), { target: { value: 'large' } });
+    expect(screen.getByTestId('next-phase-notice')).toBeDefined();
+  });
+
+  test('H3A: Similar structure baseline mode shows next-generation-phase notice', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Relation D/G' }), { target: { value: 'similar' } });
+    expect(screen.getByTestId('next-phase-notice')).toBeDefined();
+    expect(screen.getByTestId('next-phase-notice').textContent).toContain('prochaine phase');
+  });
+
+  test('H3A: Tiny+Independent generate button is enabled and generates a graph', () => {
+    render(<App />);
+
+    const complexitySelect = screen.getByRole('combobox', { name: 'Complexité' });
+    const modeSelect = screen.getByRole('combobox', { name: 'Relation D/G' });
+    fireEvent.change(complexitySelect, { target: { value: 'tiny' } });
+    fireEvent.change(modeSelect, { target: { value: 'independent' } });
+
+    const generateBtn = screen.getByRole('button', { name: 'Générer un nouveau scénario aléatoire' }) as HTMLButtonElement;
+    expect(generateBtn.disabled).toBe(false);
+    fireEvent.click(generateBtn);
+    // graph summary still visible (vertices / D arcs / G edges)
+    expect(screen.getByText('Sommets / arcs D / arêtes G')).toBeDefined();
+  });
+
+  test('H3A: prepared hard cases loader is a details accordion with optgroups', () => {
+    render(<App />);
+
+    const loader = screen.getByTestId('prepared-hard-cases');
+    expect(loader.tagName.toLowerCase()).toBe('details');
+    // optgroup label attributes (not in textContent — check DOM attribute)
+    const select = screen.getByTestId('prepared-case-select');
+    const optgroups = Array.from(select.querySelectorAll('optgroup'));
+    const groupLabels = optgroups.map((g) => g.getAttribute('label') ?? '');
+    expect(groupLabels.some((l) => l.includes('S'))).toBe(true);
+    expect(groupLabels.some((l) => l.includes('M'))).toBe(true);
+    expect(groupLabels.some((l) => l.includes('L'))).toBe(true);
+    // each group has options
+    expect(optgroups[0].querySelectorAll('option').length).toBeGreaterThan(0);
+    // prepared case notice is visible inside loader
+    expect(within(loader).getByTestId('prepared-case-notice')).toBeDefined();
+  });
+
+  test('H3A: graph summary shows reachable D-core size', () => {
+    render(<App />);
+
+    const dCoreEl = screen.getByTestId('reachable-d-core-size');
+    expect(dCoreEl).toBeDefined();
+    const val = Number(dCoreEl.textContent);
+    expect(val).toBeGreaterThanOrEqual(1);
+  });
+
+  test('H3A: scientific rule sentence visible in header', () => {
+    render(<App />);
+
+    const rule = screen.getByTestId('scientific-rule');
+    expect(rule.textContent).toContain('D et G partagent toujours les mêmes sommets');
+  });
+
+  test('H3A: D/G distinction result preserved and visible in graph summary', () => {
+    render(<App />);
+
+    expect(screen.getByText('Résultat')).toBeDefined();
+    expect(screen.getByText('overlap / density / degree')).toBeDefined();
+  });
+
+  test('H3A: EN and AR labels render correctly for new controls', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    expect(screen.getByRole('combobox', { name: 'Complexity' })).toBeDefined();
+    expect(screen.getByRole('combobox', { name: 'D/G relationship' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Generate new random scenario' })).toBeDefined();
+    expect(screen.getByTestId('scientific-rule').textContent).toContain('D and G always share the same reaction vertices');
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(screen.getByRole('combobox', { name: 'التعقيد' })).toBeDefined();
+    expect(screen.getByRole('combobox', { name: 'العلاقة D/G' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'توليد سيناريو عشوائي جديد' })).toBeDefined();
+    expect(screen.getByTestId('scientific-rule').textContent).toContain('D وG يشتركان دائماً');
   });
 });
