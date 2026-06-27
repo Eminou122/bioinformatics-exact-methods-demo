@@ -10,6 +10,7 @@ import { examples } from '../data/examples';
 import { getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { GraphPanel } from './GraphPanel';
+import * as ilp2Solver from '../domain/ilp2Solver';
 
 function MethodCockpitSyncHarness({
   activeTraceIndex,
@@ -116,6 +117,7 @@ describe('Routing and Educational UI QA Suite', () => {
       '/methods/algobb-plus-plus',
       '/methods/ilp1',
       '/methods/ilp2',
+      '/methods/ilp2-plus',
       '/methods/subset-dp',
       '/methods/random-graph-lab',
     ];
@@ -152,6 +154,7 @@ describe('Routing and Educational UI QA Suite', () => {
       { path: '/methods/cp4', text: /CP4/i },
       { path: '/methods/ilp1', text: /ILP1/i },
       { path: '/methods/ilp2', text: /ILP2/i },
+      { path: '/methods/ilp2-plus', text: /ILP2\+/i },
       { path: '/methods/hnet', text: /HNet/i },
       { path: '/methods/enumeration', text: /Énumération Arc-par-Arc/i },
       { path: '/methods/conservation', text: /Regroupement de Pistes/i },
@@ -175,6 +178,7 @@ describe('Routing and Educational UI QA Suite', () => {
       { path: '/methods/algobb-plus-plus', methodId: 'algobb-plus-plus', cockpit: true },
       { path: '/methods/ilp1', methodId: 'ilp1', cockpit: true },
       { path: '/methods/ilp2', methodId: 'ilp2', cockpit: true },
+      { path: '/methods/ilp2-plus', methodId: 'ilp2-plus', cockpit: true },
       { path: '/methods/subset-dp', methodId: 'subset-dp', cockpit: true },
     ];
 
@@ -235,6 +239,40 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(block.textContent).toContain('candidate paths are fully enumerated before the cap can protect candidate-list creation');
   });
 
+  test('ILP2+ route renders the dedicated page with exact wording and counters', () => {
+    const ilp2Spy = vi.spyOn(ilp2Solver, 'solveILP2');
+    const ilp2PlusSpy = vi.spyOn(ilp2Solver, 'solveILP2Plus');
+    window.history.pushState({}, '', '/methods/ilp2-plus');
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    expect(screen.getByRole('heading', { name: /ILP2\+ — Canonical Prefix Early Termination/i })).toBeDefined();
+    expect(screen.getByTestId('method-education-block').getAttribute('data-method-id')).toBe('ilp2-plus');
+    expect(screen.getByTestId('ilp2-plus-exact-wording').textContent).toContain('It does not skip path enumeration.');
+    const counters = screen.getByTestId('ilp2-plus-counters').textContent || '';
+    for (const key of ['enumeratedCandidates', 'acceptedFeasibleCandidates', 'candidateEvaluationEvents', 'earlyTermination', 'candidatesSkippedAfterWinner', 'witnessParentLinksAssigned', 'witnessLevelsAssigned']) {
+      expect(counters).toContain(key);
+    }
+    expect(ilp2PlusSpy).toHaveBeenCalled();
+    expect(ilp2Spy).not.toHaveBeenCalled();
+    ilp2Spy.mockRestore();
+    ilp2PlusSpy.mockRestore();
+  });
+
+  test('ILP2+ page renders French, English, and Arabic labels with RTL prose', () => {
+    window.history.pushState({}, '', '/methods/ilp2-plus');
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: /Arrêt anticipé/i })).toBeDefined();
+    fireEvent.click(screen.getByText('English'));
+    expect(screen.getByText(/Canonical Prefix Early Termination/i)).toBeDefined();
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(screen.getByTestId('method-education-block').getAttribute('dir')).toBe('rtl');
+    expect(screen.getByRole('heading', { name: /إيقاف مبكر/i })).toBeDefined();
+    expect(screen.getByTestId('ilp2-plus-exact-wording').getAttribute('dir')).toBe('ltr');
+  });
+
   test('method educational blocks render complete French English and Arabic content', () => {
     window.history.pushState({}, '', '/methods/cp2-plus');
     render(<App />);
@@ -273,7 +311,7 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(screen.getByRole('heading', { name: 'Runnable demonstrations' })).toBeDefined();
     expect(screen.getByRole('heading', { name: 'Reference-only methods' })).toBeDefined();
 
-    for (const name of ['Legacy Enumeration', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'Subset DP']) {
+    for (const name of ['Legacy Enumeration', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'ILP2+', 'Subset DP']) {
       expect(screen.getByText(name)).toBeDefined();
     }
 

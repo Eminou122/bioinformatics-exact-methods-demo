@@ -8,6 +8,7 @@ export type RunnableMethodId =
   | 'algobb-plus-plus'
   | 'ilp1'
   | 'ilp2'
+  | 'ilp2-plus'
   | 'subset-dp';
 
 type MethodEducationCopy = {
@@ -180,6 +181,26 @@ const methodEducationCopy = {
       works: 'تعدد بالكامل المسارات الموجهة المرشحة، وتشتق قرارات x/y/r/p/level، وتتحقق من شاهد G ذي جذر.',
       returns: 'افضل مسار، والجذر المختار، وروابط الاباء، والمستويات، والمتغيرات، والعدادات، والاثر، واعلام البرهان.',
       safety: 'غير امنة للرسوم الكبيرة او رسومات الضغط لان المسارات المرشحة تعدد بالكامل قبل ان يحمي الحد انشاء قائمة المرشحين؛ دقيقة فقط بعد تشغيلات صغيرة مكتملة.',
+    },
+  },
+  'ilp2-plus': {
+    fr: {
+      solves: 'Variante ILP2 avec arrêt anticipé canonique après le premier gagnant faisable.',
+      works: 'Énumère et trie complètement les chemins comme ILP2, puis peut arrêter l’évaluation des candidats après le premier gagnant canonique faisable.',
+      returns: 'Même chemin, racine, liens parents, niveaux et trace que ILP2, plus earlyTermination et candidatesSkippedAfterWinner.',
+      safety: 'Même objectif, départage, témoin et règles de faisabilité que ILP2; ne saute pas l’énumération, ne rend pas Large/Huge sûr, pas de MILP natif ni reproduction d’article, et pas de supériorité universelle en temps.',
+    },
+    en: {
+      solves: 'ILP2 variant with canonical early termination after the first feasible winner.',
+      works: 'Fully enumerates and canonically sorts paths like ILP2, then may stop candidate evaluation after the first feasible canonical winner.',
+      returns: 'The same path, root, parent links, levels, and trace as ILP2, plus earlyTermination and candidatesSkippedAfterWinner.',
+      safety: 'Same objective, tie-break, witness, and feasibility rules as ILP2; does not skip enumeration, does not make Large/Huge safe, and is not native MILP, a paper reproduction, or a universal runtime-superiority claim.',
+    },
+    ar: {
+      solves: 'صيغة ILP2 مع إيقاف مبكر قانوني بعد أول فائز ممكن.',
+      works: 'تعدد وتفرز المسارات بالكامل مثل ILP2، ثم قد توقف تقييم المرشحين بعد أول فائز قانوني ممكن.',
+      returns: 'المسار والجذر وروابط الآباء والمستويات والأثر نفسها مثل ILP2، مع earlyTermination و candidatesSkippedAfterWinner.',
+      safety: 'الهدف وكسر التعادل والشاهد وقواعد الإمكان نفسها مثل ILP2؛ لا تتجاوز التعداد، ولا تجعل Large/Huge آمنة، وليست MILP أصلية أو إعادة إنتاج لورقة، ولا ادعاء تفوق زمني عام.',
     },
   },
   'subset-dp': {

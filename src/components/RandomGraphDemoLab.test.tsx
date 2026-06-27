@@ -242,6 +242,7 @@ describe('Random-Graph Demonstration Lab', () => {
       ['Ouvrir dans AlgoBB++', '/methods/algobb-plus-plus'],
       ['Ouvrir dans ILP1', '/methods/ilp1'],
       ['Ouvrir dans ILP2', '/methods/ilp2'],
+      ['Ouvrir dans ILP2+', '/methods/ilp2-plus'],
       ['Ouvrir dans Subset DP', '/methods/subset-dp'],
     ] as const;
 
@@ -286,11 +287,13 @@ describe('Random-Graph Demonstration Lab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2+' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2+' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans Legacy' }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-stress-no-solution-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2+' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('not-run-preenumeration-risk');
     expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('Not applicable — cyclic-trail method.');
   });

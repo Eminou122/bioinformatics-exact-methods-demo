@@ -170,6 +170,7 @@ const labels = {
     openAlgo: 'Ouvrir dans AlgoBB++',
     openILP1: 'Ouvrir dans ILP1',
     openILP2: 'Ouvrir dans ILP2',
+    openILP2Plus: 'Ouvrir dans ILP2+',
     openSubset: 'Ouvrir dans Subset DP',
     blocked: 'Indisponible pour ce palier de sécurité.',
     scenarioId: 'ID du scénario',
@@ -255,6 +256,7 @@ const labels = {
     openAlgo: 'Open in AlgoBB++',
     openILP1: 'Open in ILP1',
     openILP2: 'Open in ILP2',
+    openILP2Plus: 'Open in ILP2+',
     openSubset: 'Open in Subset DP',
     blocked: 'Unavailable for this safety tier.',
     scenarioId: 'Scenario ID',
@@ -340,6 +342,7 @@ const labels = {
     openAlgo: 'فتح في AlgoBB++',
     openILP1: 'فتح في ILP1',
     openILP2: 'فتح في ILP2',
+    openILP2Plus: 'فتح في ILP2+',
     openSubset: 'فتح في Subset DP',
     blocked: 'غير متاح لهذا مستوى الأمان.',
     scenarioId: 'معرف السيناريو',
@@ -641,6 +644,7 @@ function methodActions(graph: GeneratedGraph, selectedPreset: HardRandomCaseSpec
     { label: t.openAlgo, route: '/methods/algobb-plus-plus', allowed: small, reason: t.safetySkip },
     { label: t.openILP1, route: '/methods/ilp1', allowed: small, reason: t.safetySkip },
     { label: t.openILP2, route: '/methods/ilp2', allowed: ilp2Allowed, reason: stress ? 'not-run-preenumeration-risk' : t.safetySkip },
+    { label: t.openILP2Plus, route: '/methods/ilp2-plus', allowed: ilp2Allowed, reason: stress ? 'not-run-preenumeration-risk' : t.safetySkip },
     { label: t.openSubset, route: '/methods/subset-dp', allowed: small, reason: t.safetySkip },
   ];
 }

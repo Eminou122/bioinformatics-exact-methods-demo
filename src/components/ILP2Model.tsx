@@ -3,7 +3,7 @@ import type { Language, TranslationDict } from '../i18n/types';
 import { examples } from '../data/examples';
 import { solveConsistentPath } from '../domain/pathAlgorithms';
 import { solveILP1 } from '../domain/ilp1Solver';
-import { solveILP2, type ILP2TraceEvent } from '../domain/ilp2Solver';
+import { solveILP2, solveILP2Plus, type ILP2TraceEvent } from '../domain/ilp2Solver';
 import { GraphPanel } from './GraphPanel';
 import { Icon } from './Icons';
 import { MethodCockpit } from './MethodCockpit';
@@ -16,6 +16,7 @@ import { MethodEducationBlock } from './MethodEducationBlock';
 interface ILP2ModelProps {
   lang: Language;
   dict: TranslationDict;
+  variant?: 'ilp2' | 'ilp2-plus';
 }
 
 const labels = {
@@ -60,6 +61,12 @@ const labels = {
     best: 'Meilleur chemin',
     legacy: 'Énumération Legacy',
     noPath: 'Aucun',
+    ilp2PlusTitle: 'ILP2+ — Arrêt anticipé par préfixe canonique',
+    ilp2PlusBadge: 'ILP2+ énumère et trie d’abord tous les chemins; exact seulement pour petits DAG.',
+    ilp2PlusHonesty: 'ILP2+ utilise le même objectif, le même départage canonique, le même témoin racine-niveaux et les mêmes règles de faisabilité que ILP2. Il ajoute seulement un arrêt anticipé après le premier gagnant canonique faisable; il ne saute pas l’énumération des chemins, ne rend pas les grands graphes sûrs, n’est pas un MILP natif, n’est pas une reproduction d’article et ne prouve aucune supériorité universelle en temps.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    ilp2PlusCounters: 'Compteurs ILP2+',
+    ilp2PlusCounterHelp: 'Ces compteurs séparent l’énumération complète des chemins de l’évaluation des candidats qui peut être réduite.',
   },
   en: {
     title: 'ILP2 — Rooted Connectivity with Levels',
@@ -102,6 +109,12 @@ const labels = {
     best: 'Best path',
     legacy: 'Legacy enumeration',
     noPath: 'None',
+    ilp2PlusTitle: 'ILP2+ — Canonical Prefix Early Termination',
+    ilp2PlusBadge: 'ILP2+ enumerates and sorts all paths first; exact only for small DAG examples.',
+    ilp2PlusHonesty: 'ILP2+ uses the same objective, canonical tie-break, rooted-level witness model, and feasibility rules as ILP2. It adds only sorted-prefix early termination after the first feasible canonical winner; it does not skip path enumeration, does not make Large/Huge graphs safe, is not native MILP, is not a paper reproduction, and never proves universal runtime superiority.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    ilp2PlusCounters: 'ILP2+ counters',
+    ilp2PlusCounterHelp: 'These counters separate full path enumeration from candidate evaluation, which may be reduced.',
   },
   ar: {
     title: 'ILP2 — Rooted Connectivity with Levels',
@@ -144,6 +157,12 @@ const labels = {
     best: 'أفضل مسار',
     legacy: 'التعداد Legacy',
     noPath: 'لا يوجد',
+    ilp2PlusTitle: 'ILP2+ — إيقاف مبكر حسب البادئة القانونية',
+    ilp2PlusBadge: 'ILP2+ يعدد ويفرز كل المسارات أولاً؛ دقيق فقط لأمثلة DAG الصغيرة.',
+    ilp2PlusHonesty: 'يستخدم ILP2+ الهدف نفسه، وقاعدة كسر التعادل القانونية نفسها، ونموذج الشاهد ذي الجذر والمستويات نفسه، وقواعد الإمكان نفسها مثل ILP2. يضيف فقط إيقافاً مبكراً بعد أول فائز قانوني ممكن؛ لا يتجاوز تعداد المسارات، ولا يجعل الرسوم Large/Huge آمنة، وليس MILP أصلياً، وليس إعادة إنتاج لورقة علمية، ولا يثبت تفوقاً زمنياً عاماً.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    ilp2PlusCounters: 'عدادات ILP2+',
+    ilp2PlusCounterHelp: 'تفصل هذه العدادات تعداد المسارات الكامل عن تقييم المرشحين الذي قد ينخفض.',
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -158,7 +177,8 @@ function completionText(event: ILP2TraceEvent | null, result: ReturnType<typeof 
   return t.incomplete;
 }
 
-export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
+export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict, variant = 'ilp2' }) => {
+  const isPlus = variant === 'ilp2-plus';
   const isAr = lang === 'ar';
   const t = labels[lang];
   const [selectedExampleId, setSelectedExampleId] = useState('multiple-candidates');
@@ -171,8 +191,8 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
     [selectedExampleId, suppliedScenario.example]
   );
   const ilp2Result = useMemo(
-    () => solveILP2(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
-    [currentExample]
+    () => (isPlus ? solveILP2Plus : solveILP2)(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
+    [currentExample, isPlus]
   );
   const ilp1Result = useMemo(
     () => solveILP1(currentExample.vertices, currentExample.edgesD, currentExample.edgesG),
@@ -217,18 +237,19 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
       <div className="sr-only" aria-live="assertive">{currentEvent?.message || ''}</div>
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.6rem', color: 'var(--primary)', border: 'none', margin: 0, padding: 0 }}>{t.title}</h2>
+          <h2 style={{ fontSize: '1.6rem', color: 'var(--primary)', border: 'none', margin: 0, padding: 0 }}>{isPlus ? t.ilp2PlusTitle : t.title}</h2>
           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', backgroundColor: 'var(--primary-bg)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-xs) var(--space-sm)' }}>
             Exact small-graph implementation
           </span>
         </div>
-        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--neutral-medium)', backgroundColor: 'var(--neutral-bg-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>{t.badge}</p>
+        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--neutral-medium)', backgroundColor: 'var(--neutral-bg-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>{isPlus ? t.ilp2PlusBadge : t.badge}</p>
       </header>
 
-      <MethodEducationBlock methodId="ilp2" lang={lang} />
+      <MethodEducationBlock methodId={isPlus ? 'ilp2-plus' : 'ilp2'} lang={lang} />
 
       <section className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
-        <p style={{ marginBlockStart: 0 }}>{t.honesty}</p>
+        <p style={{ marginBlockStart: 0 }}>{isPlus ? t.ilp2PlusHonesty : t.honesty}</p>
+        {isPlus && <p dir="ltr" data-testid="ilp2-plus-exact-wording" style={{ fontWeight: 800, color: 'var(--primary)' }}>{t.ilp2PlusTruth}</p>}
         <div className="grid grid-2" style={{ fontSize: '0.9rem' }}>
           <p dir="ltr">x_v in {'{0,1}'}; y_a in {'{0,1}'}; r_v in {'{0,1}'}</p>
           <p dir="ltr">p_uv in {'{0,1}'}; level_v in {'{0, ..., |V|-1}'}</p>
@@ -300,6 +321,28 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict }) => {
               <dt>{t.rejected}</dt><dd>{currentEvent?.rejectedCandidates ?? ilp2Result.rejectedCandidates}</dd>
               <dt>{t.reason}</dt><dd>{currentEvent?.reason || '-'}</dd>
             </dl>
+            {isPlus && (
+              <div data-testid="ilp2-plus-counters" style={{ marginBlockStart: 'var(--space-md)' }}>
+                <h4 style={{ color: 'var(--primary)', marginBlock: '0 var(--space-xs)' }}>{t.ilp2PlusCounters}</h4>
+                <p style={{ marginBlockStart: 0, fontSize: '0.84rem', color: 'var(--neutral-medium)' }}>{t.ilp2PlusCounterHelp}</p>
+                <dl dir="ltr" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-xs) var(--space-sm)', fontSize: '0.82rem' }}>
+                  {Object.entries({
+                    enumeratedCandidates: ilp2Result.counters.enumeratedCandidates,
+                    acceptedFeasibleCandidates: ilp2Result.counters.acceptedFeasibleCandidates,
+                    candidateEvaluationEvents: ilp2Result.counters.candidateEvaluationEvents,
+                    earlyTermination: String(ilp2Result.counters.earlyTermination),
+                    candidatesSkippedAfterWinner: ilp2Result.counters.candidatesSkippedAfterWinner,
+                    witnessParentLinksAssigned: ilp2Result.counters.witnessParentLinksAssigned,
+                    witnessLevelsAssigned: ilp2Result.counters.witnessLevelsAssigned,
+                  }).map(([key, value]) => (
+                    <React.Fragment key={key}>
+                      <dt>{key}</dt>
+                      <dd>{value}</dd>
+                    </React.Fragment>
+                  ))}
+                </dl>
+              </div>
+            )}
             <p style={{ marginBlockEnd: 0, fontWeight: 700, color: 'var(--primary)' }}>{completionText(currentEvent, ilp2Result, t as typeof labels.en)}</p>
           </section>
         )}

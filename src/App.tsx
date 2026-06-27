@@ -24,6 +24,7 @@ import { CP2PlusComparisonLab } from './components/CP2PlusComparisonLab';
 import { RandomGraphDemoLab } from './components/RandomGraphDemoLab';
 import { ILP1Model } from './components/ILP1Model';
 import { ILP2Model } from './components/ILP2Model';
+import { ILP2PlusModel } from './components/ILP2PlusModel';
 import { AlgoBBPlusPlusModel } from './components/AlgoBBPlusPlusModel';
 import { SubsetDpModel } from './components/SubsetDpModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
@@ -198,6 +199,9 @@ function App() {
     }
     if (currentPath === '/methods/ilp2') {
       return <ILP2Model lang={lang} dict={dict} />;
+    }
+    if (currentPath === '/methods/ilp2-plus') {
+      return <ILP2PlusModel lang={lang} dict={dict} />;
     }
     if (currentPath === '/methods/algobb-plus-plus') {
       return <AlgoBBPlusPlusModel lang={lang} dict={dict} />;
