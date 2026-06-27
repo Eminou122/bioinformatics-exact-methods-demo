@@ -11,6 +11,7 @@ import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface CP2ModelProps {
   lang: Language;
@@ -266,6 +267,8 @@ export const CP2Model: React.FC<CP2ModelProps> = ({ lang, dict }) => {
           {t.badge}
         </p>
       </header>
+
+      <MethodEducationBlock methodId="cp2" lang={lang} />
 
       <section className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
         <p style={{ marginBlockStart: 0 }}>{t.intro}</p>

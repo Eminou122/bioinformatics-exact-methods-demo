@@ -170,6 +170,91 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
+  test('every runnable method page renders one educational block without replacing graph or cockpit surfaces', () => {
+    const routes = [
+      { path: '/legacy', methodId: 'legacy', cockpit: false },
+      { path: '/methods/cp1', methodId: 'cp1', cockpit: true },
+      { path: '/methods/cp2', methodId: 'cp2', cockpit: true },
+      { path: '/methods/cp2-plus', methodId: 'cp2-plus', cockpit: true },
+      { path: '/methods/algobb-plus-plus', methodId: 'algobb-plus-plus', cockpit: true },
+      { path: '/methods/ilp1', methodId: 'ilp1', cockpit: true },
+      { path: '/methods/ilp2', methodId: 'ilp2', cockpit: true },
+      { path: '/methods/subset-dp', methodId: 'subset-dp', cockpit: true },
+    ];
+
+    for (const route of routes) {
+      cleanup();
+      window.history.pushState({}, '', route.path);
+      const { container } = render(<App />);
+      const blocks = screen.getAllByTestId('method-education-block');
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].getAttribute('data-method-id')).toBe(route.methodId);
+      expect(within(blocks[0]).getByText(/Ce que cette méthode résout/i)).toBeDefined();
+      expect(within(blocks[0]).getByText(/Fonctionnement/i)).toBeDefined();
+      expect(within(blocks[0]).getByText(/Ce que la méthode retourne/i)).toBeDefined();
+      expect(within(blocks[0]).getByText(/Exactitude et sécurité/i)).toBeDefined();
+      expect(container.querySelector('[data-testid="directed-graph-svg"]')).toBeDefined();
+      expect(container.querySelector('[data-testid="genomic-graph-svg"]')).toBeDefined();
+      if (route.cockpit) {
+        expect(screen.getByTestId('method-cockpit')).toBeDefined();
+      } else {
+        expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
+      }
+    }
+  });
+
+  test('CP2+ educational block states the safe genomic propagation distinction', () => {
+    window.history.pushState({}, '', '/methods/cp2-plus');
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    const block = screen.getByTestId('method-education-block');
+    expect(block.textContent).toContain('CP2+ adds safe genomic-feasibility propagation.');
+    expect(block.textContent).toContain('It can prune a partial path only when no legal future extension can repair genomic connectivity.');
+    expect(block.textContent).toContain('It does not change the objective, tie-break rule, or legal path definition.');
+  });
+
+  test('ILP2 educational block states the pre-enumeration safety limitation', () => {
+    window.history.pushState({}, '', '/methods/ilp2');
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    const block = screen.getByTestId('method-education-block');
+    expect(block.textContent).toContain('Educational rooted-level witness formulation');
+    expect(block.textContent).toContain('candidate paths are fully enumerated before the cap can protect candidate-list creation');
+  });
+
+  test('method educational blocks render complete French English and Arabic content', () => {
+    window.history.pushState({}, '', '/methods/cp2-plus');
+    render(<App />);
+
+    let block = screen.getByTestId('method-education-block');
+    expect(within(block).getByText(/Ce que cette méthode résout/i)).toBeDefined();
+    expect(block.getAttribute('dir')).toBe('ltr');
+
+    fireEvent.click(screen.getByText('English'));
+    block = screen.getByTestId('method-education-block');
+    expect(within(block).getByText(/What this method solves/i)).toBeDefined();
+    expect(block.textContent).toContain('What it returns');
+
+    fireEvent.click(screen.getByText('العربية'));
+    block = screen.getByTestId('method-education-block');
+    expect(block.getAttribute('dir')).toBe('rtl');
+    expect(within(block).getByText(/ما الذي تحله هذه الطريقة/i)).toBeDefined();
+    expect(block.textContent).toContain('ما الذي ترجعه');
+    expect(document.documentElement.dir).toBe('rtl');
+  });
+
+  test('method educational copy does not label capped or cancelled runs as optimal', () => {
+    window.history.pushState({}, '', '/methods/cp2');
+    render(<App />);
+
+    fireEvent.click(screen.getByText('English'));
+    const cp2Block = screen.getByTestId('method-education-block');
+    expect(cp2Block.textContent).toContain('a capped run is best-so-far, not optimal');
+    expect(cp2Block.textContent).not.toMatch(/capped run is optimal|cancelled run is optimal/i);
+  });
+
   test('method badges match declared status', () => {
     window.history.pushState({}, '', '/methods');
     render(<App />);

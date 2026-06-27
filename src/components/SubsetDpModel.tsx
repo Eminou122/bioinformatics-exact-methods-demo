@@ -9,6 +9,7 @@ import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface SubsetDpModelProps {
   lang: Language;
@@ -255,6 +256,8 @@ export const SubsetDpModel: React.FC<SubsetDpModelProps> = ({ lang, dict }) => {
           {t.badge}
         </p>
       </header>
+
+      <MethodEducationBlock methodId="subset-dp" lang={lang} />
 
       <section className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
         <p style={{ marginBlockStart: 0 }}>{t.intro}</p>

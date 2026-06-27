@@ -29,6 +29,7 @@ import { SubsetDpModel } from './components/SubsetDpModel';
 import { MethodPlaceholders } from './components/MethodPlaceholders';
 import { readScenarioHandoff, scenarioToExample } from './domain/methodScenarioHandoff';
 import { ScenarioHandoffBanner } from './components/ScenarioHandoffBanner';
+import { MethodEducationBlock } from './components/MethodEducationBlock';
 
 const LANGUAGE_STORAGE_KEY = 'bioinformatics-demo-language';
 const supportedLanguages: Language[] = ['fr', 'en', 'ar'];
@@ -228,6 +229,8 @@ function App() {
           }}>
             Exact exhaustive-enumeration baseline
           </div>
+
+          <MethodEducationBlock methodId="legacy" lang={lang} />
 
           {/* Academic Intro Section */}
           <IntroSection dict={dict} />

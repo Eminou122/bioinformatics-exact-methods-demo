@@ -10,6 +10,7 @@ import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { Link } from './Navigation';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface CP2PlusModelProps {
   lang: Language;
@@ -256,6 +257,8 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate
         <p style={{ fontWeight: 700 }}>{t.description}</p>
         <p style={{ padding: 'var(--space-sm)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>{t.honesty}</p>
       </header>
+
+      <MethodEducationBlock methodId="cp2-plus" lang={lang} />
 
       <section className="card">
         <p>{t.explanation}</p>

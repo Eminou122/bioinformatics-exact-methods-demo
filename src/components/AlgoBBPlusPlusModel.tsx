@@ -11,6 +11,7 @@ import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface AlgoBBPlusPlusModelProps {
   lang: Language;
@@ -290,6 +291,8 @@ export const AlgoBBPlusPlusModel: React.FC<AlgoBBPlusPlusModelProps> = ({ lang, 
           </span>
         </div>
       </header>
+
+      <MethodEducationBlock methodId="algobb-plus-plus" lang={lang} />
 
       <section className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
           <h3 style={{ color: 'var(--primary)', marginBlockEnd: 'var(--space-xs)' }}>

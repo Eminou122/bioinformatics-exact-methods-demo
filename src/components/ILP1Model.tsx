@@ -13,6 +13,7 @@ import { MethodPlaybackControls } from './MethodPlaybackControls';
 import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface ILP1ModelProps {
   lang: Language;
@@ -240,6 +241,8 @@ export const ILP1Model: React.FC<ILP1ModelProps> = ({ lang, dict }) => {
         </div>
         <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--neutral-medium)', backgroundColor: 'var(--neutral-bg-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-sm)' }}>{t.badge}</p>
       </header>
+
+      <MethodEducationBlock methodId="ilp1" lang={lang} />
 
       <section className="card" style={{ marginBlockEnd: 'var(--space-md)' }}>
         <p style={{ marginBlockStart: 0 }}>{t.honesty}</p>

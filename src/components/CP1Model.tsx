@@ -12,6 +12,7 @@ import { useMethodCockpitSync } from './useMethodCockpitSync';
 import { cp1InspectorKeys, getCP1InspectorKeyForTraceEvent } from './cp1InspectorSync';
 import { ScenarioHandoffBanner } from './ScenarioHandoffBanner';
 import { useScenarioHandoffExample } from './useScenarioHandoffExample';
+import { MethodEducationBlock } from './MethodEducationBlock';
 
 interface CP1ModelProps {
   lang: Language;
@@ -255,6 +256,8 @@ export const CP1Model: React.FC<CP1ModelProps> = ({ lang, dict }) => {
           {t.badgeStatus}
         </p>
       </header>
+
+      <MethodEducationBlock methodId="cp1" lang={lang} />
 
       {/* Dataset Selection */}
       <section className="card" style={{ padding: 'var(--space-md)', marginBlockEnd: 'var(--space-md)' }}>
