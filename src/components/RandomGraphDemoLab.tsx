@@ -650,8 +650,9 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
         <p style={{ padding: 'var(--space-sm)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>{t.sameSeed}</p>
       </header>
 
-      <MethodCockpit
-        controls={(
+      <div className="random-lab-cockpit-shell" data-testid="random-lab-cockpit-shell">
+        <MethodCockpit
+          controls={(
           <section className="card" aria-labelledby="random-graph-controls-title" style={{ marginBlockEnd: 'var(--space-sm)' }}>
             <h3 id="random-graph-controls-title"><span className="icon-label"><Icon name="network" /> {t.custom}</span></h3>
             <div className="random-lab-controls">
@@ -703,8 +704,8 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               </div>
             </div>
           </section>
-        )}
-        graph={(
+          )}
+          graph={(
           <div dir="ltr" data-testid="random-graph-workspace">
             <div className="random-lab-mobile-tabs" style={{ display: 'none', marginBlockEnd: 'var(--space-sm)' }}>
               <div className="lang-selector-group" style={{ width: '100%' }}>
@@ -723,11 +724,10 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               isAcceptedStep
               lang={lang}
               dict={dict}
-              mobileActiveTab={viewTab}
             />
           </div>
-        )}
-        state={(
+          )}
+          state={(
           <section className="card">
             <h3><span className="icon-label"><Icon name="clipboard" /> {t.graph}</span></h3>
             <dl className="random-lab-dl">
@@ -740,8 +740,8 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
             </dl>
             <p style={{ marginBlockEnd: 0, fontWeight: 800 }}>{t.limitation}</p>
           </section>
-        )}
-        constraints={(
+          )}
+          constraints={(
           <section className="card">
             <h3><span className="icon-label"><Icon name="shield" /> {t.primary}</span></h3>
             <div className="random-lab-results">
@@ -750,8 +750,8 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
             {results.rows.find((row) => row.name === 'ILP2')?.state === 'not-run-preenumeration-risk' && <p data-testid="ilp2-not-run-note" style={{ color: 'var(--danger)', fontWeight: 800 }}>{t.ilp2Skip}</p>}
             <p style={{ marginBlockEnd: 0, fontWeight: 700 }}>{t.countersNote}</p>
           </section>
-        )}
-        trace={(
+          )}
+          trace={(
           <section className="card" data-testid="random-graph-all-solvers">
             <h3><span className="icon-label"><Icon name="ledger" /> {t.allSolvers}</span></h3>
             <div className="random-lab-results all-solvers">
@@ -762,8 +762,9 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               {showEquality ? <p dir="ltr">complete-comparable: {String(equality)}</p> : <p>{t.unavailable}</p>}
             </section>
           </section>
-        )}
-      />
+          )}
+        />
+      </div>
 
       <section className="card" data-testid="random-graph-method-handoff" style={{ marginBlockStart: 'var(--space-md)' }}>
         <h3><span className="icon-label"><Icon name="route" /> {t.testMethods}</span></h3>
@@ -845,6 +846,31 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
           color: var(--danger);
           font-weight: 800;
           overflow-wrap: anywhere;
+        }
+        @media (min-width: 1024px) {
+          .random-lab-cockpit-shell .method-cockpit {
+            height: auto;
+            min-height: 0;
+            overflow: visible;
+          }
+          .random-lab-cockpit-shell .method-cockpit__body {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto;
+            align-items: start;
+            overflow: visible;
+          }
+          .random-lab-cockpit-shell .method-cockpit__panel > .card {
+            height: auto;
+            overflow: visible;
+          }
+          .random-lab-cockpit-shell .method-cockpit__graph {
+            min-height: 430px;
+          }
+          .random-lab-cockpit-shell .method-cockpit__graph > .graph-panel-container {
+            height: auto;
+            min-height: 430px;
+            overflow: visible;
+          }
         }
         @media (max-width: 900px) {
           .random-lab-controls,

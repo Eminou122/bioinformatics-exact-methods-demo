@@ -30,6 +30,53 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByRole('link', { name: 'Lancer le laboratoire de graphes' }).getAttribute('href')).toBe('/methods/random-graph-lab');
   });
 
+  test('owns the page-local cockpit wrapper and layout repair styles', () => {
+    const { container } = render(<App />);
+
+    const shell = screen.getByTestId('random-lab-cockpit-shell');
+    const cockpit = screen.getByTestId('method-cockpit');
+    const graphPanel = container.querySelector('.graph-panel-container') as HTMLElement;
+    const styles = Array.from(container.querySelectorAll('style')).map((style) => style.textContent || '').join('\n');
+
+    expect(shell.classList.contains('random-lab-cockpit-shell')).toBe(true);
+    expect(shell.contains(cockpit)).toBe(true);
+    expect(cockpit.className).toBe('method-cockpit');
+    expect(styles).toContain('.random-lab-cockpit-shell .method-cockpit');
+    expect(styles).toContain('grid-template-columns: minmax(0, 1fr)');
+    expect(styles).toContain('grid-template-rows: auto');
+    expect(styles).toContain('align-items: start');
+    expect(styles).toContain('min-height: 430px');
+    expect(styles).toContain('overflow: visible');
+    expect(screen.getByTestId('method-cockpit-graph').contains(graphPanel)).toBe(true);
+  });
+
+  test('keeps Test in Methods after the full graph visualization in DOM order', () => {
+    const { container } = render(<App />);
+
+    const graphPanel = container.querySelector('.graph-panel-container') as HTMLElement;
+    const handoff = screen.getByTestId('random-graph-method-handoff');
+
+    expect(graphPanel.compareDocumentPosition(handoff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(handoff.textContent).toContain('Tester dans les méthodes');
+  });
+
+  test('renders both graph panels for the narrow-screen stacked layout', () => {
+    const { container } = render(<App />);
+    const wrappers = container.querySelectorAll('.graph-panel-container .graph-workspace-grid > div');
+
+    expect(wrappers.length).toBe(2);
+    expect(Array.from(wrappers).every((wrapper) => !wrapper.classList.contains('mobile-hide-graph'))).toBe(true);
+    expect(Array.from(wrappers).every((wrapper) => wrapper.getAttribute('aria-hidden') === 'false')).toBe(true);
+  });
+
+  test('does not add the Random Graph Lab wrapper to normal MethodCockpit pages', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
+
+    expect(container.querySelector('.random-lab-cockpit-shell')).toBeNull();
+    expect(screen.getByTestId('method-cockpit').className).toBe('method-cockpit');
+  });
+
   test('switches family-specific controls and blocks invalid parameters with local feedback', () => {
     render(<App />);
 
