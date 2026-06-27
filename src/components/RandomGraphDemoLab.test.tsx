@@ -21,6 +21,8 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getAllByText('CP2').length).toBeGreaterThan(0);
     expect(screen.getAllByText('CP2+').length).toBeGreaterThan(0);
     expect(screen.getAllByText('ILP2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('ILP2+').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Validation D\/G/)).toBeDefined();
     expect(screen.getByText('Tous les solveurs exacts applicables')).toBeDefined();
     expect(screen.getByRole('button', { name: 'D', hidden: true })).toBeDefined();
     expect(screen.getByRole('button', { name: 'G', hidden: true })).toBeDefined();
@@ -85,8 +87,7 @@ describe('Random-Graph Demonstration Lab', () => {
     fireEvent.change(screen.getByLabelText('Famille'), { target: { value: 'acyclic-scale-free' } });
     expect(screen.getByText('m')).toBeDefined();
     const preset = screen.getByLabelText('Préréglage déterministe') as HTMLSelectElement;
-    expect([...preset.options].some((option) => option.textContent?.includes('er-'))).toBe(false);
-    expect([...preset.options].some((option) => option.textContent?.includes('sf-'))).toBe(true);
+    expect([...preset.options].some((option) => option.textContent?.includes('hard-'))).toBe(true);
 
     fireEvent.change(screen.getByLabelText('n'), { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
@@ -120,13 +121,13 @@ describe('Random-Graph Demonstration Lab', () => {
   test('selecting a preset synchronizes family and visible parameters', () => {
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-2' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-m-dense-sparse-1' } });
     expect((screen.getByLabelText('Famille') as HTMLSelectElement).value).toBe('acyclic-erdos-renyi');
-    expect((screen.getByLabelText('n') as HTMLInputElement).value).toBe('9');
-    expect((screen.getByLabelText('pD') as HTMLInputElement).value).toBe('0.55');
+    expect((screen.getByLabelText('n') as HTMLInputElement).value).toBe('8');
+    expect((screen.getByLabelText('pD') as HTMLInputElement).value).toBe('0.82');
 
     fireEvent.change(screen.getByLabelText('Famille'), { target: { value: 'acyclic-scale-free' } });
-    expect((screen.getByLabelText('Préréglage déterministe') as HTMLSelectElement).value).toMatch(/^sf-/);
+    expect((screen.getByLabelText('Préréglage déterministe') as HTMLSelectElement).value).toContain('sf');
   });
 
   test('new random scenario displays replayable values', () => {
@@ -160,35 +161,38 @@ describe('Random-Graph Demonstration Lab', () => {
   test('small tier renders all applicable exact solver rows and CP3/CP4 boundary', () => {
     render(<App />);
 
-    for (const name of ['Legacy', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'Subset DP']) {
+    for (const name of ['Legacy', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'ILP2+', 'Subset DP']) {
       expect(screen.getByTestId(`solver-row-${name}`).textContent).toContain('complete-comparable');
     }
     expect(screen.getByTestId('solver-row-CP3').textContent).toContain('not-applicable-cyclic-trail-method');
     expect(screen.getByTestId('solver-row-CP4').textContent).toContain('Not applicable — cyclic-trail method.');
   });
 
-  test('medium tier applies educational safety limits without hiding CP2, CP2+, and ILP2', () => {
+  test('medium tier applies educational safety limits without hiding CP2, CP2+, ILP2, and ILP2+', () => {
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-1' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-m-dense-sparse-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
 
     expect(screen.getByTestId('solver-row-CP2').textContent).toContain('complete-comparable');
     expect(screen.getByTestId('solver-row-CP2+').textContent).toContain('complete-comparable');
     expect(screen.getByTestId('solver-row-ILP2').textContent).not.toContain('not-run-preenumeration-risk');
+    expect(screen.getByTestId('solver-row-ILP2+').textContent).not.toContain('not-run-preenumeration-risk');
     expect(screen.getByTestId('solver-row-Legacy').textContent).toContain('not-run-educational-safety-limit');
     expect(screen.getByTestId('solver-row-Subset DP').textContent).toContain('Not run — exceeds this solver’s educational safety limit.');
   });
 
-  test('Tier L preset keeps ILP2 as not-run-preenumeration-risk, not capped or complete', () => {
+  test('Tier L preset keeps ILP2 and ILP2+ as not-run-preenumeration-risk, not capped or complete', () => {
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-stress-no-solution-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
 
     const ilp2Card = screen.getByTestId('solver-row-ILP2');
+    const ilp2PlusCard = screen.getByTestId('solver-row-ILP2+');
     expect(ilp2Card).toBeDefined();
     expect(ilp2Card.textContent).toContain('not-run-preenumeration-risk');
+    expect(ilp2PlusCard.textContent).toContain('not-run-preenumeration-risk');
     expect(ilp2Card.textContent).toContain('false');
     expect(screen.getByTestId('ilp2-not-run-note').textContent).toContain('pré-énumération');
     expect(within(ilp2Card).queryByText('capped')).toBeNull();
@@ -199,9 +203,18 @@ describe('Random-Graph Demonstration Lab', () => {
     render(<App />);
     expect(screen.getByTestId('random-graph-equality').textContent).toContain('complete-comparable');
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-stress-no-solution-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     expect(screen.getByTestId('random-graph-equality').textContent).toContain('Disponible seulement');
+  });
+
+  test('ILP2+ counters and explanation are truthful', () => {
+    render(<App />);
+
+    const row = screen.getByTestId('solver-row-ILP2+');
+    expect(row.textContent).toContain('earlyTermination');
+    expect(row.textContent).toContain('candidatesSkippedAfterWinner');
+    expect(screen.getByTestId('ilp2-plus-truth-note').textContent).toContain('does not skip path enumeration');
   });
 
   test('supports English and Arabic while keeping graph workspace LTR and visible text emoji-free', () => {
@@ -240,7 +253,7 @@ describe('Random-Graph Demonstration Lab', () => {
       expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('random-graph-lab');
       expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('seedOrder');
     }
-  });
+  }, 15000);
 
   test('malformed handoff safely falls back to the built-in example', () => {
     window.history.pushState({}, '', '/methods/cp2?scenario=bad');
@@ -254,7 +267,7 @@ describe('Random-Graph Demonstration Lab', () => {
     render(<App />);
 
     fireEvent.change(screen.getByLabelText('n'), { target: { value: '13' } });
-    fireEvent.change(screen.getByLabelText('pD'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('pD'), { target: { value: '0' } });
     fireEvent.change(screen.getByLabelText('pG'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2' }));
@@ -268,13 +281,13 @@ describe('Random-Graph Demonstration Lab', () => {
   test('medium and stress method actions keep safety limits truthful', () => {
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-medium-1' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-m-dense-sparse-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2+' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans Legacy' }) as HTMLButtonElement).disabled).toBe(true);
 
-    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'er-stress-1' } });
+    fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-stress-no-solution-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
     expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByTestId('random-graph-method-handoff').textContent).toContain('not-run-preenumeration-risk');

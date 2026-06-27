@@ -5,18 +5,22 @@ import { solveCP2, type CP2SolverResult } from '../domain/cp2Solver';
 import { solveCP2Plus, type CP2PlusSolverResult } from '../domain/cp2PlusSolver';
 import { solveAlgoBBPlusPlus } from '../domain/algoBBPlusPlus';
 import { solveILP1 } from '../domain/ilp1Solver';
-import { solveILP2, type ILP2SolverResult } from '../domain/ilp2Solver';
+import { solveILP2, solveILP2Plus, type ILP2SolverResult } from '../domain/ilp2Solver';
 import { solveSubsetDP } from '../domain/subsetDpSolver';
-import {
-  CP2_RANDOM_BENCHMARK_CORPUS,
-  type CP2RandomBenchmarkCaseSpec,
-} from '../domain/cp2RandomBenchmark';
 import {
   generateIndependentAcyclicErdosRenyiGraph,
   generateIndependentAcyclicScaleFreeGraph,
   type AcyclicErdosRenyiGraph,
   type AcyclicScaleFreeGraph,
 } from '../domain/randomGraphGenerators';
+import { generateWithDGDistinctionRetries, validateNamedChallengeDistinction, type DGDistinctionReport } from '../domain/dgStructuralDistinction';
+import {
+  HARD_RANDOM_GRAPH_CORPUS,
+  generateHardRandomGraph,
+  hardPresetLabel,
+  type HardRandomCaseSpec,
+  type HardRandomGeneratedGraph,
+} from '../domain/hardRandomGraphCorpus';
 import { CHALLENGE_GRAPHS, challengeToScenario, type ChallengeGraph } from '../domain/challengeGraphLibrary';
 import { createScenarioHandoffLink, makeScenarioId, type MethodScenarioHandoff } from '../domain/methodScenarioHandoff';
 import { isInducedGConnected } from '../domain/pathAlgorithms';
@@ -37,7 +41,7 @@ type ChallengeGeneratedGraph = {
   parameters: Record<string, string | number | boolean>;
   challengeGraphId: string;
 };
-type GeneratedGraph = AcyclicErdosRenyiGraph | AcyclicScaleFreeGraph | ChallengeGeneratedGraph;
+type GeneratedGraph = AcyclicErdosRenyiGraph | AcyclicScaleFreeGraph | HardRandomGeneratedGraph | ChallengeGeneratedGraph;
 type SolverState =
   | 'complete-comparable'
   | 'incomplete-capped'
@@ -76,6 +80,7 @@ type SolverBundle = {
   cp2: CP2SolverResult;
   cp2Plus: CP2PlusSolverResult;
   ilp2: ILP2SolverResult | null;
+  ilp2Plus: ILP2SolverResult | null;
   rows: SolverRow[];
 };
 
@@ -125,6 +130,12 @@ const labels = {
     unavailable: 'Disponible seulement quand tous les solveurs applicables comparés terminent.',
     countersNote: 'Each solver reports work in its own search model. Candidate counts and explored states are not interchangeable.',
     ilp2Skip: 'ILP2 n’est pas lancé pour ce scénario afin d’éviter le risque de pré-énumération.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    distinction: 'Validation D/G',
+    distinctionStatus: 'Résultat',
+    distinctionMetrics: 'overlap / density / degree',
+    distinctionComponents: 'G components / D reachability',
+    finalSeeds: 'Graines finales',
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'Générateur éducatif déterministe seulement: pas de MILP natif, pas de reproduction papier, pas de conclusion de supériorité en temps.',
@@ -182,6 +193,12 @@ const labels = {
     unavailable: 'Available only when every compared applicable solver completes.',
     countersNote: 'Each solver reports work in its own search model. Candidate counts and explored states are not interchangeable.',
     ilp2Skip: 'ILP2 is not run for this scenario to avoid pre-enumeration risk.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    distinction: 'D/G validation',
+    distinctionStatus: 'Result',
+    distinctionMetrics: 'overlap / density / degree',
+    distinctionComponents: 'G components / D reachability',
+    finalSeeds: 'Final seeds',
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'Deterministic educational generator only: no native MILP, no paper reproduction, no runtime-superiority conclusion.',
@@ -239,6 +256,12 @@ const labels = {
     unavailable: 'تظهر فقط عندما تكتمل كل المحللات القابلة للمقارنة.',
     countersNote: 'Each solver reports work in its own search model. Candidate counts and explored states are not interchangeable.',
     ilp2Skip: 'لا يتم تشغيل ILP2 لهذا السيناريو لتجنب خطر ما قبل التعداد.',
+    ilp2PlusTruth: 'ILP2+ fully enumerates and canonically sorts paths first. It may skip later candidate evaluation after the first feasible canonical winner. It does not skip path enumeration.',
+    distinction: 'فحص D/G',
+    distinctionStatus: 'النتيجة',
+    distinctionMetrics: 'overlap / density / degree',
+    distinctionComponents: 'G components / D reachability',
+    finalSeeds: 'Final seeds',
     safetySkip: 'Not run — exceeds this solver’s educational safety limit.',
     cyclicSkip: 'Not applicable — cyclic-trail method.',
     limitation: 'مولد تعليمي حتمي فقط: لا MILP أصلي، لا إعادة إنتاج لورقة، ولا استنتاج تفوق زمني.',
@@ -259,22 +282,17 @@ const labels = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const presets = CP2_RANDOM_BENCHMARK_CORPUS;
+const presets = HARD_RANDOM_GRAPH_CORPUS;
 
-function presetLabel(spec: CP2RandomBenchmarkCaseSpec): string {
-  const params = Object.entries(spec.params).map(([k, v]) => `${k}=${v}`).join(', ');
-  return `${spec.caseId} (${spec.tier}) ${params}`;
-}
-
-function formFromPreset(spec: CP2RandomBenchmarkCaseSpec, previous?: FormState): FormState {
+function formFromPreset(spec: HardRandomCaseSpec, previous?: FormState): FormState {
   return {
     n: String(spec.params.n),
     pD: 'pD' in spec.params ? String(spec.params.pD) : previous?.pD ?? '0.45',
     pG: 'pG' in spec.params ? String(spec.params.pG) : previous?.pG ?? '0.45',
     m: 'm' in spec.params ? String(spec.params.m) : previous?.m ?? '1',
-    seedOrder: String(spec.params.seed),
-    seedD: String(spec.params.seed + 1),
-    seedG: String(spec.params.seed + 2),
+    seedOrder: String(spec.params.seedOrder),
+    seedD: String(spec.params.seedD),
+    seedG: String(spec.params.seedG),
   };
 }
 
@@ -305,7 +323,7 @@ function metric(label: string, value: number): string {
   return `${label}: ${value}`;
 }
 
-function canRunILP2(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCaseSpec | null): boolean {
+function canRunILP2(graph: GeneratedGraph, selectedPreset: HardRandomCaseSpec | null): boolean {
   if (selectedPreset?.tier === 'L') return false;
   return graph.vertices.length <= CUSTOM_ILP2_MAX_N;
 }
@@ -314,7 +332,7 @@ function makeSkippedRow(name: string, state: SolverState, status: string): Solve
   return { name, state, status, path: '-', valid: '-', proof: 'false', metric: '-' };
 }
 
-function solveGraph(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCaseSpec | null, t: typeof labels.en): SolverBundle {
+function solveGraph(graph: GeneratedGraph, selectedPreset: HardRandomCaseSpec | null, t: typeof labels.en): SolverBundle {
   const n = graph.vertices.length;
   const small = n <= SMALL_MAX_N;
   const stress = n > CUSTOM_ILP2_MAX_N;
@@ -326,6 +344,7 @@ function solveGraph(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCas
   const ilp1 = small ? solveILP1(graph.vertices, graph.edgesD, graph.edgesG, { maxEvents: MAX_EVENTS }) : null;
   const ilp2Safe = canRunILP2(graph, selectedPreset);
   const ilp2 = ilp2Safe ? solveILP2(graph.vertices, graph.edgesD, graph.edgesG, { maxEvents: MAX_EVENTS }) : null;
+  const ilp2Plus = ilp2Safe ? solveILP2Plus(graph.vertices, graph.edgesD, graph.edgesG, { maxEvents: MAX_EVENTS }) : null;
   const subset = small ? solveSubsetDP(graph.vertices, graph.edgesD, graph.edgesG, { maxEvents: MAX_EVENTS, maxVertices: SMALL_MAX_N }) : null;
   const rows: SolverRow[] = [];
 
@@ -399,6 +418,16 @@ function solveGraph(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCas
     metric: `${metric('enumerated candidates', ilp2.counters.enumeratedCandidates)}; ${metric('accepted candidates', ilp2.counters.acceptedFeasibleCandidates)}`,
     comparablePath: ilp2.bestPath,
   } : makeSkippedRow('ILP2', stress ? 'not-run-preenumeration-risk' : 'not-run-educational-safety-limit', stress ? 'not-run-preenumeration-risk' : t.safetySkip));
+  rows.push(ilp2Plus ? {
+    name: 'ILP2+',
+    state: proofState(ilp2Plus),
+    status: ilp2Plus.status,
+    path: pathText(ilp2Plus.bestPath),
+    valid: validText(ilp2Plus.bestPath, graph),
+    proof: String(ilp2Plus.proofCompleteEmitted),
+    metric: `${metric('enumerated candidates', ilp2Plus.counters.enumeratedCandidates)}; ${metric('accepted candidates', ilp2Plus.counters.acceptedFeasibleCandidates)}; ${metric('earlyTermination', Number(ilp2Plus.counters.earlyTermination))}; ${metric('candidatesSkippedAfterWinner', ilp2Plus.counters.candidatesSkippedAfterWinner)}`,
+    comparablePath: ilp2Plus.bestPath,
+  } : makeSkippedRow('ILP2+', stress ? 'not-run-preenumeration-risk' : 'not-run-educational-safety-limit', stress ? 'not-run-preenumeration-risk' : t.safetySkip));
   rows.push(subset ? {
     name: 'Subset DP',
     state: proofState(subset),
@@ -411,7 +440,7 @@ function solveGraph(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCas
   } : makeSkippedRow('Subset DP', 'not-run-educational-safety-limit', t.safetySkip));
   rows.push(makeSkippedRow('CP3', 'not-applicable-cyclic-trail-method', t.cyclicSkip));
   rows.push(makeSkippedRow('CP4', 'not-applicable-cyclic-trail-method', t.cyclicSkip));
-  return { cp2, cp2Plus, ilp2, rows };
+  return { cp2, cp2Plus, ilp2, ilp2Plus, rows };
 }
 
 function randomInt(maxExclusive: number): number {
@@ -429,9 +458,12 @@ function makeGraph(family: Family, form: FormState): GeneratedGraph {
   const seedOrder = Number(form.seedOrder);
   const seedD = Number(form.seedD);
   const seedG = Number(form.seedG);
-  return family === 'acyclic-erdos-renyi'
-    ? generateIndependentAcyclicErdosRenyiGraph({ n, pD: Number(form.pD), pG: Number(form.pG), seedOrder, seedD, seedG })
-    : generateIndependentAcyclicScaleFreeGraph({ n, m: Number(form.m), seedOrder, seedD, seedG });
+  const generated = generateWithDGDistinctionRetries({ seedD, seedG }, (nextSeedD, nextSeedG) => (
+    family === 'acyclic-erdos-renyi'
+      ? generateIndependentAcyclicErdosRenyiGraph({ n, pD: Number(form.pD), pG: Number(form.pG), seedOrder, seedD: nextSeedD, seedG: nextSeedG })
+      : generateIndependentAcyclicScaleFreeGraph({ n, m: Number(form.m), seedOrder, seedD: nextSeedD, seedG: nextSeedG })
+  ));
+  return { ...generated.graph, distinction: generated.report };
 }
 
 function challengeAsGraph(challenge: ChallengeGraph): ChallengeGeneratedGraph {
@@ -493,7 +525,7 @@ function openRoute(route: string, graph: GeneratedGraph) {
   window.scrollTo(0, 0);
 }
 
-function methodActions(graph: GeneratedGraph, selectedPreset: CP2RandomBenchmarkCaseSpec | null, t: typeof labels.en) {
+function methodActions(graph: GeneratedGraph, selectedPreset: HardRandomCaseSpec | null, t: typeof labels.en) {
   const n = graph.vertices.length;
   const small = n <= SMALL_MAX_N;
   const stress = n > CUSTOM_ILP2_MAX_N;
@@ -535,11 +567,16 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   const [form, setForm] = useState<FormState>(formFromPreset(firstPreset));
   const [error, setError] = useState('');
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const [graph, setGraph] = useState<GeneratedGraph>(() => makeGraph('acyclic-erdos-renyi', formFromPreset(firstPreset)));
-  const [runPreset, setRunPreset] = useState<CP2RandomBenchmarkCaseSpec | null>(firstPreset);
+  const [graph, setGraph] = useState<GeneratedGraph>(() => generateHardRandomGraph(firstPreset));
+  const [runPreset, setRunPreset] = useState<HardRandomCaseSpec | null>(firstPreset);
   const [selectedChallengeId, setSelectedChallengeId] = useState(CHALLENGE_GRAPHS[0].id);
-  const familyPresets = presets.filter((p) => p.graphFamily === family);
+  const familyPresets = presets;
   const results = useMemo(() => solveGraph(graph, runPreset, t), [graph, runPreset, t]);
+  const distinction: DGDistinctionReport = graph.family === 'challenge-graph'
+    ? validateNamedChallengeDistinction(graph)
+    : 'distinction' in graph
+      ? graph.distinction
+      : generateWithDGDistinctionRetries({ seedD: graph.seeds?.seedD ?? 0, seedG: graph.seeds?.seedG ?? 0 }, () => graph).report;
   const bestPath = results.cp2.bestPath ?? results.cp2Plus.bestPath ?? results.ilp2?.bestPath ?? [];
   const positions = useMemo(() => makePositions(graph.vertices, graph.topologicalOrder), [graph]);
   const comparableRows = results.rows.filter((row) => row.state === 'complete-comparable' && row.name !== 'CP3' && row.name !== 'CP4');
@@ -550,8 +587,8 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   const selectedChallenge = CHALLENGE_GRAPHS.find((challenge) => challenge.id === selectedChallengeId) ?? CHALLENGE_GRAPHS[0];
   const actions = methodActions(graph, runPreset, t);
 
-  const fillPreset = (spec: CP2RandomBenchmarkCaseSpec) => {
-    setFamily(spec.graphFamily);
+  const fillPreset = (spec: HardRandomCaseSpec) => {
+    setFamily(spec.graphFamily === 'acyclic-scale-free' ? 'acyclic-scale-free' : 'acyclic-erdos-renyi');
     setPresetId(spec.caseId);
     setForm(formFromPreset(spec, form));
     setError('');
@@ -593,12 +630,13 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   };
 
   const generate = () => {
-    const next = validate();
+    const selectedSpec = presetId === CUSTOM_ID ? null : presets.find((p) => p.caseId === presetId) ?? null;
+    const next = selectedSpec ? generateHardRandomGraph(selectedSpec) : validate();
     if (!next) return;
     setGraph(next);
-    setRunPreset(presetId === CUSTOM_ID ? null : presets.find((p) => p.caseId === presetId) ?? null);
+    setRunPreset(selectedSpec);
     setError('');
-    const query = new URLSearchParams({ family, n: form.n, seedOrder: form.seedOrder, seedD: form.seedD, seedG: form.seedG });
+    const query = new URLSearchParams({ family, n: String(next.statistics.vertexCount), seedOrder: String(next.seeds?.seedOrder ?? form.seedOrder), seedD: String(next.seeds?.seedD ?? form.seedD), seedG: String(next.seeds?.seedG ?? form.seedG) });
     if (family === 'acyclic-erdos-renyi') {
       query.set('pD', form.pD);
       query.set('pG', form.pG);
@@ -617,8 +655,7 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
 
   const reset = () => {
     fillPreset(firstPreset);
-    const nextForm = formFromPreset(firstPreset, form);
-    setGraph(makeGraph(firstPreset.graphFamily, nextForm));
+    setGraph(generateHardRandomGraph(firstPreset));
     setRunPreset(firstPreset);
   };
 
@@ -669,7 +706,7 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
                   if (spec) fillPreset(spec);
                 }}>
                   <option value={CUSTOM_ID}>{t.custom}</option>
-                  {familyPresets.map((p) => <option key={p.caseId} value={p.caseId}>{presetLabel(p)}</option>)}
+                  {familyPresets.map((p) => <option key={p.caseId} value={p.caseId}>{hardPresetLabel(p)}</option>)}
                 </select>
               </label>
               <label>{t.n}<input aria-invalid={!!error && error.includes(t.n)} value={form.n} onChange={(e) => patchForm({ n: e.target.value })} inputMode="numeric" /></label>
@@ -737,7 +774,12 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
               <dt>{t.seedD}</dt><dd dir="ltr">{graph.seeds?.seedD}</dd>
               <dt>{t.seedG}</dt><dd dir="ltr">{graph.seeds?.seedG}</dd>
               <dt>{t.topological}</dt><dd dir="ltr">{graph.topologicalOrder.join(' -> ')}</dd>
+              <dt>{t.distinctionStatus}</dt><dd dir="ltr">{distinction.status}</dd>
+              <dt>{t.distinctionMetrics}</dt><dd dir="ltr">{`${distinction.projectedEdgeOverlapRatio.toFixed(2)} / ${distinction.densityDifference.toFixed(2)} / ${distinction.degreeProfileDistance.toFixed(2)}`}</dd>
+              <dt>{t.distinctionComponents}</dt><dd dir="ltr">{`${distinction.gConnectedComponents} / ${distinction.dReachabilityPairs}`}</dd>
+              <dt>{t.finalSeeds}</dt><dd dir="ltr">{`seedD=${distinction.finalSeedD}, seedG=${distinction.finalSeedG}, attempts=${distinction.attempts}`}</dd>
             </dl>
+            <p style={{ marginBlockEnd: 'var(--space-xs)', fontWeight: 800 }}>{t.distinction}: <span dir="ltr">{distinction.notes.join(' ')}</span></p>
             <p style={{ marginBlockEnd: 0, fontWeight: 800 }}>{t.limitation}</p>
           </section>
           )}
@@ -745,9 +787,10 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
           <section className="card">
             <h3><span className="icon-label"><Icon name="shield" /> {t.primary}</span></h3>
             <div className="random-lab-results">
-              {results.rows.filter((row) => ['CP2', 'CP2+', 'ILP2'].includes(row.name)).map((row) => <SolverCard key={row.name} row={row} t={t} />)}
+              {results.rows.filter((row) => ['CP2', 'CP2+', 'ILP2', 'ILP2+'].includes(row.name)).map((row) => <SolverCard key={row.name} row={row} t={t} />)}
             </div>
             {results.rows.find((row) => row.name === 'ILP2')?.state === 'not-run-preenumeration-risk' && <p data-testid="ilp2-not-run-note" style={{ color: 'var(--danger)', fontWeight: 800 }}>{t.ilp2Skip}</p>}
+            <p data-testid="ilp2-plus-truth-note" style={{ marginBlockEnd: 'var(--space-xs)', fontWeight: 700 }}>{t.ilp2PlusTruth}</p>
             <p style={{ marginBlockEnd: 0, fontWeight: 700 }}>{t.countersNote}</p>
           </section>
           )}

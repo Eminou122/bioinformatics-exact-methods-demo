@@ -2,7 +2,14 @@
 
 Date: 2026-06-26
 Branch: `feature/hard-random-corpus-and-lab-layout-plan`
-Status: read-only audit plus implementation plan. No application code changed.
+Status: H2B implemented for hard corpus, D/G distinction validation, and truthful ILP2+ Random Graph Lab display.
+
+## H2B Implementation Note
+
+- Added `src/domain/hardRandomGraphCorpus.ts` with 50 deterministic cases: 20 Tier S, 20 Tier M, and 10 Tier L/Stress.
+- Added `src/domain/dgStructuralDistinction.ts` with pure `passed` / `warning` / `regenerated` reporting and bounded deterministic seed retries.
+- Random Graph Lab now loads the hard corpus presets, displays final D/G distinction seeds and metrics, and shows ILP2+ separately from ILP2.
+- Tier L/Stress continues to show ILP2 and ILP2+ as `not-run-preenumeration-risk`.
 
 ## 1. Scope
 
