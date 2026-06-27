@@ -46,23 +46,41 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) => {
-  const labels: Record<Language, { start: string; methods: string; randomLab: string; legacy: string }> = {
+  const labels: Record<Language, { start: string; methods: string; cp1: string; cp2: string; cp2Plus: string; randomLab: string; subsetDp: string; ilp1: string; ilp2: string; legacy: string }> = {
     fr: {
       start: 'Commencer Ici',
       methods: 'Carte des Méthodes',
+      cp1: 'Modèle CP1',
+      cp2: 'Modèle CP2',
+      cp2Plus: 'Modèle CP2+',
       randomLab: 'Graphes aléatoires',
+      subsetDp: 'Subset DP',
+      ilp1: 'Modèle ILP1',
+      ilp2: 'Modèle ILP2',
       legacy: 'Démo Énumération (Legacy)'
     },
     en: {
       start: 'Start Here',
       methods: 'Method Map',
-      randomLab: 'Random Graph Lab',
+      cp1: 'CP1 Model',
+      cp2: 'CP2 Model',
+      cp2Plus: 'CP2+ Model',
+      randomLab: 'Random Graphs',
+      subsetDp: 'Subset DP',
+      ilp1: 'ILP1 Model',
+      ilp2: 'ILP2 Model',
       legacy: 'Enumeration Demo (Legacy)'
     },
     ar: {
       start: 'ابدأ هنا',
       methods: 'خريطة الطرق',
-      randomLab: 'مختبر المخططات العشوائية',
+      cp1: 'نموذج CP1',
+      cp2: 'نموذج CP2',
+      cp2Plus: 'نموذج CP2+',
+      randomLab: 'مخططات عشوائية',
+      subsetDp: 'Subset DP',
+      ilp1: 'نموذج ILP1',
+      ilp2: 'نموذج ILP2',
       legacy: 'عرض التعداد (القديم)'
     }
   };
@@ -72,7 +90,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
   const items = [
     { path: '/', label: t.start },
     { path: '/methods', label: t.methods },
+    { path: '/methods/cp1', label: t.cp1 },
+    { path: '/methods/cp2', label: t.cp2 },
+    { path: '/methods/cp2-plus', label: t.cp2Plus },
     { path: '/methods/random-graph-lab', label: t.randomLab },
+    { path: '/methods/subset-dp', label: t.subsetDp },
+    { path: '/methods/ilp1', label: t.ilp1 },
+    { path: '/methods/ilp2', label: t.ilp2 },
     { path: '/legacy', label: t.legacy }
   ];
 
@@ -96,8 +120,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, lang }) =
       }}
     >
       {items.map((item) => {
+        const isCP2PlusRoute = currentPath === '/methods/cp2-plus' || currentPath.startsWith('/methods/cp2-plus/');
+        const isRandomLabRoute = currentPath === '/methods/random-graph-lab';
         const isActive = currentPath === item.path
-          || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/random-graph-lab');
+          || (item.path === '/methods/cp2-plus' && isCP2PlusRoute)
+          || (item.path === '/methods' && currentPath.startsWith('/methods') && currentPath !== '/methods/cp1' && currentPath !== '/methods/cp2' && !isCP2PlusRoute && !isRandomLabRoute && currentPath !== '/methods/subset-dp' && currentPath !== '/methods/ilp1' && currentPath !== '/methods/ilp2');
         return (
           <Link
             key={item.path}
