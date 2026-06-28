@@ -748,13 +748,20 @@ function openRoute(route: string, graph: GeneratedGraph) {
 }
 
 function methodActions(graph: GeneratedGraph, selectedPreset: HardRandomCaseSpec | null, t: typeof labels.en) {
-  const stress = graph.vertices.length > CUSTOM_ILP2_MAX_N;
+  const n = graph.vertices.length;
+  const small = n <= SMALL_MAX_N;
+  const stress = n > CUSTOM_ILP2_MAX_N;
   const ilp2Allowed = canRunILP2(graph, selectedPreset);
   return [
+    { label: t.openLegacy, route: '/legacy', allowed: small, reason: t.safetySkip },
+    { label: t.openCP1, route: '/methods/cp1', allowed: small, reason: t.safetySkip },
     { label: t.openCP2, route: '/methods/cp2', allowed: true, reason: '' },
     { label: t.openCP2Plus, route: '/methods/cp2-plus', allowed: true, reason: '' },
+    { label: t.openAlgo, route: '/methods/algobb-plus-plus', allowed: small, reason: t.safetySkip },
+    { label: t.openILP1, route: '/methods/ilp1', allowed: small, reason: t.safetySkip },
     { label: t.openILP2, route: '/methods/ilp2', allowed: ilp2Allowed, reason: stress ? 'not-run-preenumeration-risk' : t.safetySkip },
     { label: t.openILP2Plus, route: '/methods/ilp2-plus', allowed: ilp2Allowed, reason: stress ? 'not-run-preenumeration-risk' : t.safetySkip },
+    { label: t.openSubset, route: '/methods/subset-dp', allowed: small, reason: t.safetySkip },
   ];
 }
 
@@ -1095,7 +1102,11 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
           <section className="card" data-testid="random-graph-all-solvers">
             <h3><span className="icon-label"><Icon name="ledger" /> {t.allSolvers}</span></h3>
             <div className="random-lab-results all-solvers">
+              {/* CP2/CP2+/ILP2/ILP2+ first per plan §2D */}
               {results.rows.filter((r) => ['CP2', 'CP2+', 'ILP2', 'ILP2+'].includes(r.name)).map((row) => (
+                <SolverCard key={row.name} row={row} t={t} testId={`solver-row-${row.name}`} />
+              ))}
+              {results.rows.filter((r) => !['CP2', 'CP2+', 'ILP2', 'ILP2+'].includes(r.name)).map((row) => (
                 <SolverCard key={row.name} row={row} t={t} testId={`solver-row-${row.name}`} />
               ))}
             </div>

@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { describe, test, expect, beforeAll, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, within } from '@testing-library/react';
 import App from '../App';
@@ -92,7 +92,7 @@ describe('Routing and Educational UI QA Suite', () => {
     window.localStorage.clear();
   });
 
-  test('primary navigation contains exactly 6 destinations in FR, EN, and AR', () => {
+  test('primary navigation contains only the four required destinations and methods stay linked from Method Map', () => {
     render(<App />);
 
     expect(screen.getByText(/Module d'Apprentissage Pas-à-Pas/i)).toBeDefined();
@@ -100,54 +100,65 @@ describe('Routing and Educational UI QA Suite', () => {
     const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
     expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual([
       'Commencer Ici',
-      'Modèle CP2',
-      'Modèle CP2+',
+      'Carte des Méthodes',
       'Graphes aléatoires',
-      'Modèle ILP2',
-      'Modèle ILP2+',
+      'Démo Énumération (Legacy)',
     ]);
 
-    fireEvent.click(screen.getByText('English'));
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual([
-      'Start Here',
-      'CP2 Model',
-      'CP2+ Model',
-      'Random Graphs',
-      'ILP2 Model',
-      'ILP2+ Model',
-    ]);
+    const methodsLink = within(nav).getByRole('link', { name: 'Carte des Méthodes' });
+    fireEvent.click(methodsLink);
+    expect(screen.getByText('Carte des Méthodes de Recherche')).toBeDefined();
 
-    fireEvent.click(screen.getByText('العربية'));
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual([
-      'ابدأ هنا',
-      'نموذج CP2',
-      'نموذج CP2+',
-      'مخططات عشوائية',
-      'نموذج ILP2',
-      'نموذج ILP2+',
-    ]);
+    const runnableRoutes = [
+      '/legacy',
+      '/methods/cp1',
+      '/methods/cp2',
+      '/methods/cp2-plus',
+      '/methods/algobb-plus-plus',
+      '/methods/ilp1',
+      '/methods/ilp2',
+      '/methods/ilp2-plus',
+      '/methods/subset-dp',
+      '/methods/random-graph-lab',
+    ];
+    for (const route of runnableRoutes) {
+      expect(screen.getAllByRole('link').some((link) => link.getAttribute('href') === route)).toBe(true);
+    }
   });
 
-  test('deprecated routes redirect to Start Here', () => {
-    const deprecated = ['/legacy', '/methods/cp1', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/subset-dp', '/methods'];
-    for (const route of deprecated) {
-      cleanup();
-      window.localStorage.clear();
-      window.history.pushState({}, '', route);
-      render(<App />);
-      expect(window.location.pathname).toBe('/');
-      expect(screen.getAllByText(/Module d'Apprentissage Pas-à-Pas/i).length).toBeGreaterThan(0);
-    }
+  test('Subset DP is labeled as an educational exact method, not a paper-derived method', () => {
+    window.history.pushState({}, '', '/methods');
+    render(<App />);
+
+    const subsetCard = screen.getByText('Subset DP').closest('.card') as HTMLElement;
+    expect(subsetCard).toBeDefined();
+    expect(within(subsetCard).getByText('Méthode exacte pédagogique')).toBeDefined();
+    expect(subsetCard.textContent).not.toMatch(/Educational Paper|papier pédagogique/i);
+
+    fireEvent.click(screen.getByText('English'));
+    const englishSubsetCard = screen.getByText('Subset DP').closest('.card') as HTMLElement;
+    expect(within(englishSubsetCard).getByText('Educational exact method')).toBeDefined();
+    expect(englishSubsetCard.textContent).not.toContain('Educational Paper');
   });
 
   test('all public routes render their expected page surfaces', () => {
     const routes = [
       { path: '/', text: /Module d'Apprentissage Pas-à-Pas/i },
+      { path: '/methods', text: /Carte des Méthodes de Recherche/i },
+      { path: '/methods/cp1', text: /Modèle Éducatif CP1/i },
+      { path: '/methods/algobb-plus-plus', text: /AlgoBB\+\+ éducatif/i },
       { path: '/methods/cp2', text: /CP2/i },
-      { path: '/methods/cp2-plus', text: /CP2\+/i },
-      { path: '/methods/random-graph-lab', text: /Laboratoire de démonstration/i },
+      { path: '/methods/subset-dp', text: /Exact Subset Dynamic Programming/i },
+      { path: '/methods/ilp1', text: /ILP1/i },
+      { path: '/methods/cp3', text: /CP3/i },
+      { path: '/methods/cp4', text: /CP4/i },
+      { path: '/methods/ilp1', text: /ILP1/i },
       { path: '/methods/ilp2', text: /ILP2/i },
       { path: '/methods/ilp2-plus', text: /ILP2\+/i },
+      { path: '/methods/hnet', text: /HNet/i },
+      { path: '/methods/enumeration', text: /Énumération Arc-par-Arc/i },
+      { path: '/methods/conservation', text: /Regroupement de Pistes/i },
+      { path: '/legacy', text: translations.fr.selectionTitle },
     ];
 
     for (const route of routes) {
@@ -160,10 +171,15 @@ describe('Routing and Educational UI QA Suite', () => {
 
   test('every runnable method page renders one educational block without replacing graph or cockpit surfaces', () => {
     const routes = [
+      { path: '/legacy', methodId: 'legacy', cockpit: false },
+      { path: '/methods/cp1', methodId: 'cp1', cockpit: true },
       { path: '/methods/cp2', methodId: 'cp2', cockpit: true },
       { path: '/methods/cp2-plus', methodId: 'cp2-plus', cockpit: true },
+      { path: '/methods/algobb-plus-plus', methodId: 'algobb-plus-plus', cockpit: true },
+      { path: '/methods/ilp1', methodId: 'ilp1', cockpit: true },
       { path: '/methods/ilp2', methodId: 'ilp2', cockpit: true },
       { path: '/methods/ilp2-plus', methodId: 'ilp2-plus', cockpit: true },
+      { path: '/methods/subset-dp', methodId: 'subset-dp', cockpit: true },
     ];
 
     for (const route of routes) {
@@ -181,6 +197,8 @@ describe('Routing and Educational UI QA Suite', () => {
       expect(container.querySelector('[data-testid="genomic-graph-svg"]')).toBeDefined();
       if (route.cockpit) {
         expect(screen.getByTestId('method-cockpit')).toBeDefined();
+      } else {
+        expect(screen.getByText(translations.fr.selectionTitle)).toBeDefined();
       }
     }
   });
@@ -286,6 +304,43 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(cp2Block.textContent).not.toMatch(/capped run is optimal|cancelled run is optimal/i);
   });
 
+  test('Method Map has runnable and reference-only groups with honest CP3 and CP4 cyclic-trail labels', () => {
+    window.history.pushState({}, '', '/methods');
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: 'Runnable demonstrations' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Reference-only methods' })).toBeDefined();
+
+    for (const name of ['Legacy Enumeration', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'ILP2+', 'Subset DP']) {
+      expect(screen.getByText(name)).toBeDefined();
+    }
+
+    const cp3 = screen.getByTestId('method-map-cp3');
+    const cp4 = screen.getByTestId('method-map-cp4');
+    expect(cp3.textContent).toContain('Référence seulement');
+    expect(cp3.textContent).toContain('cyclic trail');
+    expect(cp3.textContent).toContain('Non exécutable dans la démonstration acyclique actuelle');
+    expect(cp4.textContent).toContain('Référence seulement');
+    expect(cp4.textContent).toContain('cyclic trail');
+  });
+
+  test('Method Map labels render in English, French, and Arabic with RTL Arabic shell', () => {
+    window.history.pushState({}, '', '/methods');
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: 'Runnable demonstrations' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Reference-only methods' })).toBeDefined();
+
+    fireEvent.click(screen.getByText('English'));
+    expect(screen.getAllByText('Runnable demo').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Reference-only').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(screen.getAllByText('عرض قابل للتشغيل').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('مرجع فقط').length).toBeGreaterThan(0);
+  });
+
   test('Start Here chapters and checkpoint questions function correctly', () => {
     window.history.pushState({}, '', '/');
     render(<App />);
@@ -302,16 +357,18 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('language switcher preserves path and updates directionality', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     render(<App />);
 
     // Title is in French
-    expect(screen.getByText(/CP2 — CP1 avec Bornes Supérieures Sûres/i)).toBeDefined();
+    expect(screen.getByText('Modèle Éducatif CP1 — Programmation par Contraintes')).toBeDefined();
 
     // Switch to English
     const enBtn = screen.getByText('English');
     fireEvent.click(enBtn);
 
+    // Verify path is preserved (we are still on CP1 Model) and translation changed
+    expect(screen.getByText('CP1 Educational Model — Constraint Programming')).toBeDefined();
     expect(document.documentElement.lang).toBe('en');
     expect(document.documentElement.dir).toBe('ltr');
 
@@ -319,12 +376,14 @@ describe('Routing and Educational UI QA Suite', () => {
     const arBtn = screen.getByText('العربية');
     fireEvent.click(arBtn);
 
+    // Check Arabic title and RTL direction
+    expect(screen.getByText('نموذج CP1 التعليمي — البرمجة بالقيود')).toBeDefined();
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
   });
 
   test('SVG arrow directions and geometry do not change in Arabic RTL', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/legacy');
     render(<App />);
 
     const graphSection = screen.getByText(translations.fr.visTitle);
@@ -339,7 +398,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('SVG coordinates, markerEnd, arrows, nodes, paths, and markers are completely invariant across French, English, and Arabic', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/legacy');
     const { container } = render(<App />);
 
     const getSvgGeometry = () => {
@@ -394,7 +453,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('Mobile viewport tabs are functional and toggle visibility/accessibility at 320px and 390px', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container } = render(<App />);
 
     // Test both 320px and 390px viewports
@@ -411,8 +470,8 @@ describe('Routing and Educational UI QA Suite', () => {
       }
 
       // Find the mobile view selector controls
-      const btnTabD = screen.getByRole('button', { name: 'D', hidden: true });
-      const btnTabG = screen.getByRole('button', { name: 'G', hidden: true });
+      const btnTabD = screen.getByRole('button', { name: /D \(Metabolism\)/i, hidden: true });
+      const btnTabG = screen.getByRole('button', { name: /G \(Genome\)/i, hidden: true });
 
       // Both controls must be available
       expect(btnTabD).toBeDefined();
@@ -449,7 +508,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('shared graph visualization uses readable viewports, labels, arrows, and genomic edge states', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container } = render(<App />);
 
     const directedSvg = container.querySelector('[data-testid="directed-graph-svg"]');
@@ -472,8 +531,8 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(container.querySelectorAll('[data-state="inactive-directed-edge"]').length).toBeGreaterThan(0);
     expect(container.querySelectorAll('[data-state="inactive-genomic-edge"]').length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Démarrer CP2|Start CP2|بدء CP2/i })[0]);
-    fireEvent.click(within(screen.getByTestId('method-playback-controls')).getByRole('button', { name: /^(Fin|End|النهاية)$/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Démarrer la recherche CP1/i })[0]);
+    fireEvent.click(within(screen.getByTestId('method-playback-controls')).getByRole('button', { name: /Aller à la Fin/i }));
     expect(container.querySelectorAll('[data-state="active-genomic-edge"]').length).toBeGreaterThan(0);
   });
 
@@ -517,8 +576,8 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
-  test('CP2, ILP2, and ILP2+ render graph sections with LTR graph containers in Arabic', () => {
-    const routes = ['/methods/cp2', '/methods/ilp2', '/methods/ilp2-plus'];
+  test('CP1, CP2, Subset DP, ILP1, ILP2, AlgoBB++, and Legacy render graph sections with LTR graph containers in Arabic', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/subset-dp', '/methods/ilp1', '/methods/ilp2', '/methods/algobb-plus-plus', '/legacy'];
 
     for (const route of routes) {
       cleanup();
@@ -535,19 +594,20 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('responsive layout components behave correctly across different screen resolutions', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     render(<App />);
 
     // Selector for mobile D/G graph tab controls
     const tabSelector = document.querySelector('.show-mobile-only');
     expect(tabSelector).toBeDefined();
 
-    // Verify method cockpit rendered
-    expect(screen.getByTestId('method-cockpit')).toBeDefined();
+    // Verify presence of synchronized containers for desktop and layout containers for mobile
+    const cpVarInspector = screen.getByText(/Inspecteur des Variables CP1/i);
+    expect(cpVarInspector).toBeDefined();
   });
 
-  test('CP2, ILP2, and ILP2+ display compact playback controls', () => {
-    const routes = ['/methods/cp2', '/methods/ilp2', '/methods/ilp2-plus'];
+  test('CP1, CP2, AlgoBB++, ILP1, and ILP2 display compact playback controls', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -559,8 +619,8 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   }, 15000);
 
-  test('CP2, ILP2, and ILP2+ render the shared method cockpit', () => {
-    const routes = ['/methods/cp2', '/methods/ilp2', '/methods/ilp2-plus'];
+  test('CP1, CP2, AlgoBB++, ILP1, and ILP2 render the shared method cockpit', () => {
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -604,7 +664,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('each cockpit exposes one current active trace item after start', () => {
-    const routes = ['/methods/cp2', '/methods/ilp2', '/methods/ilp2-plus'];
+    const routes = ['/methods/cp1', '/methods/cp2', '/methods/algobb-plus-plus', '/methods/ilp1', '/methods/ilp2'];
 
     for (const route of routes) {
       cleanup();
@@ -616,19 +676,20 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   });
 
-  test('CP2 active trace state updates on step changes', () => {
-    window.history.pushState({}, '', '/methods/cp2');
-    render(<App />);
+  test('CP1 inspector active row follows trace step changes', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { container } = render(<App />);
     const controls = within(screen.getByTestId('method-playback-controls'));
 
     fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
-    const firstIndex = screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index');
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    const firstActive = container.querySelector('[data-inspector-key].method-cockpit__active-row')?.getAttribute('data-inspector-key');
 
     fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
-    const secondIndex = screen.getByTestId('cp2-active-trace-state').getAttribute('data-current-step-index');
+    const secondActive = container.querySelector('[data-inspector-key].method-cockpit__active-row')?.getAttribute('data-inspector-key');
 
-    expect(firstIndex).toBe('0');
-    expect(Number(secondIndex)).toBeGreaterThan(0);
+    expect(firstActive).toBeTruthy();
+    expect(secondActive).toBeTruthy();
   });
 
   test('CP1 maps representative trace events to exact rendered inspector keys', () => {
@@ -661,6 +722,33 @@ describe('Routing and Educational UI QA Suite', () => {
     } satisfies CP1TraceEvent;
 
     expect(getCP1InspectorKeyForTraceEvent(event, new Set(['start', 'end', 'x[R1]', 'succ[R1]']))).toBeNull();
+  });
+
+  test('CP1 inspector scroll fires once per valid trace-index/key transition', () => {
+    window.history.pushState({}, '', '/methods/cp1');
+    const { rerender } = render(<App />);
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer|Start|بدء/i }));
+
+    const inspectorPanel = screen.getByTestId('method-inspector-scroll') as HTMLElement;
+    let inspectorScrollWrites = 0;
+    Object.defineProperty(inspectorPanel, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        inspectorScrollWrites += 1;
+      },
+    });
+    expect(inspectorScrollWrites).toBe(0);
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    expect(inspectorScrollWrites).toBe(1);
+
+    rerender(<App />);
+    expect(inspectorScrollWrites).toBe(1);
+
+    fireEvent.click(controls.getByRole('button', { name: /Suivant|Next step|التالية/i }));
+    expect(inspectorScrollWrites).toBe(2);
   });
 
   test('missing inspector key does not trigger an inspector scroll action', () => {
@@ -793,7 +881,7 @@ describe('Routing and Educational UI QA Suite', () => {
       value: vi.fn().mockReturnValue({ matches: false }),
     });
 
-    window.history.pushState({}, '', '/methods/ilp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container, unmount } = render(<App />);
     const cockpit = container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
     cockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });
@@ -808,7 +896,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
     scrollToSpy.mockClear();
     (window.matchMedia as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ matches: true });
-    window.history.pushState({}, '', '/methods/ilp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const reduced = render(<App />);
     const reducedCockpit = reduced.container.querySelector('[data-testid="method-cockpit"]') as HTMLElement;
     reducedCockpit.getBoundingClientRect = () => ({ top: 900, bottom: 1500, height: 600, left: 0, right: 1000, width: 1000, x: 0, y: 900, toJSON: () => ({}) });
@@ -827,7 +915,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('trace journal uses an internal scroll panel inside the cockpit', () => {
-    window.history.pushState({}, '', '/methods/ilp2');
+    window.history.pushState({}, '', '/methods/ilp1');
     render(<App />);
 
     const controls = within(screen.getByTestId('method-playback-controls'));
@@ -838,7 +926,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('desktop cockpit class and mobile stacked fallback CSS are present', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container } = render(<App />);
 
     expect(container.querySelector('.method-cockpit__body')).toBeDefined();
@@ -881,7 +969,7 @@ describe('Routing and Educational UI QA Suite', () => {
 
   test('manual actions and example changes stop playback without duplicate interval behavior', () => {
     vi.useFakeTimers();
-    window.history.pushState({}, '', '/methods/ilp2');
+    window.history.pushState({}, '', '/methods/ilp1');
     render(<App />);
 
     const controls = within(screen.getByTestId('method-playback-controls'));
@@ -907,7 +995,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('mobile playback controls remain usable at 320px and 390px', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container } = render(<App />);
 
     for (const width of [320, 390]) {
@@ -920,7 +1008,7 @@ describe('Routing and Educational UI QA Suite', () => {
   });
 
   test('graph panels use compact responsive sizing rather than old tall fixed layout', () => {
-    window.history.pushState({}, '', '/methods/cp2');
+    window.history.pushState({}, '', '/methods/cp1');
     const { container } = render(<App />);
     const directed = container.querySelector('[data-testid="directed-graph-container"]') as HTMLElement;
     const svg = container.querySelector('[data-testid="directed-graph-svg"]') as SVGElement;
@@ -960,6 +1048,35 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   }, 15000);
 
+  test('ILP1 page supports mobile graph tabs at 320px and 390px', () => {
+    window.history.pushState({}, '', '/methods/ilp1');
+    const { container } = render(<App />);
+
+    const viewports = [320, 390];
+    for (const width of viewports) {
+      window.innerWidth = width;
+      window.dispatchEvent(new Event('resize'));
+
+      const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+      if (mobileSelector) {
+        mobileSelector.style.display = 'flex';
+      }
+
+      const btnTabD = screen.getByRole('button', { name: 'D', hidden: true });
+      const btnTabG = screen.getByRole('button', { name: 'G', hidden: true });
+      const wrappers = container.querySelectorAll('.graph-panel-container .grid-2 > div');
+      expect(wrappers.length).toBe(2);
+
+      fireEvent.click(btnTabG);
+      expect(wrappers[0].classList.contains('mobile-hide-graph')).toBe(true);
+      expect(wrappers[1].getAttribute('aria-hidden')).toBe('false');
+
+      fireEvent.click(btnTabD);
+      expect(wrappers[0].getAttribute('aria-hidden')).toBe('false');
+      expect(wrappers[1].classList.contains('mobile-hide-graph')).toBe(true);
+    }
+  });
+
   test('ILP2 page supports mobile graph tabs at 320px and 390px', () => {
     window.history.pushState({}, '', '/methods/ilp2');
     const { container } = render(<App />);
@@ -989,6 +1106,31 @@ describe('Routing and Educational UI QA Suite', () => {
     }
   }, 15000);
 
+  test('AlgoBB++ page supports trace controls, mobile graph tabs, and Arabic RTL shell', () => {
+    window.history.pushState({}, '', '/methods/algobb-plus-plus');
+    const { container } = render(<App />);
+
+    expect(screen.getAllByText(/AlgoBB\+\+ éducatif/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/bounded implementation/i)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Démarrer/i }));
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDefined();
+    fireEvent.keyDown(screen.getByRole('button', { name: /Suivant/i }), { key: 'Enter' });
+
+    window.innerWidth = 320;
+    window.dispatchEvent(new Event('resize'));
+    const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+    if (mobileSelector) mobileSelector.style.display = 'flex';
+    fireEvent.click(screen.getByRole('button', { name: /Afficher le graphe génomique G/i }));
+    expect(container.querySelectorAll('.mobile-hide-graph').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.lang).toBe('ar');
+    expect(document.documentElement.dir).toBe('rtl');
+    const svg = container.querySelector('svg');
+    expect(svg?.getAttribute('dir')).toBeNull();
+  });
+
   test('differential boundary caps and malformed inputs validation', () => {
     const malformedVertices = ['R1'];
     // Invalid edge referencing non-existent vertex
@@ -1003,4 +1145,34 @@ describe('Routing and Educational UI QA Suite', () => {
     expect(legacyRes.error).toBeDefined();
     expect(cpRes.error?.code).toBe('INVALID_NODE_D');
   });
+  test('Subset DP route supports cockpit playback, current event card, Arabic RTL shell, LTR graphs, mobile tabs, and no visible emoji', () => {
+    window.history.pushState({}, '', '/methods/subset-dp');
+    const { container } = render(<App />);
+
+    expect(screen.getAllByText(/Exact Subset Dynamic Programming/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('method-cockpit')).toBeDefined();
+    expect(screen.getByTestId('method-playback-controls')).toBeDefined();
+    expect(screen.getByTestId('subset-dp-current-event-card')).toBeDefined();
+    expect(screen.getByText(/DP State Inspector|Inspecteur des états DP/i)).toBeDefined();
+
+    const controls = within(screen.getByTestId('method-playback-controls'));
+    fireEvent.click(controls.getByRole('button', { name: /Démarrer Subset DP/i }));
+    expect(screen.getByTestId('subset-dp-current-event-card').textContent).toContain('ACTIVE STEP');
+    fireEvent.click(controls.getByRole('button', { name: /Suivant/i }));
+    expect(screen.getByTestId('subset-dp-current-event-card').textContent).toMatch(/2 \/ \d+/);
+
+    fireEvent.click(screen.getByText('العربية'));
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(container.querySelector('[data-testid="directed-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+    expect(container.querySelector('[data-testid="genomic-graph-container"]')?.getAttribute('dir')).toBe('ltr');
+
+    window.innerWidth = 320;
+    window.dispatchEvent(new Event('resize'));
+    const mobileSelector = container.querySelector('.show-mobile-only') as HTMLElement;
+    if (mobileSelector) mobileSelector.style.display = 'flex';
+    expect(screen.getByRole('button', { name: 'D', hidden: true })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'G', hidden: true })).toBeDefined();
+
+    expect(/[\u{1F300}-\u{1FAFF}]/u.test(document.body.textContent || '')).toBe(false);
+  }, 15000);
 });

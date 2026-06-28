@@ -21,6 +21,7 @@ describe('CP2+ route and educational cockpit', () => {
     render(<App />);
 
     expect(screen.getByText('CP2+ — Propagation sûre de faisabilité génomique')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Carte des Méthodes' }).style.fontWeight).toBe('700');
     expect((screen.getByTestId('cp2-plus-safe-prune-details') as HTMLDetailsElement).open).toBe(false);
     expect(screen.getByTestId('cp2-plus-teaching-examples')).toBeDefined();
     expect(screen.getByTestId('cp2-plus-teaching-examples').querySelectorAll('[data-example-id]')).toHaveLength(8);

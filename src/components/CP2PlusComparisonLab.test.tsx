@@ -12,14 +12,18 @@ describe('CP2+ Comparison Lab', () => {
 
   afterEach(() => cleanup());
 
-  test('renders the public route and is reachable from CP2+', () => {
+  test('renders the public route and is reachable from CP2+ and the Method Map', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Laboratoire de comparaison CP2+' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Carte des Méthodes' }).style.fontWeight).toBe('700');
 
     fireEvent.click(screen.getByRole('link', { name: 'Retour à CP2+' }));
     const labLink = screen.getByRole('link', { name: 'Voir le laboratoire de comparaison' });
     expect(labLink.getAttribute('href')).toBe('/methods/cp2-plus/comparison');
     expect(labLink.parentElement?.textContent).toContain('benchmark complet');
+
+    fireEvent.click(screen.getByRole('link', { name: 'Carte des Méthodes' }));
+    expect(screen.getByRole('link', { name: 'Voir le laboratoire CP2+' }).getAttribute('href')).toBe('/methods/cp2-plus/comparison');
   });
 
   test('renders aggregate metrics directly from the benchmark engine', () => {
