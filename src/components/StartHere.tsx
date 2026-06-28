@@ -46,7 +46,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       progress: 'Progression de l\'apprentissage',
       btnPrev: 'Précédent',
       btnNext: 'Suivant',
-      btnStartCP1: 'Lancer l\'application CP1',
+      btnStartCP1: 'Explorer CP2',
       checkpoint: 'Question de contrôle',
       btnSubmit: 'Vérifier la réponse',
       correct: 'Correct !',
@@ -63,7 +63,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       progress: 'Learning Progress',
       btnPrev: 'Previous',
       btnNext: 'Next',
-      btnStartCP1: 'Launch CP1 App',
+      btnStartCP1: 'Explore CP2',
       checkpoint: 'Checkpoint Question',
       btnSubmit: 'Check Answer',
       correct: 'Correct!',
@@ -80,7 +80,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
       progress: 'تقدم التعلم',
       btnPrev: 'السابق',
       btnNext: 'التالي',
-      btnStartCP1: 'تشغيل نموذج CP1',
+      btnStartCP1: 'استكشاف CP2',
       checkpoint: 'سؤال التحقق',
       btnSubmit: 'تحقق من الإجابة',
       correct: 'إجابة صحيحة!',
@@ -1664,7 +1664,7 @@ export const StartHere: React.FC<StartHereProps> = ({ lang, navigate }) => {
 
             {activeChapter === currentChapters.length - 1 ? (
               <button
-                onClick={() => navigate('/methods/cp1')}
+                onClick={() => navigate('/methods/cp2')}
                 className="btn btn-primary"
                 style={{ width: 'auto', backgroundColor: 'var(--accent-gold)' }}
               >

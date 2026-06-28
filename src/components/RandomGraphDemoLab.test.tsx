@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import App from '../App';
@@ -11,7 +11,7 @@ describe('Random-Graph Demonstration Lab', () => {
 
   afterEach(() => cleanup());
 
-  test('renders the route, primary nav link, Method Map link, and released solver result surfaces', () => {
+  test('renders the route, primary nav link, and released solver result surfaces', () => {
     render(<App />);
 
     expect(screen.getByTestId('random-graph-demo-lab')).toBeDefined();
@@ -26,11 +26,6 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByText('Tous les solveurs exacts applicables')).toBeDefined();
     expect(screen.getByRole('button', { name: 'D', hidden: true })).toBeDefined();
     expect(screen.getByRole('button', { name: 'G', hidden: true })).toBeDefined();
-
-    fireEvent.click(screen.getByRole('link', { name: 'Carte des Méthodes' }));
-    expect(screen.getByText('Laboratoire de graphes aléatoires')).toBeDefined();
-    expect(screen.getByTestId('method-map-random-graph-demo-lab').textContent).toContain('Démonstration exécutable');
-    expect(within(screen.getByTestId('method-map-random-graph-demo-lab')).getByRole('link', { name: 'Ouvrir' }).getAttribute('href')).toBe('/methods/random-graph-lab');
   });
 
   test('owns the page-local cockpit wrapper and layout repair styles', () => {
@@ -73,7 +68,7 @@ describe('Random-Graph Demonstration Lab', () => {
   });
 
   test('does not add the Random Graph Lab wrapper to normal MethodCockpit pages', () => {
-    window.history.pushState({}, '', '/methods/cp1');
+    window.history.pushState({}, '', '/methods/cp2');
     const { container } = render(<App />);
 
     expect(container.querySelector('.random-lab-cockpit-shell')).toBeNull();
@@ -159,17 +154,18 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByText('Ordre topologique').nextElementSibling?.textContent).toBe(snapshot.order);
   });
 
-  test('small tier renders all applicable exact solver rows and CP3/CP4 boundary', () => {
+  test('small tier renders CP2/CP2+/ILP2/ILP2+ solver cards as complete-comparable', () => {
     render(<App />);
 
-    for (const name of ['Legacy', 'CP1', 'CP2', 'CP2+', 'AlgoBB++', 'ILP1', 'ILP2', 'ILP2+', 'Subset DP']) {
+    for (const name of ['CP2', 'CP2+', 'ILP2', 'ILP2+']) {
       expect(screen.getByTestId(`solver-row-${name}`).textContent).toContain('complete-comparable');
     }
-    expect(screen.getByTestId('solver-row-CP3').textContent).toContain('not-applicable-cyclic-trail-method');
-    expect(screen.getByTestId('solver-row-CP4').textContent).toContain('Not applicable — cyclic-trail method.');
+    // Legacy/CP1/AlgoBB++/ILP1/SubsetDP cards are not rendered in the public UI
+    expect(screen.queryByTestId('solver-row-Legacy')).toBeNull();
+    expect(screen.queryByTestId('solver-row-CP1')).toBeNull();
   });
 
-  test('medium tier applies educational safety limits without hiding CP2, CP2+, ILP2, and ILP2+', () => {
+  test('medium tier shows CP2/CP2+/ILP2/ILP2+ without preenumeration-risk', () => {
     render(<App />);
 
     fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-m-dense-sparse-1' } });
@@ -179,8 +175,6 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(screen.getByTestId('solver-row-CP2+').textContent).toContain('complete-comparable');
     expect(screen.getByTestId('solver-row-ILP2').textContent).not.toContain('not-run-preenumeration-risk');
     expect(screen.getByTestId('solver-row-ILP2+').textContent).not.toContain('not-run-preenumeration-risk');
-    expect(screen.getByTestId('solver-row-Legacy').textContent).toContain('not-run-educational-safety-limit');
-    expect(screen.getByTestId('solver-row-Subset DP').textContent).toContain('Not run — exceeds this solver’s educational safety limit.');
   });
 
   test('Tier L preset keeps ILP2 and ILP2+ as not-run-preenumeration-risk, not capped or complete', () => {
@@ -233,17 +227,12 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(container.textContent).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });
 
-  test('small generated scenario opens in every applicable Method page with a handoff banner', () => {
+  test('small generated scenario opens in applicable Method pages with a handoff banner', () => {
     const routes = [
-      ['Ouvrir dans Legacy', '/legacy'],
-      ['Ouvrir dans CP1', '/methods/cp1'],
       ['Ouvrir dans CP2', '/methods/cp2'],
       ['Ouvrir dans CP2+', '/methods/cp2-plus'],
-      ['Ouvrir dans AlgoBB++', '/methods/algobb-plus-plus'],
-      ['Ouvrir dans ILP1', '/methods/ilp1'],
       ['Ouvrir dans ILP2', '/methods/ilp2'],
       ['Ouvrir dans ILP2+', '/methods/ilp2-plus'],
-      ['Ouvrir dans Subset DP', '/methods/subset-dp'],
     ] as const;
 
     for (const [button, route] of routes) {
@@ -288,7 +277,6 @@ describe('Random-Graph Demonstration Lab', () => {
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans CP2+' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: 'Ouvrir dans ILP2+' }) as HTMLButtonElement).disabled).toBe(false);
-    expect((screen.getByRole('button', { name: 'Ouvrir dans Legacy' }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText('Préréglage déterministe'), { target: { value: 'hard-stress-no-solution-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
