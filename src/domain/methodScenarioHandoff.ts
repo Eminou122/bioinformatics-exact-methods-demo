@@ -7,6 +7,7 @@ export interface MethodScenarioHandoff {
   scenarioId: string;
   source: ScenarioSource;
   vertices: string[];
+  topologicalOrder?: string[];
   edgesD: { from: string; to: string }[];
   edgesG: { u: string; v: string }[];
   maxEvents: number;
@@ -20,6 +21,7 @@ export interface MethodScenarioHandoff {
 
 export const HANDOFF_QUERY_KEY = 'scenario';
 export const HANDOFF_ID_QUERY_KEY = 'scenarioId';
+export const RETURN_TO_QUERY_KEY = 'returnTo';
 export const HANDOFF_STORAGE_PREFIX = 'method-scenario-handoff:';
 export const MAX_URL_SCENARIO_CHARS = 1800;
 
@@ -34,6 +36,7 @@ export interface HandoffLink {
 export interface HandoffReadResult {
   scenario: MethodScenarioHandoff | null;
   scenarioId: string | null;
+  returnTo: string;
   error: string | null;
 }
 
@@ -64,6 +67,7 @@ export function validateHandoffScenario(value: unknown): MethodScenarioHandoff |
     || (value.source !== 'random-graph-lab' && value.source !== 'challenge-graph')
     || !Array.isArray(vertices)
     || !vertices.every((v) => typeof v === 'string')
+    || (value.topologicalOrder !== undefined && (!Array.isArray(value.topologicalOrder) || !value.topologicalOrder.every((v) => typeof v === 'string')))
     || !Array.isArray(edgesD)
     || !edgesD.every((e) => isRecord(e) && typeof e.from === 'string' && typeof e.to === 'string')
     || !Array.isArray(edgesG)
@@ -90,15 +94,21 @@ export function validateHandoffScenario(value: unknown): MethodScenarioHandoff |
   return value as unknown as MethodScenarioHandoff;
 }
 
-export function createScenarioHandoffLink(route: string, scenario: MethodScenarioHandoff): HandoffLink {
+export function safeRandomLabReturnTo(value: string | null): string {
+  return value?.startsWith('/methods/random-graph-lab') ? value : '/methods/random-graph-lab';
+}
+
+export function createScenarioHandoffLink(route: string, scenario: MethodScenarioHandoff, returnTo = `${window.location.pathname}${window.location.search}`): HandoffLink {
   const encoded = encodeScenario(scenario);
   const url = new URL(route, window.location.origin);
+  url.searchParams.set(RETURN_TO_QUERY_KEY, safeRandomLabReturnTo(returnTo));
   if (encoded.length <= MAX_URL_SCENARIO_CHARS) {
     url.searchParams.set(HANDOFF_QUERY_KEY, encoded);
     return { url: `${url.pathname}${url.search}`, scenarioId: scenario.scenarioId, transport: 'url' };
   }
   window.sessionStorage.setItem(`${HANDOFF_STORAGE_PREFIX}${scenario.scenarioId}`, JSON.stringify(scenario));
   url.searchParams.set(HANDOFF_ID_QUERY_KEY, scenario.scenarioId);
+  url.searchParams.set(RETURN_TO_QUERY_KEY, `/methods/random-graph-lab?${HANDOFF_ID_QUERY_KEY}=${encodeURIComponent(scenario.scenarioId)}`);
   return { url: `${url.pathname}${url.search}`, scenarioId: scenario.scenarioId, transport: 'session' };
 }
 
@@ -106,27 +116,28 @@ export function readScenarioHandoff(search = window.location.search): HandoffRea
   const params = new URLSearchParams(search);
   const inline = params.get(HANDOFF_QUERY_KEY);
   const id = params.get(HANDOFF_ID_QUERY_KEY);
+  const returnTo = safeRandomLabReturnTo(params.get(RETURN_TO_QUERY_KEY));
   try {
     if (inline) {
       const scenario = validateHandoffScenario(decodeScenario(inline));
       return scenario
-        ? { scenario, scenarioId: scenario.scenarioId, error: null }
-        : { scenario: null, scenarioId: null, error: 'Malformed scenario handoff. Loaded the built-in example.' };
+        ? { scenario, scenarioId: scenario.scenarioId, returnTo, error: null }
+        : { scenario: null, scenarioId: null, returnTo, error: 'Malformed scenario handoff. Loaded the built-in example.' };
     }
     if (id) {
       const stored = window.sessionStorage.getItem(`${HANDOFF_STORAGE_PREFIX}${id}`);
       if (!stored) {
-        return { scenario: null, scenarioId: id, error: 'Stored scenario was not found. Loaded the built-in example.' };
+        return { scenario: null, scenarioId: id, returnTo, error: 'Stored scenario was not found. Loaded the built-in example.' };
       }
       const scenario = validateHandoffScenario(JSON.parse(stored));
       return scenario
-        ? { scenario, scenarioId: scenario.scenarioId, error: null }
-        : { scenario: null, scenarioId: id, error: 'Stored scenario was malformed. Loaded the built-in example.' };
+        ? { scenario, scenarioId: scenario.scenarioId, returnTo, error: null }
+        : { scenario: null, scenarioId: id, returnTo, error: 'Stored scenario was malformed. Loaded the built-in example.' };
     }
   } catch {
-    return { scenario: null, scenarioId: id, error: 'Scenario handoff could not be read. Loaded the built-in example.' };
+    return { scenario: null, scenarioId: id, returnTo, error: 'Scenario handoff could not be read. Loaded the built-in example.' };
   }
-  return { scenario: null, scenarioId: null, error: null };
+  return { scenario: null, scenarioId: null, returnTo, error: null };
 }
 
 export function positionsForVertices(vertices: string[]): Record<string, { x: number; y: number }> {

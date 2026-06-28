@@ -257,7 +257,7 @@ export const CP2PlusModel: React.FC<CP2PlusModelProps> = ({ lang, dict, navigate
 
   return (
     <div data-testid="cp2-plus-page" style={{ direction: isAr ? 'rtl' : 'ltr', textAlign: isAr ? 'right' : 'left' }}>
-      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} returnTo={suppliedScenario.returnTo} error={suppliedScenario.error} />
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <h2 style={{ color: 'var(--primary)', border: 0 }}>{t.title}</h2>
         <p style={{ fontWeight: 700 }}>{t.description}</p>

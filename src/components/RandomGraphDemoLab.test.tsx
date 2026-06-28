@@ -11,6 +11,20 @@ describe('Random-Graph Demonstration Lab', () => {
 
   afterEach(() => cleanup());
 
+  function labSnapshot() {
+    return {
+      family: screen.getAllByText('Famille').find((el) => el.tagName === 'DT')?.nextElementSibling?.textContent,
+      stats: screen.getByText('Sommets / arcs D / arêtes G').nextElementSibling?.textContent,
+      order: screen.getByText('Ordre topologique').nextElementSibling?.textContent,
+      seeds: {
+        seedOrder: (screen.getByLabelText('seedOrder') as HTMLInputElement).value,
+        seedD: (screen.getByLabelText('seedD') as HTMLInputElement).value,
+        seedG: (screen.getByLabelText('seedG') as HTMLInputElement).value,
+      },
+      summary: screen.getByTestId('random-graph-all-solvers').textContent,
+    };
+  }
+
   test('renders the route, primary nav link, and released solver result surfaces', () => {
     render(<App />);
 
@@ -246,6 +260,46 @@ describe('Random-Graph Demonstration Lab', () => {
     }
   }, 15000);
 
+  test('generated graph survives CP2 round-trip with identical URL-backed summary', () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('n'), { target: { value: '6' } });
+    fireEvent.change(screen.getByLabelText('pD'), { target: { value: '0.5' } });
+    fireEvent.change(screen.getByLabelText('pG'), { target: { value: '0.4' } });
+    fireEvent.change(screen.getByLabelText('seedOrder'), { target: { value: '42' } });
+    fireEvent.change(screen.getByLabelText('seedD'), { target: { value: '43' } });
+    fireEvent.change(screen.getByLabelText('seedG'), { target: { value: '44' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    const before = labSnapshot();
+    const labUrl = `${window.location.pathname}${window.location.search}`;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2' }));
+    expect(window.location.pathname).toBe('/methods/cp2');
+    expect(new URLSearchParams(window.location.search).get('returnTo')).toBe(labUrl);
+    expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('seedOrder=42, seedD=43, seedG=44');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Random Graph Lab' }));
+
+    expect(window.location.pathname).toBe('/methods/random-graph-lab');
+    expect(labSnapshot()).toEqual(before);
+  });
+
+  test('the same generated scenario persists through CP2+, ILP2, and ILP2+', () => {
+    for (const [button, route] of [
+      ['Ouvrir dans CP2+', '/methods/cp2-plus'],
+      ['Ouvrir dans ILP2', '/methods/ilp2'],
+      ['Ouvrir dans ILP2+', '/methods/ilp2-plus'],
+    ] as const) {
+      cleanup();
+      window.history.pushState({}, '', '/methods/random-graph-lab?family=acyclic-erdos-renyi&n=6&pD=0.5&pG=0.4&seedOrder=42&seedD=43&seedG=44&complexity=tiny&dgMode=independent');
+      render(<App />);
+      const before = labSnapshot();
+      fireEvent.click(screen.getByRole('button', { name: button }));
+      expect(window.location.pathname).toBe(route);
+      expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain('seedOrder=42, seedD=43, seedG=44');
+      fireEvent.click(screen.getByRole('button', { name: 'Back to Random Graph Lab' }));
+      expect(labSnapshot()).toEqual(before);
+    }
+  }, 15000);
+
   test('malformed handoff safely falls back to the built-in example', () => {
     window.history.pushState({}, '', '/methods/cp2?scenario=bad');
     render(<App />);
@@ -267,6 +321,26 @@ describe('Random-Graph Demonstration Lab', () => {
     expect(id).toBeTruthy();
     expect(window.sessionStorage.getItem(`method-scenario-handoff:${id}`)).toBeTruthy();
     expect(screen.getByTestId('scenario-handoff-banner').textContent).toContain(id!);
+  });
+
+  test('sessionStorage scenario survives destination read and return navigation', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('n'), { target: { value: '13' } });
+    fireEvent.change(screen.getByLabelText('pD'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('pG'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer' }));
+    const before = labSnapshot();
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2+' }));
+
+    const id = new URLSearchParams(window.location.search).get('scenarioId');
+    expect(id).toBeTruthy();
+    expect(window.sessionStorage.getItem(`method-scenario-handoff:${id}`)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Random Graph Lab' }));
+    expect(window.location.search).toContain(`scenarioId=${id}`);
+    expect(labSnapshot()).toEqual(before);
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir dans CP2+' }));
+    expect(window.sessionStorage.getItem(`method-scenario-handoff:${id}`)).toBeTruthy();
   });
 
   test('medium and stress method actions keep safety limits truthful', () => {

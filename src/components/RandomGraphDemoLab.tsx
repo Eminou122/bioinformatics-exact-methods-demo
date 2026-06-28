@@ -23,7 +23,7 @@ import {
   type HardRandomGeneratedGraph,
 } from '../domain/hardRandomGraphCorpus';
 import { CHALLENGE_GRAPHS, challengeToScenario, type ChallengeGraph } from '../domain/challengeGraphLibrary';
-import { createScenarioHandoffLink, makeScenarioId, type MethodScenarioHandoff } from '../domain/methodScenarioHandoff';
+import { createScenarioHandoffLink, makeScenarioId, readScenarioHandoff, type MethodScenarioHandoff } from '../domain/methodScenarioHandoff';
 import { isInducedGConnected } from '../domain/pathAlgorithms';
 import type { Language, TranslationDict } from '../i18n/types';
 import { GraphPanel } from './GraphPanel';
@@ -86,6 +86,17 @@ type SolverBundle = {
   ilp2: ILP2SolverResult | null;
   ilp2Plus: ILP2SolverResult | null;
   rows: SolverRow[];
+};
+type RestoredLabState = {
+  family: Family;
+  presetId: string;
+  form: FormState;
+  graph: GeneratedGraph;
+  runPreset: HardRandomCaseSpec | null;
+  selectedChallengeId: string;
+  complexity: Complexity;
+  dgMode: DGMode;
+  error: string;
 };
 
 const MAX_EVENTS = 200000;
@@ -590,14 +601,118 @@ function challengeAsGraph(challenge: ChallengeGraph): ChallengeGeneratedGraph {
   };
 }
 
+function graphFromScenario(scenario: MethodScenarioHandoff): GeneratedGraph {
+  if (scenario.challengeGraphId) {
+    const challenge = CHALLENGE_GRAPHS.find((candidate) => candidate.id === scenario.challengeGraphId);
+    if (challenge) return challengeAsGraph(challenge);
+  }
+  const family: Family = scenario.family === 'acyclic-scale-free' ? 'acyclic-scale-free' : 'acyclic-erdos-renyi';
+  return {
+    family,
+    vertices: scenario.vertices,
+    topologicalOrder: scenario.topologicalOrder ?? scenario.vertices,
+    edgesD: scenario.edgesD,
+    edgesG: scenario.edgesG,
+    statistics: { vertexCount: scenario.vertices.length, directedEdgeCount: scenario.edgesD.length, genomicEdgeCount: scenario.edgesG.length },
+    seeds: { seedOrder: scenario.seedOrder, seedD: scenario.seedD, seedG: scenario.seedG },
+    parameters: { ...scenario.parameters, scenarioId: scenario.scenarioId },
+  } as unknown as GeneratedGraph;
+}
+
+function currentLabUrl(): string {
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function replayUrlForGraph(graph: GeneratedGraph, preset: HardRandomCaseSpec | null, complexity: Complexity, dgMode: DGMode): string {
+  const query = new URLSearchParams({ complexity, dgMode });
+  const parameters = graph.parameters as Record<string, string | number | boolean>;
+  const scenarioId = parameters.scenarioId;
+  if (typeof scenarioId === 'string') {
+    query.set('scenarioId', scenarioId);
+    return `/methods/random-graph-lab?${query.toString()}`;
+  }
+  if (graph.family === 'challenge-graph') {
+    query.set('challengeGraphId', graph.challengeGraphId);
+    return `/methods/random-graph-lab?${query.toString()}`;
+  }
+  query.set('family', graph.family);
+  query.set('n', String(graph.statistics.vertexCount));
+  query.set('seedOrder', String(graph.seeds?.seedOrder ?? parameters.seedOrder ?? 0));
+  query.set('seedD', String(graph.seeds?.seedD ?? parameters.seedD ?? 0));
+  query.set('seedG', String(graph.seeds?.seedG ?? parameters.seedG ?? 0));
+  if (preset) query.set('presetId', preset.caseId);
+  if ('pD' in parameters) query.set('pD', String(parameters.pD));
+  if ('pG' in parameters) query.set('pG', String(parameters.pG));
+  if ('m' in parameters) query.set('m', String(parameters.m));
+  return `/methods/random-graph-lab?${query.toString()}`;
+}
+
+function restoreFromUrl(firstPreset: HardRandomCaseSpec): RestoredLabState {
+  const params = new URLSearchParams(window.location.search);
+  const complexity = ['tiny', 'small', 'medium', 'large', 'huge'].includes(params.get('complexity') || '') ? params.get('complexity') as Complexity : 'tiny';
+  const dgMode = Object.keys(MODE_FAMILIES).includes(params.get('dgMode') || '') ? params.get('dgMode') as DGMode : 'independent';
+  const handoff = readScenarioHandoff();
+  if (handoff.scenario) {
+    const graph = graphFromScenario(handoff.scenario);
+    const family: Family = graph.family === 'acyclic-scale-free' ? 'acyclic-scale-free' : 'acyclic-erdos-renyi';
+    return { family, presetId: CUSTOM_ID, form: formFromGraph(graph), graph, runPreset: null, selectedChallengeId: handoff.scenario.challengeGraphId ?? CHALLENGE_GRAPHS[0].id, complexity, dgMode, error: '' };
+  }
+  const challengeGraphId = params.get('challengeGraphId');
+  const challenge = CHALLENGE_GRAPHS.find((candidate) => candidate.id === challengeGraphId);
+  if (challenge) {
+    const graph = challengeAsGraph(challenge);
+    return { family: 'acyclic-erdos-renyi' as Family, presetId: CUSTOM_ID, form: formFromGraph(graph), graph, runPreset: null, selectedChallengeId: challenge.id, complexity, dgMode, error: '' };
+  }
+  const spec = presets.find((preset) => preset.caseId === params.get('presetId'));
+  if (spec) {
+    return { family: spec.graphFamily === 'acyclic-scale-free' ? 'acyclic-scale-free' as Family : 'acyclic-erdos-renyi' as Family, presetId: spec.caseId, form: formFromPreset(spec), graph: generateHardRandomGraph(spec), runPreset: spec, selectedChallengeId: CHALLENGE_GRAPHS[0].id, complexity, dgMode, error: handoff.error ?? '' };
+  }
+  const family = params.get('family') === 'acyclic-scale-free' ? 'acyclic-scale-free' : params.get('family') === 'acyclic-erdos-renyi' ? 'acyclic-erdos-renyi' : null;
+  const form = {
+    n: params.get('n') || '',
+    pD: params.get('pD') || '0.45',
+    pG: params.get('pG') || '0.45',
+    m: params.get('m') || '1',
+    seedOrder: params.get('seedOrder') || '',
+    seedD: params.get('seedD') || '',
+    seedG: params.get('seedG') || '',
+  };
+  if (family && form.n && form.seedOrder && form.seedD && form.seedG) {
+    try {
+      const graph = makeGraph(family, form);
+      return { family, presetId: CUSTOM_ID, form, graph, runPreset: null, selectedChallengeId: CHALLENGE_GRAPHS[0].id, complexity, dgMode, error: handoff.error ?? '' };
+    } catch {
+      // fall through to the built-in default
+    }
+  }
+  return { family: 'acyclic-erdos-renyi' as Family, presetId: firstPreset.caseId, form: formFromPreset(firstPreset), graph: generateHardRandomGraph(firstPreset), runPreset: firstPreset, selectedChallengeId: CHALLENGE_GRAPHS[0].id, complexity, dgMode, error: handoff.error ?? '' };
+}
+
+function formFromGraph(graph: GeneratedGraph): FormState {
+  const parameters = graph.parameters as Record<string, string | number | boolean>;
+  return {
+    n: String(graph.statistics.vertexCount),
+    pD: 'pD' in parameters ? String(parameters.pD) : '0.45',
+    pG: 'pG' in parameters ? String(parameters.pG) : '0.45',
+    m: 'm' in parameters ? String(parameters.m) : '1',
+    seedOrder: String(graph.seeds?.seedOrder ?? parameters.seedOrder ?? 0),
+    seedD: String(graph.seeds?.seedD ?? parameters.seedD ?? 0),
+    seedG: String(graph.seeds?.seedG ?? parameters.seedG ?? 0),
+  };
+}
+
 function graphToScenario(graph: GeneratedGraph): MethodScenarioHandoff {
-  const scenarioId = makeScenarioId(graph.family === 'challenge-graph' ? 'challenge-graph' : 'random-graph-lab');
+  const parameters = graph.parameters as Record<string, string | number | boolean>;
+  const scenarioId = typeof parameters.scenarioId === 'string'
+    ? parameters.scenarioId
+    : makeScenarioId(graph.family === 'challenge-graph' ? 'challenge-graph' : 'random-graph-lab');
   if (graph.family === 'challenge-graph') {
     const challenge = CHALLENGE_GRAPHS.find((candidate) => candidate.id === graph.challengeGraphId);
     return challenge ? challengeToScenario(challenge, scenarioId) : {
       scenarioId,
       source: 'challenge-graph',
       vertices: graph.vertices,
+      topologicalOrder: graph.topologicalOrder,
       edgesD: graph.edgesD,
       edgesG: graph.edgesG,
       maxEvents: MAX_EVENTS,
@@ -613,6 +728,7 @@ function graphToScenario(graph: GeneratedGraph): MethodScenarioHandoff {
     scenarioId,
     source: 'random-graph-lab',
     vertices: graph.vertices,
+    topologicalOrder: graph.topologicalOrder,
     edgesD: graph.edgesD,
     edgesG: graph.edgesG,
     maxEvents: MAX_EVENTS,
@@ -625,7 +741,7 @@ function graphToScenario(graph: GeneratedGraph): MethodScenarioHandoff {
 }
 
 function openRoute(route: string, graph: GeneratedGraph) {
-  const link = createScenarioHandoffLink(route, graphToScenario(graph));
+  const link = createScenarioHandoffLink(route, graphToScenario(graph), currentLabUrl());
   window.history.pushState({}, '', link.url);
   window.dispatchEvent(new Event('popstate'));
   window.scrollTo(0, 0);
@@ -662,17 +778,18 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   const t = labels[lang];
   const isAr = lang === 'ar';
   const firstPreset = presets[0];
-  const [family, setFamily] = useState<Family>('acyclic-erdos-renyi');
-  const [presetId, setPresetId] = useState(firstPreset.caseId);
-  const [form, setForm] = useState<FormState>(formFromPreset(firstPreset));
-  const [error, setError] = useState('');
+  const [initial] = useState(() => restoreFromUrl(firstPreset));
+  const [family, setFamily] = useState<Family>(initial.family);
+  const [presetId, setPresetId] = useState(initial.presetId);
+  const [form, setForm] = useState<FormState>(initial.form);
+  const [error, setError] = useState(initial.error);
   const [viewTab, setViewTab] = useState<'D' | 'G'>('D');
-  const [graph, setGraph] = useState<GeneratedGraph>(() => generateHardRandomGraph(firstPreset));
-  const [runPreset, setRunPreset] = useState<HardRandomCaseSpec | null>(firstPreset);
-  const [selectedChallengeId, setSelectedChallengeId] = useState(CHALLENGE_GRAPHS[0].id);
+  const [graph, setGraph] = useState<GeneratedGraph>(initial.graph);
+  const [runPreset, setRunPreset] = useState<HardRandomCaseSpec | null>(initial.runPreset);
+  const [selectedChallengeId, setSelectedChallengeId] = useState(initial.selectedChallengeId);
   // H3A: simple builder state
-  const [complexity, setComplexity] = useState<Complexity>('tiny');
-  const [dgMode, setDgMode] = useState<DGMode>('independent');
+  const [complexity, setComplexity] = useState<Complexity>(initial.complexity);
+  const [dgMode, setDgMode] = useState<DGMode>(initial.dgMode);
 
   const familyPresets = presets;
   const results = useMemo(() => solveGraph(graph, runPreset, t), [graph, runPreset, t]);
@@ -692,6 +809,10 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
   const actions = methodActions(graph, runPreset, t);
   // H3A: truthfulness — Large/Huge and Similar are not yet wired to generators
   const showNextPhase = complexity === 'large' || complexity === 'huge' || dgMode === 'similar';
+
+  const replaceReplayUrl = (nextGraph = graph, nextPreset = runPreset, nextComplexity = complexity, nextDgMode = dgMode) => {
+    window.history.replaceState({}, '', replayUrlForGraph(nextGraph, nextPreset, nextComplexity, nextDgMode));
+  };
 
   const fillPreset = (spec: HardRandomCaseSpec) => {
     setFamily(spec.graphFamily === 'acyclic-scale-free' ? 'acyclic-scale-free' : 'acyclic-erdos-renyi');
@@ -742,27 +863,24 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
     setGraph(next);
     setRunPreset(selectedSpec);
     setError('');
-    const query = new URLSearchParams({ family, n: String(next.statistics.vertexCount), seedOrder: String(next.seeds?.seedOrder ?? form.seedOrder), seedD: String(next.seeds?.seedD ?? form.seedD), seedG: String(next.seeds?.seedG ?? form.seedG) });
-    if (family === 'acyclic-erdos-renyi') {
-      query.set('pD', form.pD);
-      query.set('pG', form.pG);
-    } else {
-      query.set('m', form.m);
-    }
-    window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`);
+    replaceReplayUrl(next, selectedSpec);
   };
 
   const loadChallenge = () => {
-    setGraph(challengeAsGraph(selectedChallenge));
+    const next = challengeAsGraph(selectedChallenge);
+    setGraph(next);
     setRunPreset(null);
     setPresetId(CUSTOM_ID);
     setError('');
+    replaceReplayUrl(next, null);
   };
 
   const reset = () => {
     fillPreset(firstPreset);
-    setGraph(generateHardRandomGraph(firstPreset));
+    const next = generateHardRandomGraph(firstPreset);
+    setGraph(next);
     setRunPreset(firstPreset);
+    replaceReplayUrl(next, firstPreset);
   };
 
   const newRandomScenario = () => {
@@ -780,9 +898,11 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
     setFamily(nextFamily);
     setPresetId(CUSTOM_ID);
     setForm(nextForm);
-    setGraph(makeGraph(nextFamily, nextForm));
+    const next = makeGraph(nextFamily, nextForm);
+    setGraph(next);
     setRunPreset(null);
     setError('');
+    replaceReplayUrl(next, null);
   };
 
   // H3A: primary generate — picks a corpus case matching complexity tier + D/G mode family
@@ -799,9 +919,11 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
     if (pool.length === 0) return;
     const spec = pool[randomInt(pool.length)];
     fillPreset(spec);
-    setGraph(generateHardRandomGraph(spec));
+    const next = generateHardRandomGraph(spec);
+    setGraph(next);
     setRunPreset(spec);
     setError('');
+    replaceReplayUrl(next, spec);
   };
 
   const dCoreSize = reachableDCoreSize(graph.vertices, graph.edgesD);
@@ -828,7 +950,11 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
                 <select
                   aria-label={t.complexity}
                   value={complexity}
-                  onChange={(e) => setComplexity(e.target.value as Complexity)}
+                  onChange={(e) => {
+                    const next = e.target.value as Complexity;
+                    setComplexity(next);
+                    replaceReplayUrl(graph, runPreset, next, dgMode);
+                  }}
                 >
                   <option value="tiny">{t.complexityTiny}</option>
                   <option value="small">{t.complexitySmall}</option>
@@ -841,7 +967,11 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
                 <select
                   aria-label={t.dgRelationship}
                   value={dgMode}
-                  onChange={(e) => setDgMode(e.target.value as DGMode)}
+                  onChange={(e) => {
+                    const next = e.target.value as DGMode;
+                    setDgMode(next);
+                    replaceReplayUrl(graph, runPreset, complexity, next);
+                  }}
                 >
                   <option value="independent">{t.modeIndependent}</option>
                   <option value="similar">{t.modeSimilar}</option>
@@ -1013,7 +1143,14 @@ export const RandomGraphDemoLab: React.FC<RandomGraphDemoLabProps> = ({ lang, di
                 defaultValue=""
                 onChange={(e) => {
                   const spec = presets.find((p) => p.caseId === e.target.value);
-                  if (spec) { fillPreset(spec); setGraph(generateHardRandomGraph(spec)); setRunPreset(spec); setError(''); }
+                  if (spec) {
+                    const next = generateHardRandomGraph(spec);
+                    fillPreset(spec);
+                    setGraph(next);
+                    setRunPreset(spec);
+                    setError('');
+                    replaceReplayUrl(next, spec);
+                  }
                 }}
               >
                 <option value="" disabled>{t.custom}</option>

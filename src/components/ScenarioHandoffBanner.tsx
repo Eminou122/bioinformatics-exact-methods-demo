@@ -10,6 +10,7 @@ const labels = {
     seeds: 'Graines',
     challenge: 'Graphe défi',
     scenario: 'ID du scénario',
+    back: 'Back to Random Graph Lab',
     default: 'Revenir à l’exemple intégré',
   },
   en: {
@@ -20,6 +21,7 @@ const labels = {
     seeds: 'Seeds',
     challenge: 'Challenge graph',
     scenario: 'Scenario ID',
+    back: 'Back to Random Graph Lab',
     default: 'Return to built-in example',
   },
   ar: {
@@ -30,6 +32,7 @@ const labels = {
     seeds: 'البذور',
     challenge: 'مخطط التحدي',
     scenario: 'معرف السيناريو',
+    back: 'Back to Random Graph Lab',
     default: 'العودة إلى المثال المدمج',
   },
 } satisfies Record<Language, Record<string, string>>;
@@ -37,10 +40,17 @@ const labels = {
 interface ScenarioHandoffBannerProps {
   lang: Language;
   scenario: MethodScenarioHandoff | null;
+  returnTo?: string;
   error: string | null;
 }
 
-export function ScenarioHandoffBanner({ lang, scenario, error }: ScenarioHandoffBannerProps) {
+function pushRoute(path: string) {
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new Event('popstate'));
+  window.scrollTo(0, 0);
+}
+
+export function ScenarioHandoffBanner({ lang, scenario, returnTo, error }: ScenarioHandoffBannerProps) {
   if (!scenario && !error) return null;
   const t = labels[lang];
   return (
@@ -60,9 +70,16 @@ export function ScenarioHandoffBanner({ lang, scenario, error }: ScenarioHandoff
         </dl>
       )}
       {error && <p role="alert" style={{ color: 'var(--danger)', fontWeight: 800 }}>{error}</p>}
-      <button type="button" className="btn btn-secondary" onClick={() => window.location.assign(window.location.pathname)} style={{ width: 'auto' }}>
-        {t.default}
-      </button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+        {scenario && returnTo && (
+          <button type="button" className="btn btn-primary" onClick={() => pushRoute(returnTo)} style={{ width: 'auto' }}>
+            {t.back}
+          </button>
+        )}
+        <button type="button" className="btn btn-secondary" onClick={() => pushRoute(window.location.pathname)} style={{ width: 'auto' }}>
+          {t.default}
+        </button>
+      </div>
     </section>
   );
 }

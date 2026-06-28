@@ -233,7 +233,7 @@ export const ILP2Model: React.FC<ILP2ModelProps> = ({ lang, dict, variant = 'ilp
 
   return (
     <div style={{ textAlign: isAr ? 'right' : 'left', direction: isAr ? 'rtl' : 'ltr' }}>
-      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} error={suppliedScenario.error} />
+      <ScenarioHandoffBanner lang={lang} scenario={suppliedScenario.scenario} returnTo={suppliedScenario.returnTo} error={suppliedScenario.error} />
       <div className="sr-only" aria-live="assertive">{currentEvent?.message || ''}</div>
       <header style={{ marginBlockEnd: 'var(--space-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>

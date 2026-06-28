@@ -4,6 +4,7 @@ import {
   createScenarioHandoffLink,
   HANDOFF_STORAGE_PREFIX,
   readScenarioHandoff,
+  safeRandomLabReturnTo,
   type MethodScenarioHandoff,
 } from './methodScenarioHandoff';
 
@@ -36,6 +37,7 @@ describe('method scenario handoff transport', () => {
 
     expect(link.transport).toBe('url');
     expect(read.scenario).toEqual(scenario());
+    expect(read.returnTo).toBe('/methods/random-graph-lab');
   });
 
   test('oversized scenario uses sessionStorage under the visible scenario ID', () => {
@@ -53,6 +55,15 @@ describe('method scenario handoff transport', () => {
     expect(link.url).toContain('scenarioId=scenario-large');
     expect(window.sessionStorage.getItem(`${HANDOFF_STORAGE_PREFIX}scenario-large`)).toBeTruthy();
     expect(read.scenario).toEqual(large);
+  });
+
+  test('returnTo keeps only internal Random Graph Lab paths', () => {
+    const safe = createScenarioHandoffLink('/methods/cp2', scenario(), '/methods/random-graph-lab?family=acyclic-erdos-renyi&seedD=2');
+    const external = createScenarioHandoffLink('/methods/cp2', scenario(), 'https://example.com/phish');
+
+    expect(readScenarioHandoff(safe.url.slice(safe.url.indexOf('?'))).returnTo).toBe('/methods/random-graph-lab?family=acyclic-erdos-renyi&seedD=2');
+    expect(readScenarioHandoff(external.url.slice(external.url.indexOf('?'))).returnTo).toBe('/methods/random-graph-lab');
+    expect(safeRandomLabReturnTo('/methods/cp2')).toBe('/methods/random-graph-lab');
   });
 
   test('malformed or missing stored scenario reports fallback instead of throwing', () => {
